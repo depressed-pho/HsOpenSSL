@@ -1,0 +1,28 @@
+Name: HsOpenSSL
+Synopsis: Wrapper of (part of) the OpenSSL
+Description:
+        FIXME: write this
+Version: 0.1
+License: PublicDomain
+Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
+Maintainer: PHO <phonohawk at ps dot sakura dot ne dot jp>
+Stability: experimental
+Homepage: http://ccm.sherry.jp/hs-openssl/
+Category: Cryptography
+Tested-With: GHC == 6.6.1
+Build-Depends:
+        base
+Exposed-Modules:
+        OpenSSL
+        OpenSSL.BIO
+        OpenSSL.SSL
+        OpenSSL.Unsafe
+        OpenSSL.Utils
+Extensions:
+        ForeignFunctionInterface
+ghc-options:
+         -fglasgow-exts
+C-Sources:
+        cbits/HsOpenSSL.c
+Include-Dirs:
+        cbits
