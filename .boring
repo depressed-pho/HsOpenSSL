@@ -54,8 +54,9 @@
 
 ^OpenSSL\.hs$
 ^OpenSSL/BIO\.hs$
+^OpenSSL/ERR\.hs$
+^OpenSSL/EVP\.hs$
 ^OpenSSL/SSL\.hs$
-^OpenSSL/Utils\.hs$
 ^Setup$
 ^dist($|/)
 ^examples/HelloWorld$

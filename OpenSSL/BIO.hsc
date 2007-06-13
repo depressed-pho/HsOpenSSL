@@ -1,12 +1,13 @@
 {- -*- haskell -*- -}
 module OpenSSL.BIO
-    ( BioMethod
-    , BIO
-    , new
+    ( BIO
     , push
     , (==>)
+    , joinAll
 
+    , flush
     , eof
+
     , read
     , readBS
     , readLBS
@@ -17,12 +18,16 @@ module OpenSSL.BIO
     , writeBS
     , writeLBS
 
-    , s_mem
-    , newMemBuf
-    , newMemBufBS
-    , newMemBufLBS
+    , newBase64
 
-    , s_null
+    , newMD
+
+    , newMemBuf
+    , newConstMemBuf
+    , newConstMemBufBS
+    , newConstMemBufLBS
+
+    , newNullBIO
     )
     where
 
@@ -36,7 +41,7 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign hiding (new)
 import           Foreign.C
 import qualified GHC.ForeignPtr as GF
-import           OpenSSL.Unsafe
+import           OpenSSL.EVP
 import           OpenSSL.Utils
 import           Prelude hiding (read)
 import           System.IO.Unsafe
@@ -57,6 +62,9 @@ foreign import ccall "&BIO_free"
 
 foreign import ccall "BIO_push"
         _push :: BIO_ptr -> BIO_ptr -> IO BIO_ptr
+
+foreign import ccall "HsOpenSSL_BIO_set_flags"
+        _set_flags :: BIO_ptr -> Int -> IO ()
 
 
 new :: BioMethod -> IO BIO
@@ -79,13 +87,47 @@ push (BIO a) (BIO b)
          GF.addForeignPtrConcFinalizer b $ touchForeignPtr a
          return ()
 
+
 (==>) = push
 
 
-{- I/O ---------------------------------------------------------------------- -}
+joinAll :: [BIO] -> IO ()
+joinAll []       = return ()
+joinAll (_:[])   = return ()
+joinAll (a:b:xs) = push a b >> joinAll (b:xs)
 
-foreign import ccall "_BIO_eof"
+
+setFlags :: BIO -> Int -> IO ()
+setFlags (BIO bio) flags
+    = withForeignPtr bio $ \ bioPtr ->
+      _set_flags bioPtr flags
+
+
+{- ctrl --------------------------------------------------------------------- -}
+
+foreign import ccall "HsOpenSSL_BIO_flush"
+        _flush :: BIO_ptr -> IO Int
+
+foreign import ccall "HsOpenSSL_BIO_eof"
         _eof :: BIO_ptr -> IO Int
+
+
+flush :: BIO -> IO ()
+flush (BIO bio)
+    = withForeignPtr bio $ \ bioPtr ->
+      do ret <- _flush bioPtr
+         ret `failIf` (/= 1)
+         return ()
+
+
+eof :: BIO -> IO Bool
+eof (BIO bio)
+    = withForeignPtr bio $ \ bioPtr ->
+      do ret <- _eof bioPtr
+         return $ ret == 1
+
+
+{- I/O ---------------------------------------------------------------------- -}
 
 foreign import ccall "BIO_read"
         _read :: BIO_ptr -> Ptr CChar -> Int -> IO Int
@@ -95,13 +137,6 @@ foreign import ccall "BIO_gets"
 
 foreign import ccall "BIO_write"
         _write :: BIO_ptr -> Ptr CChar -> Int -> IO Int
-
-
-eof :: BIO -> IO Bool
-eof (BIO bio)
-    = withForeignPtr bio $ \ bioPtr ->
-      do ret <- _eof bioPtr
-         return $ ret == 1
 
 
 read :: BIO -> IO String
@@ -193,6 +228,48 @@ writeLBS bio (LPS chunks)
     = mapM_ (writeBS bio) chunks
       
 
+{- base64 ------------------------------------------------------------------- -}
+
+foreign import ccall "BIO_f_base64"
+        _f_base64 :: IO BioMethod_ptr
+
+foreign import ccall "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
+        _FLAGS_BASE64_NO_NL :: Int
+
+
+f_base64 :: IO BioMethod
+f_base64 = _f_base64 >>= return . BioMethod
+
+
+newBase64 :: Bool -> IO BIO
+newBase64 noNL
+    = do bio <- new =<< f_base64
+         when noNL $ setFlags bio _FLAGS_BASE64_NO_NL
+         return bio
+
+
+{- md ----------------------------------------------------------------------- -}
+
+foreign import ccall "BIO_f_md"
+        _f_md :: IO BioMethod_ptr
+
+foreign import ccall "HsOpenSSL_BIO_set_md"
+        _set_md :: BIO_ptr -> Ptr () -> IO Int
+
+
+f_md :: IO BioMethod
+f_md = _f_md >>= return . BioMethod
+
+
+newMD :: EvpMD -> IO BIO
+newMD (EvpMD md)
+    = do BIO bio <- new =<< f_md
+         withForeignPtr bio $ \ bioPtr ->
+             do ret <- _set_md bioPtr md
+                ret `failIf` (/= 1)
+                return $ BIO bio
+
+
 {- mem ---------------------------------------------------------------------- -}
 
 foreign import ccall "BIO_s_mem"
@@ -203,17 +280,21 @@ foreign import ccall "BIO_new_mem_buf"
 
 
 s_mem :: IO BioMethod
-s_mem = liftM BioMethod _s_mem
+s_mem = _s_mem >>= return . BioMethod
 
 
-newMemBuf :: String -> IO BIO
-newMemBuf str
-    = (return . B8.pack) str >>= newMemBufBS
+newMemBuf :: IO BIO
+newMemBuf = s_mem >>= new
+
+
+newConstMemBuf :: String -> IO BIO
+newConstMemBuf str
+    = (return . B8.pack) str >>= newConstMemBufBS
 
 
 -- ByteString への參照を BIO の finalizer に持たせる。
-newMemBufBS :: ByteString -> IO BIO
-newMemBufBS bs
+newConstMemBufBS :: ByteString -> IO BIO
+newConstMemBufBS bs
     = let (foreignBuf, off, len) = toForeignPtr bs
       in
         withForeignPtr foreignBuf $ \ buf ->
@@ -226,14 +307,19 @@ newMemBufBS bs
            return $ BIO bio
 
 
-newMemBufLBS :: LazyByteString -> IO BIO
-newMemBufLBS (LPS bss)
-    = (return . B.concat) bss >>= newMemBufBS
+newConstMemBufLBS :: LazyByteString -> IO BIO
+newConstMemBufLBS (LPS bss)
+    = (return . B.concat) bss >>= newConstMemBufBS
 
 {- null --------------------------------------------------------------------- -}
 
 foreign import ccall "BIO_s_null"
         _s_null :: IO BioMethod_ptr
 
+
 s_null :: IO BioMethod
 s_null = liftM BioMethod _s_null
+
+
+newNullBIO :: IO BIO
+newNullBIO = s_null >>= new

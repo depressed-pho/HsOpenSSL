@@ -1,5 +1,27 @@
 #include "HsOpenSSL.h"
 
-int _BIO_eof(BIO* bio) {
+/* BIO ************************************************************************/
+void HsOpenSSL_BIO_set_flags(BIO* bio, int flags) {
+    BIO_set_flags(bio, flags);
+}
+
+int HsOpenSSL_BIO_flush(BIO* bio) {
+    return BIO_flush(bio);
+}
+
+int HsOpenSSL_BIO_eof(BIO* bio) {
     return BIO_eof(bio);
+}
+
+int HsOpenSSL_BIO_set_md(BIO* bio, EVP_MD* md) {
+    return BIO_set_md(bio, md);
+}
+
+int HsOpenSSL_BIO_FLAGS_BASE64_NO_NL() {
+    return BIO_FLAGS_BASE64_NO_NL;
+}
+
+/* EVP ************************************************************************/
+int HsOpenSSL_EVP_MD_size(EVP_MD* md) {
+    return EVP_MD_size(md);
 }

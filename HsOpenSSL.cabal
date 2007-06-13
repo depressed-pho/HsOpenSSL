@@ -15,8 +15,9 @@ Build-Depends:
 Exposed-Modules:
         OpenSSL
         OpenSSL.BIO
+        OpenSSL.ERR
+        OpenSSL.EVP
         OpenSSL.SSL
-        OpenSSL.Unsafe
         OpenSSL.Utils
 Extensions:
         ForeignFunctionInterface
