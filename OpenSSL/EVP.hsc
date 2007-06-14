@@ -28,37 +28,37 @@ import           OpenSSL.Utils
 newtype EvpMD     = EvpMD (Ptr ())
 type    EvpMD_ptr = Ptr ()
 
-foreign import ccall "EVP_get_digestbyname"
+foreign import ccall unsafe "EVP_get_digestbyname"
         _get_digestbyname :: CString -> IO EvpMD_ptr
 
-foreign import ccall "EVP_md_null"
+foreign import ccall unsafe "EVP_md_null"
         _md_null :: IO EvpMD_ptr
 
-foreign import ccall "EVP_md2"
+foreign import ccall unsafe "EVP_md2"
         _md_md2 :: IO EvpMD_ptr
 
-foreign import ccall "EVP_md5"
+foreign import ccall unsafe "EVP_md5"
         _md_md5 :: IO EvpMD_ptr
 
-foreign import ccall "EVP_sha"
+foreign import ccall unsafe "EVP_sha"
         _md_sha :: IO EvpMD_ptr
 
-foreign import ccall "EVP_sha1"
+foreign import ccall unsafe "EVP_sha1"
         _md_sha1 :: IO EvpMD_ptr
 
-foreign import ccall "EVP_dss"
+foreign import ccall unsafe "EVP_dss"
         _md_dss :: IO EvpMD_ptr
 
-foreign import ccall "EVP_dss1"
+foreign import ccall unsafe "EVP_dss1"
         _md_dss1 :: IO EvpMD_ptr
 
-foreign import ccall "EVP_mdc2"
+foreign import ccall unsafe "EVP_mdc2"
         _md_mdc2 :: IO EvpMD_ptr
 
-foreign import ccall "EVP_ripemd160"
+foreign import ccall unsafe "EVP_ripemd160"
         _md_ripemd160 :: IO EvpMD_ptr
 
-foreign import ccall "HsOpenSSL_EVP_MD_size"
+foreign import ccall unsafe "HsOpenSSL_EVP_MD_size"
         _md_size :: EvpMD_ptr -> Int
 
 

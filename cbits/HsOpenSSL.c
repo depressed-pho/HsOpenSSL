@@ -1,5 +1,10 @@
 #include "HsOpenSSL.h"
 
+/* OpenSSL ********************************************************************/
+void HsOpenSSL_OPENSSL_free(void* ptr) {
+    OPENSSL_free(ptr);
+}
+
 /* BIO ************************************************************************/
 void HsOpenSSL_BIO_set_flags(BIO* bio, int flags) {
     BIO_set_flags(bio, flags);

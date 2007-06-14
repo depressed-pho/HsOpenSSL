@@ -15,8 +15,10 @@ Build-Depends:
 Exposed-Modules:
         OpenSSL
         OpenSSL.BIO
+        OpenSSL.BN
         OpenSSL.ERR
         OpenSSL.EVP
+        OpenSSL.RSA
         OpenSSL.SSL
         OpenSSL.Utils
 Extensions:

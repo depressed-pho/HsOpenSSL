@@ -3,6 +3,9 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
+/* OpenSSL ********************************************************************/
+void HsOpenSSL_OPENSSL_free(void* ptr);
+
 /* BIO ************************************************************************/
 void HsOpenSSL_BIO_set_flags(BIO* bio, int flags);
 int HsOpenSSL_BIO_flush(BIO* bio);

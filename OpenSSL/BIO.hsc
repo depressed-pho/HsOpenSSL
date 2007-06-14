@@ -54,16 +54,16 @@ type    BioMethod_ptr = Ptr ()
 newtype BIO     = BIO (ForeignPtr ())
 type    BIO_ptr = Ptr ()
 
-foreign import ccall "BIO_new"
+foreign import ccall unsafe "BIO_new"
         _new :: BioMethod_ptr -> IO BIO_ptr
 
-foreign import ccall "&BIO_free"
+foreign import ccall unsafe "&BIO_free"
         _free :: FunPtr (BIO_ptr -> IO ())
 
-foreign import ccall "BIO_push"
+foreign import ccall unsafe "BIO_push"
         _push :: BIO_ptr -> BIO_ptr -> IO BIO_ptr
 
-foreign import ccall "HsOpenSSL_BIO_set_flags"
+foreign import ccall unsafe "HsOpenSSL_BIO_set_flags"
         _set_flags :: BIO_ptr -> Int -> IO ()
 
 
@@ -105,10 +105,10 @@ setFlags (BIO bio) flags
 
 {- ctrl --------------------------------------------------------------------- -}
 
-foreign import ccall "HsOpenSSL_BIO_flush"
+foreign import ccall unsafe "HsOpenSSL_BIO_flush"
         _flush :: BIO_ptr -> IO Int
 
-foreign import ccall "HsOpenSSL_BIO_eof"
+foreign import ccall unsafe "HsOpenSSL_BIO_eof"
         _eof :: BIO_ptr -> IO Int
 
 
@@ -129,13 +129,13 @@ eof (BIO bio)
 
 {- I/O ---------------------------------------------------------------------- -}
 
-foreign import ccall "BIO_read"
+foreign import ccall unsafe "BIO_read"
         _read :: BIO_ptr -> Ptr CChar -> Int -> IO Int
 
-foreign import ccall "BIO_gets"
+foreign import ccall unsafe "BIO_gets"
         _gets :: BIO_ptr -> Ptr CChar -> Int -> IO Int
 
-foreign import ccall "BIO_write"
+foreign import ccall unsafe "BIO_write"
         _write :: BIO_ptr -> Ptr CChar -> Int -> IO Int
 
 
@@ -230,10 +230,10 @@ writeLBS bio (LPS chunks)
 
 {- base64 ------------------------------------------------------------------- -}
 
-foreign import ccall "BIO_f_base64"
+foreign import ccall unsafe "BIO_f_base64"
         _f_base64 :: IO BioMethod_ptr
 
-foreign import ccall "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
+foreign import ccall unsafe "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
         _FLAGS_BASE64_NO_NL :: Int
 
 
@@ -250,10 +250,10 @@ newBase64 noNL
 
 {- md ----------------------------------------------------------------------- -}
 
-foreign import ccall "BIO_f_md"
+foreign import ccall unsafe "BIO_f_md"
         _f_md :: IO BioMethod_ptr
 
-foreign import ccall "HsOpenSSL_BIO_set_md"
+foreign import ccall unsafe "HsOpenSSL_BIO_set_md"
         _set_md :: BIO_ptr -> Ptr () -> IO Int
 
 
@@ -272,10 +272,10 @@ newMD (EvpMD md)
 
 {- mem ---------------------------------------------------------------------- -}
 
-foreign import ccall "BIO_s_mem"
+foreign import ccall unsafe "BIO_s_mem"
         _s_mem :: IO BioMethod_ptr
 
-foreign import ccall "BIO_new_mem_buf"
+foreign import ccall unsafe "BIO_new_mem_buf"
         _new_mem_buf :: Ptr CChar -> Int -> IO BIO_ptr
 
 
@@ -313,7 +313,7 @@ newConstMemBufLBS (LPS bss)
 
 {- null --------------------------------------------------------------------- -}
 
-foreign import ccall "BIO_s_null"
+foreign import ccall unsafe "BIO_s_null"
         _s_null :: IO BioMethod_ptr
 
 

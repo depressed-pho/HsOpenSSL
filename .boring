@@ -54,8 +54,10 @@
 
 ^OpenSSL\.hs$
 ^OpenSSL/BIO\.hs$
+^OpenSSL/BN\.hs$
 ^OpenSSL/ERR\.hs$
 ^OpenSSL/EVP\.hs$
+^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$
 ^Setup$
 ^dist($|/)

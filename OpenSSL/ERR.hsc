@@ -12,13 +12,13 @@ import           Foreign
 import           Foreign.C
 
 
-foreign import ccall "ERR_get_error"
+foreign import ccall unsafe "ERR_get_error"
         _get_error :: IO CULong
 
-foreign import ccall "ERR_peek_error"
+foreign import ccall unsafe "ERR_peek_error"
         _peek_error :: IO CULong
 
-foreign import ccall "ERR_error_string"
+foreign import ccall unsafe "ERR_error_string"
         _error_string :: CULong -> CString -> IO CString
 
 
