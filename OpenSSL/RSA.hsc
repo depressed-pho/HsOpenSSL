@@ -24,12 +24,12 @@ import           OpenSSL.BN
 import           OpenSSL.Utils
 
 
-newtype RSA     = RSA (ForeignPtr ())
-type    RSA_ptr = Ptr ()
+newtype RSA  = RSA (ForeignPtr RSA_)
+data    RSA_ = RSA_
 
 
 foreign import ccall unsafe "&RSA_free"
-        _free :: FunPtr (RSA_ptr -> IO ())
+        _free :: FunPtr (Ptr RSA_ -> IO ())
 
 
 {- generation --------------------------------------------------------------- -}
@@ -41,7 +41,7 @@ foreign import ccall unsafe "wrapper"
         mkGenKeyCallback :: GenKeyCallback -> IO (FunPtr GenKeyCallback)
 
 foreign import ccall safe "RSA_generate_key"
-        _generate_key :: Int -> Int -> FunPtr GenKeyCallback -> Ptr () -> IO RSA_ptr
+        _generate_key :: Int -> Int -> FunPtr GenKeyCallback -> Ptr () -> IO (Ptr RSA_)
 
 
 generateKey :: Int -> Int -> Maybe (Int -> Int -> IO ()) -> IO RSA
@@ -62,7 +62,7 @@ generateKey nbits e (Just cb)
 
 {- exploration -------------------------------------------------------------- -}
 
-peekRSAPublic :: (Ptr () -> IO (Ptr ())) -> RSA -> IO Integer
+peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO Integer
 peekRSAPublic peeker (RSA rsa)
     = withForeignPtr rsa $ \ rsaPtr ->
       do bnPtr <- peeker rsaPtr
@@ -70,7 +70,7 @@ peekRSAPublic peeker (RSA rsa)
          bn2dec $ BigNum bnPtr
 
 
-peekRSAPrivate :: (Ptr () -> IO (Ptr ())) -> RSA -> IO (Maybe Integer)
+peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
 peekRSAPrivate peeker (RSA rsa)
     = withForeignPtr rsa $ \ rsaPtr ->
       do bnPtr <- peeker rsaPtr

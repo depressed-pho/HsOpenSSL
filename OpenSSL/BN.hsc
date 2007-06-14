@@ -4,6 +4,7 @@
 
 module OpenSSL.BN
     ( BigNum(..)
+    , BIGNUM
 
     , bn2dec
     )
@@ -15,12 +16,12 @@ import           Foreign.C
 
 #include "HsOpenSSL.h"
 
-newtype BigNum     = BigNum (Ptr ())
-type    BigNum_ptr = Ptr ()
+newtype BigNum = BigNum (Ptr BIGNUM)
+data    BIGNUM = BIGNUM
 
 
 foreign import ccall unsafe "BN_bn2dec"
-        _bn2dec :: BigNum_ptr -> IO CString
+        _bn2dec :: Ptr BIGNUM -> IO CString
 
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()

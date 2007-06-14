@@ -48,23 +48,23 @@ import           System.IO.Unsafe
 
 {- bio ---------------------------------------------------------------------- -}
 
-newtype BioMethod     = BioMethod (Ptr ())
-type    BioMethod_ptr = Ptr ()
+newtype BioMethod  = BioMethod (Ptr BIO_METHOD)
+data    BIO_METHOD = BIO_METHOD
 
-newtype BIO     = BIO (ForeignPtr ())
-type    BIO_ptr = Ptr ()
+newtype BIO  = BIO (ForeignPtr BIO_)
+data    BIO_ = BIO_
 
 foreign import ccall unsafe "BIO_new"
-        _new :: BioMethod_ptr -> IO BIO_ptr
+        _new :: Ptr BIO_METHOD -> IO (Ptr BIO_)
 
 foreign import ccall unsafe "&BIO_free"
-        _free :: FunPtr (BIO_ptr -> IO ())
+        _free :: FunPtr (Ptr BIO_ -> IO ())
 
 foreign import ccall unsafe "BIO_push"
-        _push :: BIO_ptr -> BIO_ptr -> IO BIO_ptr
+        _push :: Ptr BIO_ -> Ptr BIO_ -> IO (Ptr BIO_)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_flags"
-        _set_flags :: BIO_ptr -> Int -> IO ()
+        _set_flags :: Ptr BIO_ -> Int -> IO ()
 
 
 new :: BioMethod -> IO BIO
@@ -106,10 +106,10 @@ setFlags (BIO bio) flags
 {- ctrl --------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "HsOpenSSL_BIO_flush"
-        _flush :: BIO_ptr -> IO Int
+        _flush :: Ptr BIO_ -> IO Int
 
 foreign import ccall unsafe "HsOpenSSL_BIO_eof"
-        _eof :: BIO_ptr -> IO Int
+        _eof :: Ptr BIO_ -> IO Int
 
 
 flush :: BIO -> IO ()
@@ -130,13 +130,13 @@ eof (BIO bio)
 {- I/O ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_read"
-        _read :: BIO_ptr -> Ptr CChar -> Int -> IO Int
+        _read :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
 
 foreign import ccall unsafe "BIO_gets"
-        _gets :: BIO_ptr -> Ptr CChar -> Int -> IO Int
+        _gets :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
 
 foreign import ccall unsafe "BIO_write"
-        _write :: BIO_ptr -> Ptr CChar -> Int -> IO Int
+        _write :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
 
 
 read :: BIO -> IO String
@@ -231,7 +231,7 @@ writeLBS bio (LPS chunks)
 {- base64 ------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_base64"
-        _f_base64 :: IO BioMethod_ptr
+        _f_base64 :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
         _FLAGS_BASE64_NO_NL :: Int
@@ -251,10 +251,10 @@ newBase64 noNL
 {- md ----------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_md"
-        _f_md :: IO BioMethod_ptr
+        _f_md :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_md"
-        _set_md :: BIO_ptr -> Ptr () -> IO Int
+        _set_md :: Ptr BIO_ -> Ptr EVP_MD -> IO Int
 
 
 f_md :: IO BioMethod
@@ -273,10 +273,10 @@ newMD (EvpMD md)
 {- mem ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_mem"
-        _s_mem :: IO BioMethod_ptr
+        _s_mem :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "BIO_new_mem_buf"
-        _new_mem_buf :: Ptr CChar -> Int -> IO BIO_ptr
+        _new_mem_buf :: Ptr CChar -> Int -> IO (Ptr BIO_)
 
 
 s_mem :: IO BioMethod
@@ -314,7 +314,7 @@ newConstMemBufLBS (LPS bss)
 {- null --------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_null"
-        _s_null :: IO BioMethod_ptr
+        _s_null :: IO (Ptr BIO_METHOD)
 
 
 s_null :: IO BioMethod

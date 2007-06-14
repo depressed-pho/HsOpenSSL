@@ -52,6 +52,8 @@
 ^\.setup-config$
 \.buildinfo$
 
+_stub\.(c|h)$
+
 ^OpenSSL\.hs$
 ^OpenSSL/BIO\.hs$
 ^OpenSSL/BN\.hs$
