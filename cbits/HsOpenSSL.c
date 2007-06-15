@@ -1,6 +1,10 @@
 #include "HsOpenSSL.h"
 
 /* OpenSSL ********************************************************************/
+void HsOpenSSL_OpenSSL_add_all_algorithms() {
+    OpenSSL_add_all_algorithms();
+}
+
 void HsOpenSSL_OPENSSL_free(void* ptr) {
     OPENSSL_free(ptr);
 }

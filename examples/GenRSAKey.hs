@@ -44,21 +44,5 @@ main = withOpenSSL $
           printf "iqmp (q^-1 mod p) = %s\n" (show iqmp)
                   
           pkey <- newPKeyRSA rsa
-          mem  <- newMemBuf
-          writePKCS8PrivateKey mem pkey Nothing
-
-          str <- BIO.read mem
-          putStr str
-
-{-
-       do base64 <- newBase64 True
-          mem    <- newMemBuf
-
-          base64 ==> mem
-
-          write base64 "Hello, world!"
-          flush base64
-          result <- BIO.read mem
-
-          putStrLn result
--}
+          writePKCS8PrivateKeyToString pkey Nothing >>= putStr
+          writePublicKeyToString pkey >>= putStr

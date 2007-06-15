@@ -1,6 +1,8 @@
 {- -*- haskell -*- -}
 module OpenSSL.BIO
     ( BIO
+    , BIO_
+
     , push
     , (==>)
     , joinAll
@@ -48,11 +50,11 @@ import           System.IO.Unsafe
 
 {- bio ---------------------------------------------------------------------- -}
 
-newtype BioMethod  = BioMethod (Ptr BIO_METHOD)
-data    BIO_METHOD = BIO_METHOD
+type BioMethod  = Ptr BIO_METHOD
+data BIO_METHOD = BIO_METHOD
 
-newtype BIO  = BIO (ForeignPtr BIO_)
-data    BIO_ = BIO_
+type BIO  = ForeignPtr BIO_
+data BIO_ = BIO_
 
 foreign import ccall unsafe "BIO_new"
         _new :: Ptr BIO_METHOD -> IO (Ptr BIO_)
@@ -68,10 +70,9 @@ foreign import ccall unsafe "HsOpenSSL_BIO_set_flags"
 
 
 new :: BioMethod -> IO BIO
-new (BioMethod method)
-    = do ptr <- _new method
-         failIfNull ptr
-         liftM BIO $ newForeignPtr _free ptr
+new method
+    = do ptr <- _new method >>= failIfNull
+         newForeignPtr _free ptr
 
 
 -- a の後ろに b を付ける。a の參照だけ保持してそこに書き込む事も、b の
@@ -79,7 +80,7 @@ new (BioMethod method)
 -- ForeignPtr が双方を touch する。參照カウント方式ではないから循環參照
 -- しても問題無い。
 push :: BIO -> BIO -> IO ()
-push (BIO a) (BIO b)
+push a b
     = withForeignPtr a $ \ aPtr ->
       withForeignPtr b $ \ bPtr ->
       do _push aPtr bPtr
@@ -98,7 +99,7 @@ joinAll (a:b:xs) = push a b >> joinAll (b:xs)
 
 
 setFlags :: BIO -> Int -> IO ()
-setFlags (BIO bio) flags
+setFlags bio flags
     = withForeignPtr bio $ \ bioPtr ->
       _set_flags bioPtr flags
 
@@ -113,18 +114,15 @@ foreign import ccall unsafe "HsOpenSSL_BIO_eof"
 
 
 flush :: BIO -> IO ()
-flush (BIO bio)
+flush bio
     = withForeignPtr bio $ \ bioPtr ->
-      do ret <- _flush bioPtr
-         ret `failIf` (/= 1)
-         return ()
+      _flush bioPtr >>= failIf (/= 1) >> return ()
 
 
 eof :: BIO -> IO Bool
-eof (BIO bio)
+eof bio
     = withForeignPtr bio $ \ bioPtr ->
-      do ret <- _eof bioPtr
-         return $ ret == 1
+      _eof bioPtr >>= return . (== 1)
 
 
 {- I/O ---------------------------------------------------------------------- -}
@@ -145,11 +143,10 @@ read bio
 
 
 readBS :: BIO -> Int -> IO ByteString
-readBS (BIO bio) maxLen
+readBS bio maxLen
     = withForeignPtr bio $ \ bioPtr ->
       createAndTrim maxLen $ \ buf ->
-      do ret <- _read bioPtr (unsafeCoercePtr buf) maxLen
-         interpret ret
+      _read bioPtr (unsafeCoercePtr buf) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -160,15 +157,15 @@ readBS (BIO bio) maxLen
 
 
 readLBS :: BIO -> IO LazyByteString
-readLBS (BIO bio) = lazyRead >>= return . LPS
+readLBS bio = lazyRead >>= return . LPS
     where
       chunkSize = 32 * 1024
       
       lazyRead = unsafeInterleaveIO loop
 
-      loop = do bs <- readBS (BIO bio) chunkSize
+      loop = do bs <- readBS bio chunkSize
                 if B.null bs then
-                    do isEOF <- eof (BIO bio)
+                    do isEOF <- eof bio
                        if isEOF then
                            return []
                          else
@@ -184,11 +181,10 @@ gets bio maxLen
 
 
 getsBS :: BIO -> Int -> IO ByteString
-getsBS (BIO bio) maxLen
+getsBS bio maxLen
     = withForeignPtr bio $ \ bioPtr ->
       createAndTrim maxLen $ \ buf ->
-      do ret <- _gets bioPtr (unsafeCoercePtr buf) maxLen
-         interpret ret
+      _gets bioPtr (unsafeCoercePtr buf) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -209,7 +205,7 @@ write bio str
 
 
 writeBS :: BIO -> ByteString -> IO ()
-writeBS (BIO bio) bs
+writeBS bio bs
     = withForeignPtr bio $ \ bioPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       do ret <- _write bioPtr buf len
@@ -218,9 +214,9 @@ writeBS (BIO bio) bs
       interpret :: Int -> IO ()
       interpret n
           | n == B.length bs = return ()
-          | n == -1          = writeBS (BIO bio) bs -- full retry
+          | n == -1          = writeBS bio bs -- full retry
           | n <  -1          = raiseOpenSSLError
-          | otherwise        = writeBS (BIO bio) (B.drop n bs) -- partial retry
+          | otherwise        = writeBS bio (B.drop n bs) -- partial retry
 
 
 writeLBS :: BIO -> LazyByteString -> IO ()
@@ -231,14 +227,10 @@ writeLBS bio (LPS chunks)
 {- base64 ------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_base64"
-        _f_base64 :: IO (Ptr BIO_METHOD)
+        f_base64 :: IO BioMethod
 
 foreign import ccall unsafe "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
         _FLAGS_BASE64_NO_NL :: Int
-
-
-f_base64 :: IO BioMethod
-f_base64 = _f_base64 >>= return . BioMethod
 
 
 newBase64 :: Bool -> IO BIO
@@ -251,36 +243,27 @@ newBase64 noNL
 {- md ----------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_md"
-        _f_md :: IO (Ptr BIO_METHOD)
+        f_md :: IO BioMethod
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_md"
         _set_md :: Ptr BIO_ -> Ptr EVP_MD -> IO Int
 
 
-f_md :: IO BioMethod
-f_md = _f_md >>= return . BioMethod
-
-
 newMD :: EvpMD -> IO BIO
-newMD (EvpMD md)
-    = do BIO bio <- new =<< f_md
+newMD md
+    = do bio <- new =<< f_md
          withForeignPtr bio $ \ bioPtr ->
-             do ret <- _set_md bioPtr md
-                ret `failIf` (/= 1)
-                return $ BIO bio
+             do _set_md bioPtr md >>= failIf (/= 1)
+                return bio
 
 
 {- mem ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_mem"
-        _s_mem :: IO (Ptr BIO_METHOD)
+        s_mem :: IO BioMethod
 
 foreign import ccall unsafe "BIO_new_mem_buf"
         _new_mem_buf :: Ptr CChar -> Int -> IO (Ptr BIO_)
-
-
-s_mem :: IO BioMethod
-s_mem = _s_mem >>= return . BioMethod
 
 
 newMemBuf :: IO BIO
@@ -299,12 +282,12 @@ newConstMemBufBS bs
       in
         withForeignPtr foreignBuf $ \ buf ->
         do bioPtr <- _new_mem_buf (unsafeCoercePtr $ buf `plusPtr` off) len
-           failIfNull bioPtr
+                     >>= failIfNull
 
            bio <- newForeignPtr _free bioPtr
            GF.addForeignPtrConcFinalizer bio $ touchForeignPtr foreignBuf
            
-           return $ BIO bio
+           return bio
 
 
 newConstMemBufLBS :: LazyByteString -> IO BIO
@@ -314,11 +297,7 @@ newConstMemBufLBS (LPS bss)
 {- null --------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_null"
-        _s_null :: IO (Ptr BIO_METHOD)
-
-
-s_null :: IO BioMethod
-s_null = liftM BioMethod _s_null
+        s_null :: IO BioMethod
 
 
 newNullBIO :: IO BIO

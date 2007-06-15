@@ -1,6 +1,7 @@
 {- -*- haskell -*- -}
 module OpenSSL.RSA
     ( RSA
+    , RSA_
 
     , generateKey
 
@@ -24,8 +25,8 @@ import           OpenSSL.BN
 import           OpenSSL.Utils
 
 
-newtype RSA  = RSA (ForeignPtr RSA_)
-data    RSA_ = RSA_
+type RSA  = ForeignPtr RSA_
+data RSA_ = RSA_
 
 
 foreign import ccall unsafe "&RSA_free"
@@ -37,11 +38,11 @@ foreign import ccall unsafe "&RSA_free"
 type GenKeyCallback = Int -> Int -> Ptr () -> IO ()
 
 
-foreign import ccall unsafe "wrapper"
+foreign import ccall "wrapper"
         mkGenKeyCallback :: GenKeyCallback -> IO (FunPtr GenKeyCallback)
 
 foreign import ccall safe "RSA_generate_key"
-        _generate_key :: Int -> Int -> FunPtr GenKeyCallback -> Ptr () -> IO (Ptr RSA_)
+        _generate_key :: Int -> Int -> FunPtr GenKeyCallback -> Ptr a -> IO (Ptr RSA_)
 
 
 generateKey :: Int -> Int -> Maybe (Int -> Int -> IO ()) -> IO RSA
@@ -49,7 +50,7 @@ generateKey :: Int -> Int -> Maybe (Int -> Int -> IO ()) -> IO RSA
 generateKey nbits e Nothing
     = do ptr <- _generate_key nbits e nullFunPtr nullPtr
          failIfNull ptr
-         liftM RSA $ newForeignPtr _free ptr
+         newForeignPtr _free ptr
 
 generateKey nbits e (Just cb)
     = do cbPtr <- mkGenKeyCallback
@@ -57,27 +58,27 @@ generateKey nbits e (Just cb)
          ptr   <- _generate_key nbits e cbPtr nullPtr
          freeHaskellFunPtr cbPtr
          failIfNull ptr
-         liftM RSA $ newForeignPtr _free ptr
+         newForeignPtr _free ptr
 
 
 {- exploration -------------------------------------------------------------- -}
 
 peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO Integer
-peekRSAPublic peeker (RSA rsa)
+peekRSAPublic peeker rsa
     = withForeignPtr rsa $ \ rsaPtr ->
-      do bnPtr <- peeker rsaPtr
-         when (bnPtr == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
-         bn2dec $ BigNum bnPtr
+      do bn <- peeker rsaPtr
+         when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
+         bn2dec bn
 
 
 peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
-peekRSAPrivate peeker (RSA rsa)
+peekRSAPrivate peeker rsa
     = withForeignPtr rsa $ \ rsaPtr ->
-      do bnPtr <- peeker rsaPtr
-         if bnPtr == nullPtr then
+      do bn <- peeker rsaPtr
+         if bn == nullPtr then
              return Nothing
            else
-             bn2dec (BigNum bnPtr) >>= return . Just
+             bn2dec bn >>= return . Just
 
 
 rsaN :: RSA -> IO Integer

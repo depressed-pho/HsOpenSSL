@@ -22,8 +22,8 @@ failIfNull ptr
           return ptr
 
 
-failIf :: a -> (a -> Bool) -> IO a
-failIf a f
+failIf :: (a -> Bool) -> a -> IO a
+failIf f a
     | f a       = raiseOpenSSLError
     | otherwise = return a
 

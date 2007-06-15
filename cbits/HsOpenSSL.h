@@ -1,9 +1,11 @@
 #ifndef HSOPENSSL_H_INCLUDED
 #define HSOPENSSL_H_INCLUDED
+#include <openssl/opensslconf.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
 /* OpenSSL ********************************************************************/
+void HsOpenSSL_OpenSSL_add_all_algorithms();
 void HsOpenSSL_OPENSSL_free(void* ptr);
 
 /* BIO ************************************************************************/

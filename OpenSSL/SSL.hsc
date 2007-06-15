@@ -1,14 +1,14 @@
 {- -*- haskell -*- -}
 module OpenSSL.SSL
     ( loadErrorStrings
-    , libraryInit
+    , addAllAlgorithms
     )
     where
 
-#include <openssl/ssl.h>
+#include "HsOpenSSL.h"
 
 foreign import ccall unsafe "SSL_load_error_strings"
         loadErrorStrings :: IO ()
 
-foreign import ccall unsafe "SSL_library_init"
-        libraryInit :: IO ()
+foreign import ccall unsafe "HsOpenSSL_OpenSSL_add_all_algorithms"
+        addAllAlgorithms :: IO ()

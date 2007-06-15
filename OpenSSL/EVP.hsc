@@ -1,20 +1,20 @@
 {- -*- haskell -*- -}
 module OpenSSL.EVP
-    ( EvpMD(..)
+    ( EvpMD
     , EVP_MD
-
-    , md_null
-    , md_md2
-    , md_md5
-    , md_sha
-    , md_sha1
-    , md_dss
-    , md_dss1
-    , md_mdc2
-    , md_ripemd160
     , getDigestByName
-
     , mdSize
+
+    , EvpCipher
+    , EVP_CIPHER
+    , getCipherByName
+
+    , EvpPKey
+    , EVP_PKEY
+      -- FIXME: newPKeyDSA, newPKeyDH and newPKeyECKey may be needed
+#ifndef OPENSSL_NO_RSA
+    , newPKeyRSA
+#endif
     )
     where
 
@@ -22,73 +22,20 @@ module OpenSSL.EVP
 
 import           Foreign
 import           Foreign.C
+import           OpenSSL.RSA
 import           OpenSSL.Utils
 
-{- MD ------------------------------------------------------------------------ -}
+{- digest -------------------------------------------------------------------- -}
 
-newtype EvpMD  = EvpMD (Ptr EVP_MD)
-data    EVP_MD = EVP_MD
+type EvpMD  = Ptr EVP_MD
+data EVP_MD = EVP_MD
+
 
 foreign import ccall unsafe "EVP_get_digestbyname"
-        _get_digestbyname :: CString -> IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_md_null"
-        _md_null :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_md2"
-        _md_md2 :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_md5"
-        _md_md5 :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_sha"
-        _md_sha :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_sha1"
-        _md_sha1 :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_dss"
-        _md_dss :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_dss1"
-        _md_dss1 :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_mdc2"
-        _md_mdc2 :: IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "EVP_ripemd160"
-        _md_ripemd160 :: IO (Ptr EVP_MD)
+        _get_digestbyname :: CString -> IO EvpMD
 
 foreign import ccall unsafe "HsOpenSSL_EVP_MD_size"
-        _md_size :: (Ptr EVP_MD) -> Int
-
-
-md_null :: IO EvpMD
-md_null = _md_null >>= failIfNull >>= return . EvpMD
-
-md_md2 :: IO EvpMD
-md_md2 = _md_md2 >>= failIfNull >>= return . EvpMD
-
-md_md5 :: IO EvpMD
-md_md5 = _md_md5 >>= failIfNull >>= return . EvpMD
-
-md_sha :: IO EvpMD
-md_sha = _md_sha >>= failIfNull >>= return . EvpMD
-
-md_sha1 :: IO EvpMD
-md_sha1 = _md_sha1 >>= failIfNull >>= return . EvpMD
-
-md_dss :: IO EvpMD
-md_dss = _md_dss >>= failIfNull >>= return . EvpMD
-
-md_dss1 :: IO EvpMD
-md_dss1 = _md_dss1 >>= failIfNull >>= return . EvpMD
-
-md_mdc2 :: IO EvpMD
-md_mdc2 = _md_mdc2 >>= failIfNull >>= return . EvpMD
-
-md_ripemd160 :: IO EvpMD
-md_ripemd160 = _md_ripemd160 >>= failIfNull >>= return . EvpMD
+        mdSize :: EvpMD -> Int
 
 
 getDigestByName :: String -> IO (Maybe EvpMD)
@@ -98,9 +45,56 @@ getDigestByName name
          if ptr == nullPtr then
              return Nothing
            else
-             return $ Just $ EvpMD ptr
+             return $ Just ptr
 
 
-mdSize :: EvpMD -> Int
-mdSize (EvpMD md)
-    = _md_size md
+{- cipher -------------------------------------------------------------------- -}
+
+type EvpCipher  = Ptr EVP_CIPHER
+data EVP_CIPHER = EVP_CIPHER
+
+
+foreign import ccall unsafe "EVP_get_cipherbyname"
+        _get_cipherbyname :: CString -> IO EvpCipher
+
+
+getCipherByName :: String -> IO (Maybe EvpCipher)
+getCipherByName name
+    = withCString name $ \ namePtr ->
+      do ptr <- _get_cipherbyname namePtr
+         if ptr == nullPtr then
+             return Nothing
+           else
+             return $ Just ptr
+
+
+{- EVP_PKEY ------------------------------------------------------------------ -}
+
+type EvpPKey  = ForeignPtr EVP_PKEY
+data EVP_PKEY = EVP_PKEY
+
+
+foreign import ccall unsafe "EVP_PKEY_new"
+        _new :: IO (Ptr EVP_PKEY)
+
+foreign import ccall unsafe "&EVP_PKEY_free"
+        _free :: FunPtr (Ptr EVP_PKEY -> IO ())
+
+
+#ifndef OPENSSL_NO_RSA
+foreign import ccall unsafe "EVP_PKEY_set1_RSA"
+        _set1_RSA :: Ptr EVP_PKEY -> Ptr RSA_ -> IO Int
+
+-- set1_RSA は RSA* の參照カウントを上げるので、
+-- [1] EvpPKey が先に破棄された場合、RSA* の所有者が RSA だけになる。
+-- [2] RSA が先に破棄された場合、RSA* の所有者が EvpPKey だけになる。
+-- よって EvpPKey が敢えて RSA への參照を作らなくても問題無い。（作って
+-- も問題無いが）
+       
+newPKeyRSA :: RSA -> IO EvpPKey
+newPKeyRSA rsa
+    = withForeignPtr rsa $ \ rsaPtr ->
+      do pkey <- _new >>= failIfNull
+         _set1_RSA pkey rsaPtr >>= failIf (/= 1)
+         newForeignPtr _free pkey
+#endif

@@ -18,6 +18,7 @@ Exposed-Modules:
         OpenSSL.BN
         OpenSSL.ERR
         OpenSSL.EVP
+        OpenSSL.PEM
         OpenSSL.RSA
         OpenSSL.SSL
         OpenSSL.Utils

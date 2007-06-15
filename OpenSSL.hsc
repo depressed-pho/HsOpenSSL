@@ -9,5 +9,5 @@ import OpenSSL.SSL
 withOpenSSL :: IO a -> IO a
 withOpenSSL act
     = do loadErrorStrings
-         libraryInit
+         addAllAlgorithms
          act

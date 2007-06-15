@@ -59,8 +59,10 @@ _stub\.(c|h)$
 ^OpenSSL/BN\.hs$
 ^OpenSSL/ERR\.hs$
 ^OpenSSL/EVP\.hs$
+^OpenSSL/PEM\.hs$
 ^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$
 ^Setup$
 ^dist($|/)
 ^examples/HelloWorld$
+^examples/GenRSAKey$

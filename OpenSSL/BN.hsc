@@ -16,12 +16,12 @@ import           Foreign.C
 
 #include "HsOpenSSL.h"
 
-newtype BigNum = BigNum (Ptr BIGNUM)
-data    BIGNUM = BIGNUM
+type BigNum = Ptr BIGNUM
+data BIGNUM = BIGNUM
 
 
 foreign import ccall unsafe "BN_bn2dec"
-        _bn2dec :: Ptr BIGNUM -> IO CString
+        _bn2dec :: BigNum -> IO CString
 
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()
@@ -29,8 +29,8 @@ foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
 
 
 bn2dec :: BigNum -> IO Integer
-bn2dec (BigNum bnPtr)
-    = do strPtr <- _bn2dec bnPtr
+bn2dec bn
+    = do strPtr <- _bn2dec bn
          when (strPtr == nullPtr) $ fail "BN_bn2dec failed"
          
          str <- peekCString strPtr

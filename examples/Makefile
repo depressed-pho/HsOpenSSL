@@ -1,5 +1,6 @@
 build:
-	ghc --make HelloWorld -threaded -fglasgow-exts -O3
+	ghc --make GenRSAKey -fglasgow-exts
+	ghc --make HelloWorld -fglasgow-exts
 
 run: build
 	./HelloWorld
