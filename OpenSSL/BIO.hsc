@@ -5,6 +5,7 @@ module OpenSSL.BIO
 
     , push
     , (==>)
+    , (<==)
     , joinAll
 
     , flush
@@ -22,6 +23,8 @@ module OpenSSL.BIO
 
     , newBase64
 
+    , newCipher
+
     , newMD
 
     , newMemBuf
@@ -36,16 +39,17 @@ module OpenSSL.BIO
 #include "HsOpenSSL.h"
 
 import           Control.Monad
-import qualified Data.ByteString as B
+import qualified Data.ByteString            as B
 import           Data.ByteString.Base
-import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Char8      as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Foreign hiding (new)
+import           Foreign                    hiding (new)
 import           Foreign.C
-import qualified GHC.ForeignPtr as GF
+import qualified GHC.ForeignPtr             as GF
+import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.Digest
 import           OpenSSL.Utils
-import           Prelude hiding (read)
+import           Prelude                    hiding (read)
 import           System.IO.Unsafe
 
 {- bio ---------------------------------------------------------------------- -}
@@ -90,6 +94,7 @@ push a b
 
 
 (==>) = push
+(<==) = flip push
 
 
 joinAll :: [BIO] -> IO ()
@@ -236,6 +241,25 @@ newBase64 :: Bool -> IO BIO
 newBase64 noNL
     = do bio <- new =<< f_base64
          when noNL $ setFlags bio _FLAGS_BASE64_NO_NL
+         return bio
+
+
+{- cipher ------------------------------------------------------------------- -}
+
+foreign import ccall unsafe "BIO_f_cipher"
+        f_cipher :: IO BioMethod
+
+foreign import ccall unsafe "BIO_set_cipher"
+        _set_cipher :: Ptr BIO_ -> EvpCipher -> Ptr CUChar -> Ptr CUChar -> Int -> IO ()
+
+
+newCipher :: EvpCipher -> String -> String -> CryptoMode -> IO BIO
+newCipher cipher key iv mode
+    = do bio <- new =<< f_cipher
+         withForeignPtr bio $ \ bioPtr ->
+             withCString key $ \ keyPtr ->
+                 withCString iv $ \ ivPtr ->
+                     _set_cipher bioPtr cipher (unsafeCoercePtr keyPtr) (unsafeCoercePtr ivPtr) (cryptoModeToInt mode)
          return bio
 
 

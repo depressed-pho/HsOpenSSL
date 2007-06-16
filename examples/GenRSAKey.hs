@@ -1,10 +1,10 @@
 import Control.Monad hiding (join)
 import OpenSSL
-import OpenSSL.BN  as BN
-import OpenSSL.BIO as BIO
-import OpenSSL.EVP as EVP
-import OpenSSL.PEM as PEM
-import OpenSSL.RSA as RSA
+import OpenSSL.BN
+import OpenSSL.BIO
+import OpenSSL.EVP.PKey
+import OpenSSL.PEM
+import OpenSSL.RSA
 import System.IO
 import Text.Printf
 

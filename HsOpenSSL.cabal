@@ -21,6 +21,7 @@ Exposed-Modules:
         OpenSSL.EVP.Digest
         OpenSSL.EVP.PKey
         OpenSSL.EVP.Sign
+        OpenSSL.EVP.Verify
         OpenSSL.PEM
         OpenSSL.RSA
         OpenSSL.SSL

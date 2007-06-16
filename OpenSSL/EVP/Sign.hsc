@@ -1,16 +1,15 @@
 {- -*- haskell -*- -}
+#include "HsOpenSSL.h"
 module OpenSSL.EVP.Sign
-    ( initSign
-    , updateSign
-    , updateSignBS
-    , updateSignLBS
-    , finalizeSign
-    , finalizeSignBS
-    , finalizeSignLBS
+    ( signInit
+    , signUpdate
+    , signUpdateBS
+    , signUpdateLBS
+    , signFinal
+    , signFinalBS
+    , signFinalLBS
     )
     where
-
-#include "HsOpenSSL.h"
 
 import           Control.Monad
 import           Data.ByteString.Base
@@ -27,26 +26,26 @@ foreign import ccall unsafe "EVP_SignFinal"
         _SignFinal :: Ptr EVP_MD_CTX -> Ptr CUChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO Int
 
 
-initSign :: EvpMD -> IO EvpMDCtx
-initSign = initDigest
+signInit :: EvpMD -> IO EvpMDCtx
+signInit = digestInit
 
-updateSign :: EvpMDCtx -> String -> IO ()
-updateSign = updateDigest
+signUpdate :: EvpMDCtx -> String -> IO ()
+signUpdate = digestUpdate
 
-updateSignBS :: EvpMDCtx -> ByteString -> IO ()
-updateSignBS = updateDigestBS
+signUpdateBS :: EvpMDCtx -> ByteString -> IO ()
+signUpdateBS = digestUpdateBS
 
-updateSignLBS :: EvpMDCtx -> LazyByteString -> IO ()
-updateSignLBS = updateDigestLBS
-
-
-finalizeSign :: EvpMDCtx -> EvpPKey -> IO String
-finalizeSign ctx pkey
-    = liftM B8.unpack $ finalizeSignBS ctx pkey
+signUpdateLBS :: EvpMDCtx -> LazyByteString -> IO ()
+signUpdateLBS = digestUpdateLBS
 
 
-finalizeSignBS :: EvpMDCtx -> EvpPKey -> IO ByteString
-finalizeSignBS ctx pkey
+signFinal :: EvpMDCtx -> EvpPKey -> IO String
+signFinal ctx pkey
+    = liftM B8.unpack $ signFinalBS ctx pkey
+
+
+signFinalBS :: EvpMDCtx -> EvpPKey -> IO ByteString
+signFinalBS ctx pkey
     = do maxLen <- pkeySize pkey
          withForeignPtr ctx  $ \ ctxPtr  ->
              withForeignPtr pkey $ \ pkeyPtr ->
@@ -56,6 +55,6 @@ finalizeSignBS ctx pkey
                             liftM fromIntegral $ peek bufLen
 
 
-finalizeSignLBS :: EvpMDCtx -> EvpPKey -> IO LazyByteString
-finalizeSignLBS ctx pkey
-    = finalizeSignBS ctx pkey >>= \ bs -> (return . LPS) [bs]
+signFinalLBS :: EvpMDCtx -> EvpPKey -> IO LazyByteString
+signFinalLBS ctx pkey
+    = signFinalBS ctx pkey >>= \ bs -> (return . LPS) [bs]

@@ -34,3 +34,7 @@ int HsOpenSSL_BIO_FLAGS_BASE64_NO_NL() {
 int HsOpenSSL_EVP_MD_size(EVP_MD* md) {
     return EVP_MD_size(md);
 }
+
+int HsOpenSSL_EVP_CIPHER_CTX_block_size(EVP_CIPHER_CTX* ctx) {
+    return EVP_CIPHER_CTX_block_size(ctx);
+}

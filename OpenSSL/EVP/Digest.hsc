@@ -1,4 +1,5 @@
 {- -*- haskell -*- -}
+#include "HsOpenSSL.h"
 module OpenSSL.EVP.Digest
     ( EvpMD
     , EVP_MD
@@ -9,17 +10,15 @@ module OpenSSL.EVP.Digest
 
     , EvpMDCtx
     , EVP_MD_CTX
-    , initDigest
-    , updateDigest
-    , updateDigestBS
-    , updateDigestLBS
-    , finalizeDigest
-    , finalizeDigestBS
-    , finalizeDigestLBS
+    , digestInit
+    , digestUpdate
+    , digestUpdateBS
+    , digestUpdateLBS
+    , digestFinal
+    , digestFinalBS
+    , digestFinalLBS
     )
     where
-
-#include "HsOpenSSL.h"
 
 import           Control.Monad
 import           Data.ByteString.Base
@@ -59,11 +58,22 @@ type EvpMDCtx   = ForeignPtr EVP_MD_CTX
 data EVP_MD_CTX = EVP_MD_CTX
 
 
-foreign import ccall unsafe "EVP_MD_CTX_create"
-        _ctx_create :: IO (Ptr EVP_MD_CTX)
+foreign import ccall unsafe "EVP_MD_CTX_init"
+        _ctx_init :: Ptr EVP_MD_CTX -> IO ()
 
-foreign import ccall unsafe "&EVP_MD_CTX_destroy"
-        _ctx_destroy :: FunPtr (Ptr EVP_MD_CTX -> IO ())
+foreign import ccall unsafe "&EVP_MD_CTX_cleanup"
+        _ctx_cleanup :: FunPtr (Ptr EVP_MD_CTX -> IO ())
+
+
+newCtx :: IO EvpMDCtx
+newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_MD_CTX)
+            withForeignPtr ctx $ \ ctxPtr ->
+                _ctx_init ctxPtr
+            addForeignPtrFinalizer _ctx_cleanup ctx
+            return ctx
+
+
+{- digest -------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "EVP_DigestInit"
         _DigestInit :: Ptr EVP_MD_CTX -> Ptr EVP_MD -> IO Int
@@ -75,42 +85,39 @@ foreign import ccall unsafe "EVP_DigestFinal"
         _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO Int
 
 
-newCtx :: IO EvpMDCtx
-newCtx = _ctx_create >>= failIfNull >>= newForeignPtr _ctx_destroy
 
-
-initDigest :: EvpMD -> IO EvpMDCtx
-initDigest md
+digestInit :: EvpMD -> IO EvpMDCtx
+digestInit md
     = do ctx <- newCtx
          withForeignPtr ctx $ \ ctxPtr ->
              _DigestInit ctxPtr md >>= failIf (/= 1)
          return ctx   
 
 
-updateDigest :: EvpMDCtx -> String -> IO ()
-updateDigest ctx str
-    = (return . L8.pack) str >>= updateDigestLBS ctx
+digestUpdate :: EvpMDCtx -> String -> IO ()
+digestUpdate ctx str
+    = (return . L8.pack) str >>= digestUpdateLBS ctx
 
 
-updateDigestBS :: EvpMDCtx -> ByteString -> IO ()
-updateDigestBS ctx bs
+digestUpdateBS :: EvpMDCtx -> ByteString -> IO ()
+digestUpdateBS ctx bs
     = withForeignPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
 
 
-updateDigestLBS :: EvpMDCtx -> LazyByteString -> IO ()
-updateDigestLBS ctx (LPS chunks)
-    = mapM_ (updateDigestBS ctx) chunks
+digestUpdateLBS :: EvpMDCtx -> LazyByteString -> IO ()
+digestUpdateLBS ctx (LPS chunks)
+    = mapM_ (digestUpdateBS ctx) chunks
 
 
-finalizeDigest :: EvpMDCtx -> IO String
-finalizeDigest ctx
-    = liftM B8.unpack $ finalizeDigestBS ctx
+digestFinal :: EvpMDCtx -> IO String
+digestFinal ctx
+    = liftM B8.unpack $ digestFinalBS ctx
 
 
-finalizeDigestBS :: EvpMDCtx -> IO ByteString
-finalizeDigestBS ctx
+digestFinalBS :: EvpMDCtx -> IO ByteString
+digestFinalBS ctx
     = withForeignPtr ctx $ \ ctxPtr ->
       createAndTrim (#const EVP_MAX_MD_SIZE) $ \ buf ->
       alloca $ \ bufLen ->
@@ -118,6 +125,6 @@ finalizeDigestBS ctx
          liftM fromIntegral $ peek bufLen
 
 
-finalizeDigestLBS :: EvpMDCtx -> IO LazyByteString
-finalizeDigestLBS ctx
-    = finalizeDigestBS ctx >>= \ bs -> (return . LPS) [bs]
+digestFinalLBS :: EvpMDCtx -> IO LazyByteString
+digestFinalLBS ctx
+    = digestFinalBS ctx >>= \ bs -> (return . LPS) [bs]

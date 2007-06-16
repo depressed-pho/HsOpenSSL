@@ -62,6 +62,7 @@ _stub\.(c|h)$
 ^OpenSSL/EVP/Digest\.hs$
 ^OpenSSL/EVP/PKey\.hs$
 ^OpenSSL/EVP/Sign\.hs$
+^OpenSSL/EVP/Verify\.hs$
 ^OpenSSL/PEM\.hs$
 ^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$
