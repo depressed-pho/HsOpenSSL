@@ -58,7 +58,10 @@ _stub\.(c|h)$
 ^OpenSSL/BIO\.hs$
 ^OpenSSL/BN\.hs$
 ^OpenSSL/ERR\.hs$
-^OpenSSL/EVP\.hs$
+^OpenSSL/EVP/Cipher\.hs$
+^OpenSSL/EVP/Digest\.hs$
+^OpenSSL/EVP/PKey\.hs$
+^OpenSSL/EVP/Sign\.hs$
 ^OpenSSL/PEM\.hs$
 ^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$

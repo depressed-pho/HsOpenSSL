@@ -42,7 +42,7 @@ main = withOpenSSL $
           printf "dmp1 (d mod (p-1)) = %s\n" (show dmp1)
           printf "dmq1 (d mod (q-1)) = %s\n" (show dmq1)
           printf "iqmp (q^-1 mod p) = %s\n" (show iqmp)
-                  
+
           pkey <- newPKeyRSA rsa
           writePKCS8PrivateKeyToString pkey Nothing >>= putStr
-          writePublicKeyToString pkey >>= putStr
+          -- writePublicKeyToString pkey >>= putStr

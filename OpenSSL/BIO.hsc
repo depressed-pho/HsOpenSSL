@@ -43,7 +43,7 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign hiding (new)
 import           Foreign.C
 import qualified GHC.ForeignPtr as GF
-import           OpenSSL.EVP
+import           OpenSSL.EVP.Digest
 import           OpenSSL.Utils
 import           Prelude hiding (read)
 import           System.IO.Unsafe
@@ -208,8 +208,7 @@ writeBS :: BIO -> ByteString -> IO ()
 writeBS bio bs
     = withForeignPtr bio $ \ bioPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
-      do ret <- _write bioPtr buf len
-         interpret ret
+      _write bioPtr buf len >>= interpret
     where
       interpret :: Int -> IO ()
       interpret n
