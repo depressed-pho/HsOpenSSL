@@ -19,7 +19,9 @@ Exposed-Modules:
         OpenSSL.ERR
         OpenSSL.EVP.Cipher
         OpenSSL.EVP.Digest
+        OpenSSL.EVP.Open
         OpenSSL.EVP.PKey
+        OpenSSL.EVP.Seal
         OpenSSL.EVP.Sign
         OpenSSL.EVP.Verify
         OpenSSL.PEM

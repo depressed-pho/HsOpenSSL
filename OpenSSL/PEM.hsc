@@ -75,14 +75,14 @@ callPasswordCB cb buf bufLen rwflag _
 {- PKCS#8 -------------------------------------------------------------------- -}
 
 foreign import ccall safe "PEM_write_bio_PKCS8PrivateKey"
-        _write_bio_PKCS8PrivateKey :: Ptr BIO_       ->
-                                      Ptr EVP_PKEY   ->
-                                      Ptr EVP_CIPHER ->
-                                      Ptr CUChar     ->
-                                      Int            ->
-                                      FunPtr PemPasswordCallback ->
-                                      Ptr a          ->
-                                      IO Int
+        _write_bio_PKCS8PrivateKey :: Ptr BIO_
+                                   -> Ptr EVP_PKEY
+                                   -> Ptr EVP_CIPHER
+                                   -> Ptr CUChar
+                                   -> Int
+                                   -> FunPtr PemPasswordCallback
+                                   -> Ptr a
+                                   -> IO Int
 
 writePKCS8PrivateKey :: BIO
                      -> EvpPKey
@@ -122,11 +122,11 @@ writePKCS8PrivateKeyToString pkey encryption
 
 
 foreign import ccall safe "PEM_read_bio_PrivateKey"
-        _read_bio_PrivateKey :: Ptr BIO_ ->
-                                Ptr (Ptr EVP_PKEY) ->
-                                FunPtr PemPasswordCallback ->
-                                Ptr () ->
-                                IO (Ptr EVP_PKEY)
+        _read_bio_PrivateKey :: Ptr BIO_
+                             -> Ptr (Ptr EVP_PKEY)
+                             -> FunPtr PemPasswordCallback
+                             -> Ptr ()
+                             -> IO (Ptr EVP_PKEY)
 
 readPrivateKey :: BIO -> PemPasswordSupply -> IO EvpPKey
 readPrivateKey bio supply
@@ -181,11 +181,11 @@ writePublicKeyToString pkey
 
 
 foreign import ccall unsafe "PEM_read_bio_PUBKEY"
-        _read_bio_PUBKEY :: Ptr BIO_ ->
-                            Ptr (Ptr EVP_PKEY) ->
-                            FunPtr PemPasswordCallback ->
-                            Ptr () ->
-                            IO (Ptr EVP_PKEY)
+        _read_bio_PUBKEY :: Ptr BIO_
+                         -> Ptr (Ptr EVP_PKEY)
+                         -> FunPtr PemPasswordCallback
+                         -> Ptr ()
+                         -> IO (Ptr EVP_PKEY)
 
 -- Why the heck PEM_read_bio_PUBKEY takes pem_password_cb? Is there
 -- any form of encrypted public key!?

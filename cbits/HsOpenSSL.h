@@ -18,5 +18,6 @@ int HsOpenSSL_BIO_FLAGS_BASE64_NO_NL();
 /* EVP ************************************************************************/
 int HsOpenSSL_EVP_MD_size(EVP_MD* md);
 int HsOpenSSL_EVP_CIPHER_CTX_block_size(EVP_CIPHER_CTX* ctx);
+int HsOpenSSL_EVP_CIPHER_iv_length(EVP_CIPHER* cipher);
 
 #endif

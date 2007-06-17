@@ -4,6 +4,11 @@ module OpenSSL.EVP.Cipher
     ( EvpCipher
     , EVP_CIPHER
     , getCipherByName
+    , cipherIvLength
+
+    , EvpCipherCtx
+    , EVP_CIPHER_CTX
+    , newCtx -- private
 
     , CryptoMode(..)
     , cryptoModeToInt -- private
@@ -35,6 +40,10 @@ data EVP_CIPHER = EVP_CIPHER
 
 foreign import ccall unsafe "EVP_get_cipherbyname"
         _get_cipherbyname :: CString -> IO EvpCipher
+
+
+foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_iv_length"
+        cipherIvLength :: EvpCipher -> Int
 
 
 getCipherByName :: String -> IO (Maybe EvpCipher)

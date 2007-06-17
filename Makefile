@@ -8,14 +8,20 @@ run: build
 	@echo ".:.:. Let's go .:.:."
 	$(MAKE) -C examples run
 
-.setup-config: $(CABAL_FILE) Setup
+.setup-config: $(CABAL_FILE) configure Setup
 	./Setup configure
+
+configure: aclocal.m4 configure.ac
+	autoconf
+
+aclocal.m4:
+	aclocal
 
 Setup: Setup.hs
 	$(GHC) --make Setup
 
 clean:
-	rm -rf dist Setup Setup.o Setup.hi .setup-config
+	rm -rf dist Setup Setup.o Setup.hi .setup-config *.buildinfo
 	find . -name '*~' -exec rm -f {} \;
 	$(MAKE) -C examples clean
 

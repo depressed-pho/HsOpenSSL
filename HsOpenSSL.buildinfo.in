@@ -1,0 +1,2 @@
+cc-options: @OPENSSL_CFLAGS@
+ld-options: @OPENSSL_LIBS@

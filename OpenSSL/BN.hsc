@@ -3,7 +3,7 @@
 -- This module is private. Please don't use this directly.
 
 module OpenSSL.BN
-    ( BigNum(..)
+    ( BigNum
     , BIGNUM
 
     , bn2dec
