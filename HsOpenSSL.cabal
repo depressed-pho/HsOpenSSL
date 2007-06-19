@@ -1,11 +1,14 @@
 Name: HsOpenSSL
-Synopsis: Wrapper of (part of) the OpenSSL
+Synopsis: (Part of) OpenSSL binding for Haskell
 Description:
-        FIXME: write this
+        HsOpenSSL is a (part of) OpenSSL binding for Haskell. It can
+        generate RSA keys, read and write PEM files, generate message
+        digests, sign and verify messages, encrypt and decrypt
+        messages.
 Version: 0.1
 License: PublicDomain
-Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
-Maintainer: PHO <phonohawk at ps dot sakura dot ne dot jp>
+Author: PHO <phonohawk TA ps TOD sakura TOD ne TOD jp>
+Maintainer: PHO <phonohawk TA ps TOD sakura TOD ne TOD jp>
 Stability: experimental
 Homepage: http://ccm.sherry.jp/hs-openssl/
 Category: Cryptography
@@ -17,6 +20,7 @@ Exposed-Modules:
         OpenSSL.BIO
         OpenSSL.BN
         OpenSSL.ERR
+        OpenSSL.EVP.Base64
         OpenSSL.EVP.Cipher
         OpenSSL.EVP.Digest
         OpenSSL.EVP.Open
@@ -31,7 +35,7 @@ Exposed-Modules:
 Extensions:
         ForeignFunctionInterface
 ghc-options:
-         -fglasgow-exts
+         -fglasgow-exts -O3
 C-Sources:
         cbits/HsOpenSSL.c
 Include-Dirs:

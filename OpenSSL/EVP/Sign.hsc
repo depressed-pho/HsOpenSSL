@@ -23,7 +23,7 @@ import           OpenSSL.Utils
 
 
 foreign import ccall unsafe "EVP_SignFinal"
-        _SignFinal :: Ptr EVP_MD_CTX -> Ptr CUChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO Int
+        _SignFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO Int
 
 
 signInit :: EvpMD -> IO EvpMDCtx
@@ -51,7 +51,8 @@ signFinalBS ctx pkey
              withForeignPtr pkey $ \ pkeyPtr ->
                  createAndTrim maxLen $ \ buf ->
                      alloca $ \ bufLen ->
-                         do _SignFinal ctxPtr (unsafeCoercePtr buf) bufLen pkeyPtr >>= failIf (/= 1)
+                         do _SignFinal ctxPtr (unsafeCoercePtr buf) bufLen pkeyPtr
+                                 >>= failIf (/= 1)
                             liftM fromIntegral $ peek bufLen
 
 

@@ -87,13 +87,13 @@ data CryptoMode = Encrypt
 
 
 foreign import ccall unsafe "EVP_CipherInit"
-        _CipherInit :: Ptr EVP_CIPHER_CTX -> EvpCipher -> Ptr CUChar -> Ptr CUChar -> Int -> IO Int
+        _CipherInit :: Ptr EVP_CIPHER_CTX -> EvpCipher -> CString -> CString -> Int -> IO Int
 
 foreign import ccall unsafe "EVP_CipherUpdate"
-        _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CUChar -> Ptr Int -> Ptr CUChar -> Int -> IO Int
+        _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr Int -> Ptr CChar -> Int -> IO Int
 
 foreign import ccall unsafe "EVP_CipherFinal"
-        _CipherFinal :: Ptr EVP_CIPHER_CTX -> Ptr CUChar -> Ptr Int -> IO Int
+        _CipherFinal :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr Int -> IO Int
 
 
 cryptoModeToInt :: CryptoMode -> Int
@@ -107,7 +107,7 @@ cipherInit cipher key iv mode
          withForeignPtr ctx $ \ ctxPtr ->
              withCString key $ \ keyPtr ->
                  withCString iv $ \ ivPtr ->
-                     _CipherInit ctxPtr cipher (unsafeCoercePtr keyPtr) (unsafeCoercePtr ivPtr) (cryptoModeToInt mode)
+                     _CipherInit ctxPtr cipher keyPtr ivPtr (cryptoModeToInt mode)
                           >>= failIf (/= 1)
          return ctx
 
@@ -123,7 +123,7 @@ cipherUpdateBS ctx inBS
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (inLen + _ctx_block_size ctxPtr - 1) $ \ outBuf ->
       alloca $ \ outLenPtr ->
-      _CipherUpdate ctxPtr (unsafeCoercePtr outBuf) outLenPtr (unsafeCoercePtr inBuf) inLen
+      _CipherUpdate ctxPtr (unsafeCoercePtr outBuf) outLenPtr inBuf inLen
            >>= failIf (/= 1)
            >>  peek outLenPtr
 

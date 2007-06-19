@@ -5,8 +5,7 @@ module OpenSSL.EVP.PKey
     , EVP_PKEY
 
     , wrapPKey -- private
-
-    , pkeySize
+    , pkeySize -- private
 
       -- FIXME: newPKeyDSA, newPKeyDH and newPKeyECKey may be needed
 #ifndef OPENSSL_NO_RSA

@@ -4,14 +4,10 @@ module OpenSSL.PEM
     , PemPasswordSupply(..)
 
     , writePKCS8PrivateKey
-    , writePKCS8PrivateKeyToString
     , readPrivateKey
-    , readPrivateKeyFromString
 
     , writePublicKey
-    , writePublicKeyToString
     , readPublicKey
-    , readPublicKeyFromString
     )
     where
 
@@ -21,7 +17,7 @@ import           Control.Exception
 import           Control.Monad
 import           Foreign
 import           Foreign.C
-import           OpenSSL.BIO as BIO
+import           OpenSSL.BIO
 import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
@@ -78,17 +74,17 @@ foreign import ccall safe "PEM_write_bio_PKCS8PrivateKey"
         _write_bio_PKCS8PrivateKey :: Ptr BIO_
                                    -> Ptr EVP_PKEY
                                    -> Ptr EVP_CIPHER
-                                   -> Ptr CUChar
+                                   -> Ptr CChar
                                    -> Int
                                    -> FunPtr PemPasswordCallback
                                    -> Ptr a
                                    -> IO Int
 
-writePKCS8PrivateKey :: BIO
-                     -> EvpPKey
-                     -> Maybe (EvpCipher, PemPasswordSupply)
-                     -> IO ()
-writePKCS8PrivateKey bio pkey encryption
+writePKCS8PrivateKey' :: BIO
+                      -> EvpPKey
+                      -> Maybe (EvpCipher, PemPasswordSupply)
+                      -> IO ()
+writePKCS8PrivateKey' bio pkey encryption
     = withForeignPtr bio  $ \ bioPtr  ->
       withForeignPtr pkey $ \ pkeyPtr ->
       do ret <- case encryption of
@@ -100,7 +96,7 @@ writePKCS8PrivateKey bio pkey encryption
 
                   Just (cipher, PwStr passStr)
                       -> withCStringLen passStr $ \ (passPtr, passLen) ->
-                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipher (unsafeCoercePtr passPtr) passLen nullFunPtr nullPtr
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipher passPtr passLen nullFunPtr nullPtr
 
                   Just (cipher, PwCallback cb)
                       -> do cbPtr <- mkPemPasswordCallback $ callPasswordCB cb
@@ -114,11 +110,11 @@ writePKCS8PrivateKey bio pkey encryption
          return ()
 
 
-writePKCS8PrivateKeyToString :: EvpPKey -> Maybe (EvpCipher, PemPasswordSupply) -> IO String
-writePKCS8PrivateKeyToString pkey encryption
-    = do mem <- newMemBuf
-         writePKCS8PrivateKey mem pkey encryption
-         BIO.read mem
+writePKCS8PrivateKey :: EvpPKey -> Maybe (EvpCipher, PemPasswordSupply) -> IO String
+writePKCS8PrivateKey pkey encryption
+    = do mem <- newMem
+         writePKCS8PrivateKey' mem pkey encryption
+         bioRead mem
 
 
 foreign import ccall safe "PEM_read_bio_PrivateKey"
@@ -128,8 +124,8 @@ foreign import ccall safe "PEM_read_bio_PrivateKey"
                              -> Ptr ()
                              -> IO (Ptr EVP_PKEY)
 
-readPrivateKey :: BIO -> PemPasswordSupply -> IO EvpPKey
-readPrivateKey bio supply
+readPrivateKey' :: BIO -> PemPasswordSupply -> IO EvpPKey
+readPrivateKey' bio supply
     = withForeignPtr bio $ \ bioPtr ->
       do pkeyPtr <- case supply of
                       PwNone
@@ -154,10 +150,10 @@ readPrivateKey bio supply
          wrapPKey pkeyPtr
 
 
-readPrivateKeyFromString :: String -> PemPasswordSupply -> IO EvpPKey
-readPrivateKeyFromString pemStr supply
-    = do mem <- newConstMemBuf pemStr
-         readPrivateKey mem supply
+readPrivateKey :: String -> PemPasswordSupply -> IO EvpPKey
+readPrivateKey pemStr supply
+    = do mem <- newConstMem pemStr
+         readPrivateKey' mem supply
 
 
 {- Public Key ---------------------------------------------------------------- -}
@@ -166,18 +162,18 @@ foreign import ccall unsafe "PEM_write_bio_PUBKEY"
         _write_bio_PUBKEY :: Ptr BIO_ -> Ptr EVP_PKEY -> IO Int
 
 
-writePublicKey :: BIO -> EvpPKey -> IO ()
-writePublicKey bio pkey
+writePublicKey' :: BIO -> EvpPKey -> IO ()
+writePublicKey' bio pkey
     = withForeignPtr bio  $ \ bioPtr  ->
       withForeignPtr pkey $ \ pkeyPtr ->
       _write_bio_PUBKEY bioPtr pkeyPtr >>= failIf (/= 1) >> return ()
 
 
-writePublicKeyToString :: EvpPKey -> IO String
-writePublicKeyToString pkey
-    = do mem <- newMemBuf
-         writePublicKey mem pkey
-         BIO.read mem
+writePublicKey :: EvpPKey -> IO String
+writePublicKey pkey
+    = do mem <- newMem
+         writePublicKey' mem pkey
+         bioRead mem
 
 
 foreign import ccall unsafe "PEM_read_bio_PUBKEY"
@@ -188,9 +184,9 @@ foreign import ccall unsafe "PEM_read_bio_PUBKEY"
                          -> IO (Ptr EVP_PKEY)
 
 -- Why the heck PEM_read_bio_PUBKEY takes pem_password_cb? Is there
--- any form of encrypted public key!?
-readPublicKey :: BIO -> IO EvpPKey
-readPublicKey bio
+-- any form of encrypted public key?
+readPublicKey' :: BIO -> IO EvpPKey
+readPublicKey' bio
     = withForeignPtr bio $ \ bioPtr ->
       do cbPtr <- mkPemPasswordCallback $
                   callPasswordCB $ \ _ _ ->
@@ -202,7 +198,7 @@ readPublicKey bio
          wrapPKey pkeyPtr
 
 
-readPublicKeyFromString :: String -> IO EvpPKey
-readPublicKeyFromString pemStr
-    = do mem <- newConstMemBuf pemStr
-         readPublicKey mem
+readPublicKey :: String -> IO EvpPKey
+readPublicKey pemStr
+    = do mem <- newConstMem pemStr
+         readPublicKey' mem

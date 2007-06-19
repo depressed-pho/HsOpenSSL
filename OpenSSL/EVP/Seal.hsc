@@ -44,8 +44,8 @@ sealInit cipher pubKeys
          -- は最大で pkeySize の長さになる。
          encKeyBufs <- mapM mallocEncKeyBuf pubKeys
 
-         -- encKeys は [Ptr a] なので、これを Ptr (Ptr CUChar) に
-         -- しなければならない。
+         -- encKeys は [Ptr a] なので、これを Ptr (Ptr CChar) にしなけ
+         -- ればならない。
          encKeyBufsPtr <- newArray encKeyBufs
 
          -- 暗号化された共通鍵の各々の長さが書き込まれる場所を作る。

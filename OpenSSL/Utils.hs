@@ -1,4 +1,7 @@
 {- -*- haskell -*- -}
+
+-- #hide
+
 module OpenSSL.Utils
     ( failIfNull
     , failIf

@@ -4,6 +4,7 @@ import Data.Maybe
 import OpenSSL
 import OpenSSL.BN
 import OpenSSL.BIO as BIO
+import OpenSSL.EVP.Base64
 import OpenSSL.EVP.Cipher
 import OpenSSL.EVP.Digest
 import OpenSSL.EVP.Open
@@ -15,6 +16,7 @@ import OpenSSL.PEM
 import OpenSSL.RSA
 import System.IO
 import Text.Printf
+
 
 main = withOpenSSL $
        do putStrLn "cipher: DES-CBC"

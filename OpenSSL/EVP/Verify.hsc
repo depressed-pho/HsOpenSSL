@@ -1,4 +1,5 @@
 {- -*- haskell -*- -}
+#include "HsOpenSSL.h"
 module OpenSSL.EVP.Verify
     ( verifyInit
     , verifyUpdate
@@ -27,7 +28,7 @@ data VerifyStatus = VerifySuccess
 
 
 foreign import ccall unsafe "EVP_VerifyFinal"
-        _VerifyFinal :: Ptr EVP_MD_CTX -> Ptr CUChar -> CUInt -> Ptr EVP_PKEY -> IO Int
+        _VerifyFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> CUInt -> Ptr EVP_PKEY -> IO Int
 
 
 verifyInit :: EvpMD -> IO EvpMDCtx
@@ -56,7 +57,7 @@ verifyFinalBS ctx bs pkey
     = withForeignPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       withForeignPtr pkey $ \ pkeyPtr ->
-      _VerifyFinal ctxPtr (unsafeCoercePtr buf) (fromIntegral len) pkeyPtr >>= interpret
+      _VerifyFinal ctxPtr buf (fromIntegral len) pkeyPtr >>= interpret
     where
       interpret :: Int -> IO VerifyStatus
       interpret 1 = return VerifySuccess

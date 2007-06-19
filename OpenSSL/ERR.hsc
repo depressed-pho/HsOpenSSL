@@ -1,4 +1,9 @@
 {- -*- haskell -*- -}
+
+-- #hide
+
+#include "HsOpenSSL.h"
+
 module OpenSSL.ERR
     ( getError
     , peekError
@@ -6,7 +11,6 @@ module OpenSSL.ERR
     , errorString
     )
     where
-
 
 import           Foreign
 import           Foreign.C
