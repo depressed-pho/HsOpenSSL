@@ -1,17 +1,14 @@
 {- -*- haskell -*- -}
 #include "HsOpenSSL.h"
 module OpenSSL.EVP.Seal
-    ( sealInit
-    , sealUpdate
-    , sealUpdateBS
-    , sealUpdateLBS
-    , sealFinal
-    , sealFinalBS
-    , sealFinalLBS
+    ( seal
+    , sealBS
+    , sealLBS
     )
     where
 
 import           Control.Monad
+import qualified Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -20,6 +17,7 @@ import           Foreign.C
 import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
+
 
 foreign import ccall unsafe "EVP_SealInit"
         _SealInit :: Ptr EVP_CIPHER_CTX
@@ -87,20 +85,39 @@ sealInit cipher pubKeys
           = pkeySize pubKey >>= mallocArray
 
 
-sealUpdate :: EvpCipherCtx -> String -> IO String
-sealUpdate = cipherUpdate
+seal :: EvpCipher
+     -> [EvpPKey]
+     -> String
+     -> IO ( String
+           , [String]
+           , String
+           )
+seal cipher pubKeys input
+    = do (output, encKeys, iv) <- sealLBS cipher pubKeys $ L8.pack input
+         return (L8.unpack output, encKeys, iv)
 
-sealUpdateBS :: EvpCipherCtx -> ByteString -> IO ByteString
-sealUpdateBS = cipherUpdateBS
 
-sealUpdateLBS :: EvpCipherCtx -> LazyByteString -> IO LazyByteString
-sealUpdateLBS = cipherUpdateLBS
+sealBS :: EvpCipher
+       -> [EvpPKey]
+       -> ByteString
+       -> IO ( ByteString
+             , [String]
+             , String
+             )
+sealBS cipher pubKeys input
+    = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
+         output             <- cipherStrictly ctx input
+         return (output, encKeys, iv)
 
-sealFinal :: EvpCipherCtx -> IO String
-sealFinal = cipherFinal
 
-sealFinalBS :: EvpCipherCtx -> IO ByteString
-sealFinalBS = cipherFinalBS
-
-sealFinalLBS :: EvpCipherCtx -> IO LazyByteString
-sealFinalLBS = cipherFinalLBS
+sealLBS :: EvpCipher
+        -> [EvpPKey]
+        -> LazyByteString
+        -> IO ( LazyByteString
+              , [String]
+              , String
+              )
+sealLBS cipher pubKeys input
+    = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
+         output             <- cipherLazily ctx input
+         return (output, encKeys, iv)

@@ -44,5 +44,5 @@ main = withOpenSSL $
           printf "iqmp (q^-1 mod p) = %s\n" (show iqmp)
 
           pkey <- newPKeyRSA rsa
-          writePKCS8PrivateKeyToString pkey Nothing >>= putStr
-          -- writePublicKeyToString pkey >>= putStr
+          writePKCS8PrivateKey pkey Nothing >>= putStr
+          -- writePublicKey pkey >>= putStr

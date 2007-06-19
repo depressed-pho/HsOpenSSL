@@ -1,13 +1,9 @@
 {- -*- haskell -*- -}
 #include "HsOpenSSL.h"
 module OpenSSL.EVP.Sign
-    ( signInit
-    , signUpdate
-    , signUpdateBS
-    , signUpdateLBS
-    , signFinal
-    , signFinalBS
-    , signFinalLBS
+    ( sign
+    , signBS
+    , signLBS
     )
     where
 
@@ -26,36 +22,31 @@ foreign import ccall unsafe "EVP_SignFinal"
         _SignFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO Int
 
 
-signInit :: EvpMD -> IO EvpMDCtx
-signInit = digestInit
-
-signUpdate :: EvpMDCtx -> String -> IO ()
-signUpdate = digestUpdate
-
-signUpdateBS :: EvpMDCtx -> ByteString -> IO ()
-signUpdateBS = digestUpdateBS
-
-signUpdateLBS :: EvpMDCtx -> LazyByteString -> IO ()
-signUpdateLBS = digestUpdateLBS
-
-
 signFinal :: EvpMDCtx -> EvpPKey -> IO String
 signFinal ctx pkey
-    = liftM B8.unpack $ signFinalBS ctx pkey
-
-
-signFinalBS :: EvpMDCtx -> EvpPKey -> IO ByteString
-signFinalBS ctx pkey
     = do maxLen <- pkeySize pkey
          withForeignPtr ctx  $ \ ctxPtr  ->
              withForeignPtr pkey $ \ pkeyPtr ->
-                 createAndTrim maxLen $ \ buf ->
-                     alloca $ \ bufLen ->
-                         do _SignFinal ctxPtr (unsafeCoercePtr buf) bufLen pkeyPtr
+                 allocaArray maxLen $ \ bufPtr ->
+                     alloca $ \ bufLenPtr ->
+                         do _SignFinal ctxPtr bufPtr bufLenPtr pkeyPtr
                                  >>= failIf (/= 1)
-                            liftM fromIntegral $ peek bufLen
+                            bufLen <- liftM fromIntegral $ peek bufLenPtr
+                            peekCStringLen (bufPtr, bufLen)
 
 
-signFinalLBS :: EvpMDCtx -> EvpPKey -> IO LazyByteString
-signFinalLBS ctx pkey
-    = signFinalBS ctx pkey >>= \ bs -> (return . LPS) [bs]
+sign :: EvpMD -> EvpPKey -> String -> IO String
+sign md pkey input
+    = signLBS md pkey $ L8.pack input
+
+
+signBS :: EvpMD -> EvpPKey -> ByteString -> IO String
+signBS md pkey input
+    = do ctx <- digestStrictly md input
+         signFinal ctx pkey
+
+
+signLBS :: EvpMD -> EvpPKey -> LazyByteString -> IO String
+signLBS md pkey input
+    = do ctx <- digestLazily md input
+         signFinal ctx pkey

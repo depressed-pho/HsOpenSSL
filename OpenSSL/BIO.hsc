@@ -60,12 +60,6 @@ module OpenSSL.BIO
       -- * Buffering BIO filter
     , newBuffer
 
-      -- * Symmetric cipher BIO filter
-    , newCipher
-
-      -- * Message digest BIO filter
-    , newMD
-
       -- * Memory BIO sink\/source
     , newMem
     , newConstMem
@@ -85,8 +79,6 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign                    hiding (new)
 import           Foreign.C
 import qualified GHC.ForeignPtr             as GF
-import           OpenSSL.EVP.Cipher
-import           OpenSSL.EVP.Digest
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
@@ -396,64 +388,6 @@ newBuffer bufSize
                            >>= failIf (/= 1) >> return ()
            Nothing -> return ()
          return bio
-
-{- cipher ------------------------------------------------------------------- -}
-
-foreign import ccall unsafe "BIO_f_cipher"
-        f_cipher :: IO BioMethod
-
-foreign import ccall unsafe "BIO_set_cipher"
-        _set_cipher :: Ptr BIO_ -> EvpCipher -> CString -> CString -> Int -> IO ()
-
--- |@'newCipher' cipher key iv mode@ creates a symmetric cipher BIO
--- filter. If @mode@ is 'OpenSSL.EVP.Cipher.Encrypt', this filter
--- encrypts any data written through it and encrypts any data read
--- through it. If @mode@ is 'OpenSSL.EVP.Cipher.Decrypt', it does the
--- opposite to 'OpenSSL.EVP.Cipher.Encrypt'.
---
--- Cipher BIOs do not support 'bioGets'.
---
--- 'bioFlush' on an encryption BIO that is being written through is
--- used to signal that no more data is to be encrypted: this is used
--- to flush and possibly pad the final block through the BIO.
---
--- When reading from an decryption BIO the final block is
--- automatically decrypted and checked when EOF is detected.
-newCipher :: EvpCipher -> String -> String -> CryptoMode -> IO BIO
-newCipher cipher key iv mode
-    = do bio <- new =<< f_cipher
-         withForeignPtr bio $ \ bioPtr ->
-             withCString key $ \ keyPtr ->
-                 withCString iv $ \ ivPtr ->
-                     _set_cipher bioPtr cipher keyPtr ivPtr (cryptoModeToInt mode)
-         return bio
-
-
-{- md ----------------------------------------------------------------------- -}
-
-foreign import ccall unsafe "BIO_f_md"
-        f_md :: IO BioMethod
-
-foreign import ccall unsafe "HsOpenSSL_BIO_set_md"
-        _set_md :: Ptr BIO_ -> Ptr EVP_MD -> IO Int
-
--- |@'newMD' md@ creates a message digest BIO filter. This is a filter
--- BIO that digests any data passed through it.
---
--- Any data written or read through a digest BIO using 'bioRead' and
--- 'bioWrite' is digested.
---
--- 'bioGets', if its size parameter is large enough finishes the
--- digest calculation and returns the digest value. The length of
--- digest value can be retrieved using 'OpenSSL.EVP.Digest.mdSize'.
---
--- 'bioReset' reinitializes a digest BIO.
-newMD :: EvpMD -> IO BIO
-newMD md
-    = do bio <- new =<< f_md
-         withForeignPtr bio $ \ bioPtr ->
-             do _set_md bioPtr md >>= failIf (/= 1)
-                return bio
 
 
 {- mem ---------------------------------------------------------------------- -}

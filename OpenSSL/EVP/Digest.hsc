@@ -4,19 +4,16 @@ module OpenSSL.EVP.Digest
     ( EvpMD
     , EVP_MD
     , getDigestByName
-    , mdSize
-
-    , newCtx -- private
 
     , EvpMDCtx
     , EVP_MD_CTX
-    , digestInit
-    , digestUpdate
-    , digestUpdateBS
-    , digestUpdateLBS
-    , digestFinal
-    , digestFinalBS
-    , digestFinalLBS
+
+    , digestStrictly -- private
+    , digestLazily   -- private
+
+    , digest
+    , digestBS
+    , digestLBS
     )
     where
 
@@ -94,11 +91,6 @@ digestInit md
          return ctx   
 
 
-digestUpdate :: EvpMDCtx -> String -> IO ()
-digestUpdate ctx str
-    = (return . L8.pack) str >>= digestUpdateLBS ctx
-
-
 digestUpdateBS :: EvpMDCtx -> ByteString -> IO ()
 digestUpdateBS ctx bs
     = withForeignPtr ctx $ \ ctxPtr ->
@@ -113,18 +105,40 @@ digestUpdateLBS ctx (LPS chunks)
 
 digestFinal :: EvpMDCtx -> IO String
 digestFinal ctx
-    = liftM B8.unpack $ digestFinalBS ctx
-
-
-digestFinalBS :: EvpMDCtx -> IO ByteString
-digestFinalBS ctx
     = withForeignPtr ctx $ \ ctxPtr ->
-      createAndTrim (#const EVP_MAX_MD_SIZE) $ \ buf ->
-      alloca $ \ bufLen ->
-      do _DigestFinal ctxPtr (unsafeCoercePtr buf) bufLen >>= failIf (/= 1)
-         liftM fromIntegral $ peek bufLen
+      allocaArray (#const EVP_MAX_MD_SIZE) $ \ bufPtr ->
+      alloca $ \ bufLenPtr ->
+      do _DigestFinal ctxPtr bufPtr bufLenPtr >>= failIf (/= 1)
+         bufLen <- liftM fromIntegral $ peek bufLenPtr
+         peekCStringLen (bufPtr, bufLen)
 
 
-digestFinalLBS :: EvpMDCtx -> IO LazyByteString
-digestFinalLBS ctx
-    = digestFinalBS ctx >>= \ bs -> (return . LPS) [bs]
+digestStrictly :: EvpMD -> ByteString -> IO EvpMDCtx
+digestStrictly md input
+    = do ctx <- digestInit md
+         digestUpdateBS ctx input
+         return ctx
+
+
+digestLazily :: EvpMD -> LazyByteString -> IO EvpMDCtx
+digestLazily md (LPS input)
+    = do ctx <- digestInit md
+         mapM_ (digestUpdateBS ctx) input
+         return ctx
+
+
+digest :: EvpMD -> String -> IO String
+digest md input
+    = digestLBS md $ L8.pack input
+
+
+digestBS :: EvpMD -> ByteString -> IO String
+digestBS md input
+    = do ctx <- digestStrictly md input
+         digestFinal ctx
+
+
+digestLBS :: EvpMD -> LazyByteString -> IO String
+digestLBS md input
+    = do ctx <- digestLazily md input
+         digestFinal ctx

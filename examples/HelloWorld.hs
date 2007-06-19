@@ -31,10 +31,7 @@ main = withOpenSSL $
           putStrLn ""
 
           putStrLn "encrypting..."
-          (sealCtx, [encKey], iv) <- sealInit des [pkey]
-          encrypted <- liftM concat $ sequence [ sealUpdate sealCtx plainText
-                                               , sealFinal  sealCtx
-                                               ]
+          (encrypted, [encKey], iv) <- seal des [pkey] plainText
           
           putStrLn ("encrypted symmetric key: " ++ binToHex encKey)
           putStrLn ("IV: " ++ binToHex iv)
@@ -43,10 +40,7 @@ main = withOpenSSL $
           putStrLn ""
 
           putStrLn "decrypting..."
-          openCtx <- openInit des encKey iv pkey
-          decrypted <- liftM concat $ sequence [ openUpdate openCtx encrypted
-                                               , openFinal  openCtx
-                                               ]
+          decrypted <- open des encKey iv pkey encrypted
 
           putStrLn ("decrypted message: " ++ decrypted)
 

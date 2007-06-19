@@ -11,18 +11,18 @@ module OpenSSL.EVP.Cipher
     , newCtx -- private
 
     , CryptoMode(..)
-    , cryptoModeToInt -- private
 
-    , cipherInit
-    , cipherUpdate
-    , cipherUpdateBS
-    , cipherUpdateLBS
-    , cipherFinal
-    , cipherFinalBS
-    , cipherFinalLBS
+    , cipherStrictly -- private
+    , cipherLazily -- private
+
+    , cipher
+    , cipherBS
+    , cipherLBS
     )
     where
 
+import           Control.Monad
+import qualified Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -30,6 +30,7 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.RSA
 import           OpenSSL.Utils
+import           System.IO.Unsafe
 
 
 {- EVP_CIPHER ---------------------------------------------------------------- -}
@@ -102,19 +103,14 @@ cryptoModeToInt Decrypt = 0
 
 
 cipherInit :: EvpCipher -> String -> String -> CryptoMode -> IO EvpCipherCtx
-cipherInit cipher key iv mode
+cipherInit c key iv mode
     = do ctx <- newCtx
          withForeignPtr ctx $ \ ctxPtr ->
              withCString key $ \ keyPtr ->
                  withCString iv $ \ ivPtr ->
-                     _CipherInit ctxPtr cipher keyPtr ivPtr (cryptoModeToInt mode)
+                     _CipherInit ctxPtr c keyPtr ivPtr (cryptoModeToInt mode)
                           >>= failIf (/= 1)
          return ctx
-
-
-cipherUpdate :: EvpCipherCtx -> String -> IO String
-cipherUpdate ctx inStr
-    = cipherUpdateLBS ctx (L8.pack inStr) >>= return . L8.unpack
 
 
 cipherUpdateBS :: EvpCipherCtx -> ByteString -> IO ByteString
@@ -128,16 +124,6 @@ cipherUpdateBS ctx inBS
            >>  peek outLenPtr
 
 
-cipherUpdateLBS :: EvpCipherCtx -> LazyByteString -> IO LazyByteString
-cipherUpdateLBS ctx (LPS inChunks)
-    = mapM (cipherUpdateBS ctx) inChunks >>= return . LPS
-
-
-cipherFinal :: EvpCipherCtx -> IO String
-cipherFinal ctx
-    = cipherFinalBS ctx >>= return . B8.unpack
-
-
 cipherFinalBS :: EvpCipherCtx -> IO ByteString
 cipherFinalBS ctx
     = withForeignPtr ctx $ \ ctxPtr ->
@@ -148,6 +134,52 @@ cipherFinalBS ctx
            >>  peek outLenPtr
 
 
-cipherFinalLBS :: EvpCipherCtx -> IO LazyByteString
-cipherFinalLBS ctx
+cipher :: EvpCipher
+       -> String
+       -> String
+       -> CryptoMode
+       -> String
+       -> IO String
+cipher c key iv mode input
+    = liftM L8.unpack $ cipherLBS c key iv mode $ L8.pack input
+
+
+cipherBS :: EvpCipher
+         -> String
+         -> String
+         -> CryptoMode
+         -> ByteString
+         -> IO ByteString
+cipherBS c key iv mode input
+    = do ctx <- cipherInit c key iv mode
+         cipherStrictly ctx input
+
+
+cipherLBS :: EvpCipher
+          -> String
+          -> String
+          -> CryptoMode
+          -> LazyByteString
+          -> IO LazyByteString
+cipherLBS c key iv mode input
+    = do ctx <- cipherInit c key iv mode
+         cipherLazily ctx input
+
+
+cipherStrictly :: EvpCipherCtx -> ByteString -> IO ByteString
+cipherStrictly ctx input
+    = do output'  <- cipherUpdateBS ctx input
+         output'' <- cipherFinalBS ctx
+         return $ B.append output' output''
+
+
+cipherLazily :: EvpCipherCtx -> LazyByteString -> IO LazyByteString
+
+cipherLazily ctx (LPS [])
     = cipherFinalBS ctx >>= \ bs -> (return . LPS) [bs]
+
+cipherLazily ctx (LPS (x:xs))
+    = do y      <- cipherUpdateBS ctx x
+         LPS ys <- unsafeInterleaveIO $
+                   cipherLazily ctx (LPS xs)
+         return $ LPS (y:ys)

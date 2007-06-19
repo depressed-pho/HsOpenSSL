@@ -55,33 +55,79 @@ module OpenSSL
     ( -- * Initialization
       withOpenSSL
 
-      -- * High-level cryptographic functions
-    , module OpenSSL.EVP.Cipher
-    , module OpenSSL.EVP.Digest
-    , module OpenSSL.EVP.Open
-    , module OpenSSL.EVP.PKey
-    , module OpenSSL.EVP.Seal
-    , module OpenSSL.EVP.Sign
-    , module OpenSSL.EVP.Verify
+      -- * Base64
+    , encodeBase64
+    , encodeBase64BS
+    , encodeBase64LBS
+    , decodeBase64
+    , decodeBase64BS
+    , decodeBase64LBS
+
+      -- * Symmetric cipher
+    , EvpCipher
+    , CryptoMode(..)
+    , getCipherByName
+    , cipher
+    , cipherBS
+    , cipherLBS
+
+      -- * Message digest
+    , EvpMD
+    , getDigestByName
+    , digest
+    , digestBS
+    , digestLBS
+
+      -- * Keypair
+    , EvpPKey
+#ifndef OPENSSL_NO_RSA
+    , newPKeyRSA
+#endif
+
+      -- * Envelope decryption
+    , open
+    , openBS
+    , openLBS
+
+      -- * Envelope Encryption
+    , seal
+    , sealBS
+    , sealLBS
+
+      -- * Signing
+    , sign
+    , signBS
+    , signLBS
+
+      -- * Signature verification
+    , verify
+    , verifyBS
+    , verifyLBS
 
       -- * PEM routines
-    , module OpenSSL.PEM
+    , PemPasswordRWState(..)
+    , PemPasswordSupply(..)
+    , writePKCS8PrivateKey
+    , readPrivateKey
+    , writePublicKey
+    , readPublicKey
 
       -- * RSA public key cryptosystem
-    , module OpenSSL.RSA
+    , RSA
+    , generateKey
     )
     where
 
-
-import OpenSSL.EVP.Cipher hiding (EVP_CIPHER, EVP_CIPHER_CTX, newCtx, cryptoModeToInt)
-import OpenSSL.EVP.Digest hiding (EVP_MD, newCtx, EVP_MD_CTX)
+import OpenSSL.EVP.Base64
+import OpenSSL.EVP.Cipher
+import OpenSSL.EVP.Digest
 import OpenSSL.EVP.Open
-import OpenSSL.EVP.PKey   hiding (EVP_PKEY, wrapPKey, pkeySize)
+import OpenSSL.EVP.PKey
 import OpenSSL.EVP.Seal
 import OpenSSL.EVP.Sign
 import OpenSSL.EVP.Verify
 import OpenSSL.PEM
-import OpenSSL.RSA        hiding (RSA_)
+import OpenSSL.RSA
 import OpenSSL.SSL
 
 

@@ -9,7 +9,7 @@ run: build
 	$(MAKE) -C examples run
 
 .setup-config: $(CABAL_FILE) configure Setup
-	./Setup configure -p
+	./Setup configure
 
 configure: aclocal.m4 configure.ac
 	autoconf

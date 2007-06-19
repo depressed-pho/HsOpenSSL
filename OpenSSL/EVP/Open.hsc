@@ -1,17 +1,14 @@
 {- -*- haskell -*- -}
 #include "HsOpenSSL.h"
 module OpenSSL.EVP.Open
-    ( openInit
-    , openUpdate
-    , openUpdateBS
-    , openUpdateLBS
-    , openFinal
-    , openFinalBS
-    , openFinalLBS
+    ( open
+    , openBS
+    , openLBS
     )
     where
 
 import           Control.Monad
+import qualified Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -20,6 +17,7 @@ import           Foreign.C
 import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
+
 
 foreign import ccall unsafe "EVP_OpenInit"
         _OpenInit :: Ptr EVP_CIPHER_CTX
@@ -43,20 +41,33 @@ openInit cipher encKey iv pkey
          return ctx
 
 
-openUpdate :: EvpCipherCtx -> String -> IO String
-openUpdate = cipherUpdate
+open :: EvpCipher
+     -> String
+     -> String
+     -> EvpPKey
+     -> String
+     -> IO String
+open cipher encKey iv pkey input
+    = liftM L8.unpack $ openLBS cipher encKey iv pkey $ L8.pack input
 
-openUpdateBS :: EvpCipherCtx -> ByteString -> IO ByteString
-openUpdateBS = cipherUpdateBS
 
-openUpdateLBS :: EvpCipherCtx -> LazyByteString -> IO LazyByteString
-openUpdateLBS = cipherUpdateLBS
+openBS :: EvpCipher
+       -> String
+       -> String
+       -> EvpPKey
+       -> ByteString
+       -> IO ByteString
+openBS cipher encKey iv pkey input
+    = do ctx      <- openInit cipher encKey iv pkey
+         cipherStrictly ctx input
 
-openFinal :: EvpCipherCtx -> IO String
-openFinal = cipherFinal
 
-openFinalBS :: EvpCipherCtx -> IO ByteString
-openFinalBS = cipherFinalBS
-
-openFinalLBS :: EvpCipherCtx -> IO LazyByteString
-openFinalLBS = cipherFinalLBS
+openLBS :: EvpCipher
+        -> String
+        -> String
+        -> EvpPKey
+        -> LazyByteString
+        -> IO LazyByteString
+openLBS cipher encKey iv pkey input
+    = do ctx <- openInit cipher encKey iv pkey
+         cipherLazily ctx input

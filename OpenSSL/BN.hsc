@@ -1,6 +1,6 @@
 {- -*- haskell -*- -}
 
--- This module is private. Please don't use this directly.
+-- #hide
 
 module OpenSSL.BN
     ( BigNum

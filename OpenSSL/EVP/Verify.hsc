@@ -1,13 +1,9 @@
 {- -*- haskell -*- -}
 #include "HsOpenSSL.h"
 module OpenSSL.EVP.Verify
-    ( verifyInit
-    , verifyUpdate
-    , verifyUpdateBS
-    , verifyUpdateLBS
-    , verifyFinal
-    , verifyFinalBS
-    , verifyFinalLBS
+    ( verify
+    , verifyBS
+    , verifyLBS
     )
     where
 
@@ -31,31 +27,10 @@ foreign import ccall unsafe "EVP_VerifyFinal"
         _VerifyFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> CUInt -> Ptr EVP_PKEY -> IO Int
 
 
-verifyInit :: EvpMD -> IO EvpMDCtx
-verifyInit = digestInit
-
-
-verifyUpdate :: EvpMDCtx -> String -> IO ()
-verifyUpdate = digestUpdate
-
-
-verifyUpdateBS :: EvpMDCtx -> ByteString -> IO ()
-verifyUpdateBS = digestUpdateBS
-
-
-verifyUpdateLBS :: EvpMDCtx -> LazyByteString -> IO ()
-verifyUpdateLBS = digestUpdateLBS
-
-
-verifyFinal :: EvpMDCtx -> String -> EvpPKey -> IO VerifyStatus
-verifyFinal ctx str pkey
-    = verifyFinalBS ctx (B8.pack str) pkey
-
-
-verifyFinalBS :: EvpMDCtx -> ByteString -> EvpPKey -> IO VerifyStatus
-verifyFinalBS ctx bs pkey
+verifyFinalBS :: EvpMDCtx -> String -> EvpPKey -> IO VerifyStatus
+verifyFinalBS ctx sig pkey
     = withForeignPtr ctx $ \ ctxPtr ->
-      unsafeUseAsCStringLen bs $ \ (buf, len) ->
+      withCStringLen sig $ \ (buf, len) ->
       withForeignPtr pkey $ \ pkeyPtr ->
       _VerifyFinal ctxPtr buf (fromIntegral len) pkeyPtr >>= interpret
     where
@@ -65,6 +40,18 @@ verifyFinalBS ctx bs pkey
       interpret _ = raiseOpenSSLError
 
 
-verifyFinalLBS :: EvpMDCtx -> LazyByteString -> EvpPKey -> IO VerifyStatus
-verifyFinalLBS ctx (LPS chunks) pkey
-    = (return . B.concat) chunks >>= \ bs -> verifyFinalBS ctx bs pkey
+verify :: EvpMD -> String -> EvpPKey -> String -> IO VerifyStatus
+verify md sig pkey input
+    = verifyLBS md sig pkey (L8.pack input)
+
+
+verifyBS :: EvpMD -> String -> EvpPKey -> ByteString -> IO VerifyStatus
+verifyBS md sig pkey input
+    = do ctx <- digestStrictly md input
+         verifyFinalBS ctx sig pkey
+
+
+verifyLBS :: EvpMD -> String -> EvpPKey -> LazyByteString -> IO VerifyStatus
+verifyLBS md sig pkey input
+    = do ctx <- digestLazily md input
+         verifyFinalBS ctx sig pkey
