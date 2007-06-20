@@ -12,8 +12,10 @@
 {- Now I realized that BIOs aren't necessary to we Haskell hackers. Their fun- -}
 {- ctionalities overlaps with Haskell's own I/O system. The only thing which   -}
 {- wasn't available without bio(3) -- at least I thought so -- was the         -}
-{- BIO_f_base64(3), but I found an undocumented API for the Base64 codec. So I -}
-{- decided to bury all the OpenSSL.BIO module. The game is over.               -}
+{- BIO_f_base64(3), but I found an undocumented API for the Base64 codec.      -}
+{-          I FOUND AN UNDOCUMENTED API FOR THE VERY BASE64 CODEC.             -}
+{- So I decided to bury all the OpenSSL.BIO module. The game is over.          -}
+{-                                                                             -}
 {- --------------------------------------------------------------------------- -}
 
 

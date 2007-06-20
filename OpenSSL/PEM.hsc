@@ -8,6 +8,9 @@ module OpenSSL.PEM
 
     , writePublicKey
     , readPublicKey
+
+    , writeX509
+    , readX509
     )
     where
 
@@ -21,6 +24,7 @@ import           OpenSSL.BIO
 import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
+import           OpenSSL.X509
 import           Prelude hiding (catch)
 import           System.IO
 
@@ -161,6 +165,13 @@ readPrivateKey pemStr supply
 foreign import ccall unsafe "PEM_write_bio_PUBKEY"
         _write_bio_PUBKEY :: Ptr BIO_ -> Ptr EVP_PKEY -> IO Int
 
+foreign import ccall unsafe "PEM_read_bio_PUBKEY"
+        _read_bio_PUBKEY :: Ptr BIO_
+                         -> Ptr (Ptr EVP_PKEY)
+                         -> FunPtr PemPasswordCallback
+                         -> Ptr ()
+                         -> IO (Ptr EVP_PKEY)
+
 
 writePublicKey' :: BIO -> EvpPKey -> IO ()
 writePublicKey' bio pkey
@@ -175,30 +186,62 @@ writePublicKey pkey
          writePublicKey' mem pkey
          bioRead mem
 
-
-foreign import ccall unsafe "PEM_read_bio_PUBKEY"
-        _read_bio_PUBKEY :: Ptr BIO_
-                         -> Ptr (Ptr EVP_PKEY)
-                         -> FunPtr PemPasswordCallback
-                         -> Ptr ()
-                         -> IO (Ptr EVP_PKEY)
-
 -- Why the heck PEM_read_bio_PUBKEY takes pem_password_cb? Is there
 -- any form of encrypted public key?
 readPublicKey' :: BIO -> IO EvpPKey
 readPublicKey' bio
     = withForeignPtr bio $ \ bioPtr ->
-      do cbPtr <- mkPemPasswordCallback $
-                  callPasswordCB $ \ _ _ ->
-                  return ""
-         pkeyPtr <- _read_bio_PUBKEY bioPtr nullPtr cbPtr nullPtr
-         freeHaskellFunPtr cbPtr
-
-         failIfNull pkeyPtr
-         wrapPKey pkeyPtr
+      withCString "" $ \ passPtr ->
+      _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+           >>= failIfNull
+           >>= wrapPKey
 
 
 readPublicKey :: String -> IO EvpPKey
 readPublicKey pemStr
-    = do mem <- newConstMem pemStr
-         readPublicKey' mem
+    = newConstMem pemStr >>= readPublicKey'
+
+
+{- X.509 certificate --------------------------------------------------------- -}
+
+foreign import ccall safe "PEM_write_bio_X509_AUX"
+        _write_bio_X509_AUX :: Ptr BIO_
+                            -> Ptr X509_
+                            -> IO Int
+
+foreign import ccall safe "PEM_read_bio_X509_AUX"
+        _read_bio_X509_AUX :: Ptr BIO_
+                           -> Ptr (Ptr X509_)
+                           -> FunPtr PemPasswordCallback
+                           -> Ptr ()
+                           -> IO (Ptr X509_)
+
+writeX509' :: BIO -> X509 -> IO ()
+writeX509' bio x509
+    = withForeignPtr bio  $ \ bioPtr  ->
+      withForeignPtr x509 $ \ x509Ptr ->
+      _write_bio_X509_AUX bioPtr x509Ptr
+           >>= failIf (/= 1)
+           >>  return ()
+
+
+writeX509 :: X509 -> IO String
+writeX509 x509
+    = do mem <- newMem
+         writeX509' mem x509
+         bioRead mem
+
+
+-- I believe X.509 isn't encrypted.
+readX509' :: BIO -> IO X509
+readX509' bio
+    = withForeignPtr bio $ \ bioPtr ->
+      withCString "" $ \ passPtr ->
+      _read_bio_X509_AUX bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+           >>= failIfNull
+           >>= wrapX509
+
+
+readX509 :: String -> IO X509
+readX509 pemStr
+    = newConstMem pemStr >>= readX509'

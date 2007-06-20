@@ -14,11 +14,22 @@ import OpenSSL.EVP.Sign
 import OpenSSL.EVP.Verify
 import OpenSSL.PEM
 import OpenSSL.RSA
+import OpenSSL.X509
 import System.IO
 import Text.Printf
 
 
 main = withOpenSSL $
+       do x509 <- readX509 =<< readFile "/usr/share/curl/curl-ca-bundle.crt" -- "../tmp/cert.pem"
+          getVersion      x509      >>= print
+          getSerialNumber x509      >>= print
+          getIssuerName   x509 True >>= print
+          getSubjectName  x509 True >>= print
+          getNotBefore    x509      >>= print
+          getNotAfter     x509      >>= print
+          getEmail        x509      >>= print
+          
+{-
        do putStrLn "cipher: DES-CBC"
           des <- liftM fromJust $ getCipherByName "DES-CBC"
 
@@ -43,6 +54,7 @@ main = withOpenSSL $
           decrypted <- open des encKey iv pkey encrypted
 
           putStrLn ("decrypted message: " ++ decrypted)
+-}
 
 
 binToHex :: String -> String

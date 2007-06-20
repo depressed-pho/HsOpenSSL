@@ -25,6 +25,11 @@ int HsOpenSSL_EVP_MD_size(EVP_MD* md);
 int HsOpenSSL_EVP_CIPHER_CTX_block_size(EVP_CIPHER_CTX* ctx);
 int HsOpenSSL_EVP_CIPHER_iv_length(EVP_CIPHER* cipher);
 
+/* X509 ***********************************************************************/
+long HsOpenSSL_X509_get_version(X509* x509);
+ASN1_TIME* HsOpenSSL_X509_get_notBefore(X509* x509);
+ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509);
+
 /* Threads ********************************************************************/
 void HsOpenSSL_setupMutex();
 

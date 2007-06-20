@@ -4,6 +4,7 @@ module OpenSSL.EVP.Digest
     ( EvpMD
     , EVP_MD
     , getDigestByName
+    , getDigestNames
 
     , EvpMDCtx
     , EVP_MD_CTX
@@ -23,6 +24,7 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
 import           Foreign.C
+import           OpenSSL.Objects
 import           OpenSSL.Utils
 
 
@@ -47,6 +49,10 @@ getDigestByName name
              return Nothing
            else
              return $ Just ptr
+
+
+getDigestNames :: IO [String]
+getDigestNames = getObjNames MDMethodType True
 
 
 {- EVP_MD_CTX ---------------------------------------------------------------- -}

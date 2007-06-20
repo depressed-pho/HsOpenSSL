@@ -17,7 +17,6 @@ module OpenSSL.EVP.PKey
 
 import           Foreign
 import           Foreign.C
-import qualified GHC.ForeignPtr as GF
 import           OpenSSL.RSA
 import           OpenSSL.Utils
 
@@ -36,7 +35,7 @@ foreign import ccall unsafe "EVP_PKEY_size"
         _pkey_size :: Ptr EVP_PKEY -> IO Int
 
 
-wrapPKey :: Ptr EVP_PKEY -> IO (ForeignPtr EVP_PKEY)
+wrapPKey :: Ptr EVP_PKEY -> IO EvpPKey
 wrapPKey = newForeignPtr _pkey_free
 
 
@@ -55,11 +54,5 @@ newPKeyRSA rsa
     = withForeignPtr rsa $ \ rsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
          _set1_RSA pkeyPtr rsaPtr >>= failIf (/= 1)
-
-         pkey <- wrapPKey pkeyPtr
-         
-         -- pkey refers to rsa
-         GF.addForeignPtrConcFinalizer pkey $ touchForeignPtr rsa
-         
-         return pkey
+         wrapPKey pkeyPtr
 #endif

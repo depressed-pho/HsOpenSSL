@@ -28,10 +28,14 @@ Exposed-Modules:
         OpenSSL.EVP.Seal
         OpenSSL.EVP.Sign
         OpenSSL.EVP.Verify
+        OpenSSL.Objects
         OpenSSL.PEM
         OpenSSL.RSA
         OpenSSL.SSL
+        OpenSSL.Stack
         OpenSSL.Utils
+        OpenSSL.X509
+        OpenSSL.X509.Name
 Extensions:
         ForeignFunctionInterface
 ghc-options:

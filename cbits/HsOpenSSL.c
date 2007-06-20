@@ -56,6 +56,19 @@ int HsOpenSSL_EVP_CIPHER_iv_length(EVP_CIPHER* cipher) {
     return EVP_CIPHER_iv_length(cipher);
 }
 
+/* X509 ***********************************************************************/
+long HsOpenSSL_X509_get_version(X509* x509) {
+    return X509_get_version(x509);
+}
+
+ASN1_TIME* HsOpenSSL_X509_get_notBefore(X509* x509) {
+    return X509_get_notBefore(x509);
+}
+
+ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509) {
+    return X509_get_notAfter(x509);
+}
+
 /* Threads ********************************************************************/
 static pthread_mutex_t* mutex_at;
 

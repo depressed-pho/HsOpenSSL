@@ -4,7 +4,9 @@ module OpenSSL.EVP.Cipher
     ( EvpCipher
     , EVP_CIPHER
     , getCipherByName
-    , cipherIvLength
+    , getCipherNames
+
+    , cipherIvLength -- private
 
     , EvpCipherCtx
     , EVP_CIPHER_CTX
@@ -28,7 +30,7 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
 import           Foreign.C
-import           OpenSSL.RSA
+import           OpenSSL.Objects
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
@@ -55,6 +57,10 @@ getCipherByName name
              return Nothing
            else
              return $ Just ptr
+
+
+getCipherNames :: IO [String]
+getCipherNames = getObjNames CipherMethodType True
 
 
 {- EVP_CIPHER_CTX ------------------------------------------------------------ -}

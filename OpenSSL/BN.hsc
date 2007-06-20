@@ -6,6 +6,8 @@ module OpenSSL.BN
     ( BigNum
     , BIGNUM
 
+    , freeBN
+
     , bn2dec
     )
     where
@@ -20,12 +22,14 @@ type BigNum = Ptr BIGNUM
 data BIGNUM = BIGNUM
 
 
+foreign import ccall unsafe "BN_free"
+        freeBN :: BigNum -> IO ()
+
 foreign import ccall unsafe "BN_bn2dec"
         _bn2dec :: BigNum -> IO CString
 
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()
-
 
 
 bn2dec :: BigNum -> IO Integer

@@ -52,6 +52,8 @@
 ^\.setup-config$
 \.buildinfo$
 
+^tmp($|/)
+
 _stub\.(c|h)$
 
 ^OpenSSL\.hs$
@@ -66,9 +68,13 @@ _stub\.(c|h)$
 ^OpenSSL/EVP/Seal\.hs$
 ^OpenSSL/EVP/Sign\.hs$
 ^OpenSSL/EVP/Verify\.hs$
+^OpenSSL/Objects\.hs$
 ^OpenSSL/PEM\.hs$
 ^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$
+^OpenSSL/Stack\.hs$
+^OpenSSL/X509\.hs$
+^OpenSSL/X509/Name\.hs$
 ^Setup$
 ^aclocal\.m4$
 ^configure$
