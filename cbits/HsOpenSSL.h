@@ -30,6 +30,12 @@ long HsOpenSSL_X509_get_version(X509* x509);
 ASN1_TIME* HsOpenSSL_X509_get_notBefore(X509* x509);
 ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509);
 
+/* ASN1 ***********************************************************************/
+ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new();
+void HsOpenSSL_M_ASN1_INTEGER_free(ASN1_INTEGER* intPtr);
+ASN1_INTEGER* HsOpenSSL_M_ASN1_TIME_new();
+void HsOpenSSL_M_ASN1_TIME_free(ASN1_TIME* timePtr);
+
 /* Threads ********************************************************************/
 void HsOpenSSL_setupMutex();
 

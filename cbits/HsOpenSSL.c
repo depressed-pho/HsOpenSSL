@@ -69,6 +69,23 @@ ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509) {
     return X509_get_notAfter(x509);
 }
 
+/* ASN1 ***********************************************************************/
+ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new() {
+    return M_ASN1_INTEGER_new();
+}
+
+void HsOpenSSL_M_ASN1_INTEGER_free(ASN1_INTEGER* intPtr) {
+    M_ASN1_INTEGER_free(intPtr);
+}
+
+ASN1_INTEGER* HsOpenSSL_M_ASN1_TIME_new() {
+    return M_ASN1_TIME_new();
+}
+
+void HsOpenSSL_M_ASN1_TIME_free(ASN1_TIME* timePtr) {
+    M_ASN1_TIME_free(timePtr);
+}
+
 /* Threads ********************************************************************/
 static pthread_mutex_t* mutex_at;
 

@@ -68,7 +68,7 @@ peekRSAPublic peeker rsa
     = withForeignPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
-         bn2dec bn
+         peekBN bn
 
 
 peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
@@ -78,7 +78,7 @@ peekRSAPrivate peeker rsa
          if bn == nullPtr then
              return Nothing
            else
-             bn2dec bn >>= return . Just
+             peekBN bn >>= return . Just
 
 
 rsaN :: RSA -> IO Integer

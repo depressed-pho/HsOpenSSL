@@ -6,6 +6,7 @@ module OpenSSL.EVP.PKey
 
     , wrapPKey -- private
     , pkeySize -- private
+    , pkeyDefaultMD -- private
 
       -- FIXME: newPKeyDSA, newPKeyDH and newPKeyECKey may be needed
 #ifndef OPENSSL_NO_RSA
@@ -17,6 +18,7 @@ module OpenSSL.EVP.PKey
 
 import           Foreign
 import           Foreign.C
+import           OpenSSL.EVP.Digest
 import           OpenSSL.RSA
 import           OpenSSL.Utils
 
@@ -43,6 +45,24 @@ pkeySize :: EvpPKey -> IO Int
 pkeySize pkey
     = withForeignPtr pkey $ \ pkeyPtr ->
       _pkey_size pkeyPtr
+
+
+pkeyDefaultMD :: EvpPKey -> IO EvpMD
+pkeyDefaultMD pkey
+    = withForeignPtr pkey $ \ pkeyPtr ->
+      do pkeyType   <- (#peek EVP_PKEY, type) pkeyPtr :: IO Int
+         digestName <- case pkeyType of
+#ifndef OPENSSL_NO_RSA
+                         (#const EVP_PKEY_RSA) -> return "sha1"
+#endif
+#ifndef OPENSSLNO_DSA
+                         (#const EVP_PKEY_DSA) -> return "dss1"
+#endif
+                         _ -> fail ("pkeyDefaultMD: unsupported pkey type: " ++ show pkeyType)
+         mDigest <- getDigestByName digestName
+         case mDigest of
+           Just digest -> return digest
+           Nothing     -> fail ("pkeyDefaultMD: digest method not found: " ++ digestName)
 
 
 #ifndef OPENSSL_NO_RSA

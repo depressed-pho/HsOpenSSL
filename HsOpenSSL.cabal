@@ -14,7 +14,7 @@ Homepage: http://ccm.sherry.jp/hs-openssl/
 Category: Cryptography
 Tested-With: GHC == 6.6.1
 Build-Depends:
-        base
+        base, time
 Exposed-Modules:
         OpenSSL
         OpenSSL.BIO
