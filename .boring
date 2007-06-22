@@ -75,6 +75,7 @@ _stub\.(c|h)$
 ^OpenSSL/Stack\.hs$
 ^OpenSSL/X509\.hs$
 ^OpenSSL/X509/Name\.hs$
+^OpenSSL/X509/Request\.hs$
 ^Setup$
 ^aclocal\.m4$
 ^configure$

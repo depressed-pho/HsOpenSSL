@@ -69,6 +69,14 @@ ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509) {
     return X509_get_notAfter(x509);
 }
 
+long HsOpenSSL_X509_REQ_get_version(X509_REQ* req) {
+    return X509_REQ_get_version(req);
+}
+
+X509_NAME* HsOpenSSL_X509_REQ_get_subject_name(X509_REQ* req) {
+    return X509_REQ_get_subject_name(req);
+}
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new() {
     return M_ASN1_INTEGER_new();

@@ -11,6 +11,9 @@ module OpenSSL.PEM
 
     , writeX509
     , readX509
+
+    , writeX509Req
+    , readX509Req
     )
     where
 
@@ -25,6 +28,7 @@ import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
 import           OpenSSL.X509
+import           OpenSSL.X509.Request
 import           Prelude hiding (catch)
 import           System.IO
 
@@ -245,3 +249,58 @@ readX509' bio
 readX509 :: String -> IO X509
 readX509 pemStr
     = newConstMem pemStr >>= readX509'
+
+
+{- PKCS#10 certificate request ----------------------------------------------- -}
+
+foreign import ccall safe "PEM_write_bio_X509_REQ"
+        _write_bio_X509_REQ :: Ptr BIO_
+                            -> Ptr X509_REQ
+                            -> IO Int
+
+foreign import ccall safe "PEM_write_bio_X509_REQ_NEW"
+        _write_bio_X509_REQ_NEW :: Ptr BIO_
+                                -> Ptr X509_REQ
+                                -> IO Int
+
+foreign import ccall safe "PEM_read_bio_X509_REQ"
+        _read_bio_X509_REQ :: Ptr BIO_
+                           -> Ptr (Ptr X509_REQ)
+                           -> FunPtr PemPasswordCallback
+                           -> Ptr ()
+                           -> IO (Ptr X509_REQ)
+
+
+writeX509Req' :: BIO -> X509Req -> Bool -> IO ()
+writeX509Req' bio req new
+    = withForeignPtr bio $ \ bioPtr ->
+      withForeignPtr req $ \ reqPtr ->
+      writer bioPtr reqPtr
+                 >>= failIf (/= 1)
+                 >>  return ()
+    where
+      writer = if new then
+                   _write_bio_X509_REQ_NEW
+               else
+                   _write_bio_X509_REQ
+
+
+writeX509Req :: X509Req -> Bool -> IO String
+writeX509Req req new
+    = do mem <- newMem
+         writeX509Req' mem req new
+         bioRead mem
+
+
+readX509Req' :: BIO -> IO X509Req
+readX509Req' bio
+    = withForeignPtr bio $ \ bioPtr ->
+      withCString "" $ \ passPtr ->
+      _read_bio_X509_REQ bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+           >>= failIfNull
+           >>= wrapX509Req
+
+
+readX509Req :: String -> IO X509Req
+readX509Req pemStr
+    = newConstMem pemStr >>= readX509Req'

@@ -16,28 +16,22 @@ import OpenSSL.EVP.Verify
 import OpenSSL.PEM
 import OpenSSL.RSA
 import OpenSSL.X509
+import OpenSSL.X509.Request as R
 import System.IO
 import Text.Printf
 
 
 main = withOpenSSL $
-       do x509 <- newX509
-          setVersion x509 2
-          setSerialNumber x509 12345678
-          setIssuerName x509 [("C", "JP")]
-          setSubjectName x509 [("ST", "foo")]
-          setNotBefore x509 =<< getCurrentTime
-          setNotAfter x509 =<< liftM (addUTCTime (365 * 24 * 60 * 60)) getCurrentTime
+       do req <- newX509Req
+          R.setVersion req 0
+          R.setSubjectName req [("C", "JP")]
+          
+          pem  <- readFile "../tmp/priv.pem"
+          pkey <- readPrivateKey pem PwNone
+          R.setPublicKey req pkey
 
-          cliPKey <- generateKey 512 65537 Nothing >>= newPKeyRSA
-          setPublicKey x509 cliPKey
-
-          caPem  <- readFile "../tmp/priv.pem"
-          caPKey <- readPrivateKey caPem PwNone
-          signX509 x509 caPKey Nothing
-
-          setIssuerName x509 []
-          verifyX509 x509 caPKey >>= print
+          signX509Req req pkey Nothing
+          verifyX509Req req pkey >>= print
 {-
        do x509 <- readX509 =<< readFile "../tmp/cert.pem"
           getVersion      x509      >>= print

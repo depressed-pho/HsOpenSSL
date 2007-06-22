@@ -8,6 +8,7 @@ module OpenSSL.X509
 
     , signX509
     , verifyX509
+
     , printX509
 
     , getVersion
@@ -47,8 +48,6 @@ import           OpenSSL.Objects
 import           OpenSSL.Stack
 import           OpenSSL.X509.Name
 
-
-{- X509 ---------------------------------------------------------------------- -}
 
 type X509  = ForeignPtr X509_
 data X509_ = X509_
