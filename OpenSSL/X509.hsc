@@ -40,11 +40,11 @@ import           Control.Monad
 import           Data.Time.Clock
 import           Foreign
 import           Foreign.C
+import           OpenSSL.ASN1
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
-import           OpenSSL.Objects
 import           OpenSSL.Stack
 import           OpenSSL.X509.Name
 

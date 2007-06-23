@@ -57,6 +57,7 @@
 _stub\.(c|h)$
 
 ^OpenSSL\.hs$
+^OpenSSL/ASN1\.hs$
 ^OpenSSL/BIO\.hs$
 ^OpenSSL/BN\.hs$
 ^OpenSSL/ERR\.hs$

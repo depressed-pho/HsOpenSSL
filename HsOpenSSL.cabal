@@ -17,6 +17,7 @@ Build-Depends:
         base, time
 Exposed-Modules:
         OpenSSL
+        OpenSSL.ASN1
         OpenSSL.BIO
         OpenSSL.BN
         OpenSSL.ERR

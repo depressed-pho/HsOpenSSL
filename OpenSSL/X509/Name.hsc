@@ -12,7 +12,7 @@ module OpenSSL.X509.Name
 import           Control.Exception
 import           Foreign
 import           Foreign.C
-import           OpenSSL.Objects
+import           OpenSSL.ASN1
 import           OpenSSL.Utils
 
 
