@@ -77,6 +77,26 @@ X509_NAME* HsOpenSSL_X509_REQ_get_subject_name(X509_REQ* req) {
     return X509_REQ_get_subject_name(req);
 }
 
+long HsOpenSSL_X509_CRL_get_version(X509_CRL* crl) {
+    return X509_CRL_get_version(crl);
+}
+
+ASN1_TIME* HsOpenSSL_X509_CRL_get_lastUpdate(X509_CRL* crl) {
+    return X509_CRL_get_lastUpdate(crl);
+}
+
+ASN1_TIME* HsOpenSSL_X509_CRL_get_nextUpdate(X509_CRL* crl) {
+    return X509_CRL_get_nextUpdate(crl);
+}
+
+X509_NAME* HsOpenSSL_X509_CRL_get_issuer(X509_CRL* crl) {
+    return X509_CRL_get_issuer(crl);
+}
+
+STACK_OF(X509_REVOKED)* HsOpenSSL_X509_CRL_get_REVOKED(X509_CRL* crl) {
+    return X509_CRL_get_REVOKED(crl);
+}
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new() {
     return M_ASN1_INTEGER_new();

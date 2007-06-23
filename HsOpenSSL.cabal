@@ -35,6 +35,7 @@ Exposed-Modules:
         OpenSSL.Stack
         OpenSSL.Utils
         OpenSSL.X509
+        OpenSSL.X509.Revocation
         OpenSSL.X509.Name
         OpenSSL.X509.Request
 Extensions:

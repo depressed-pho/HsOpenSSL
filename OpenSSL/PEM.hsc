@@ -14,6 +14,9 @@ module OpenSSL.PEM
 
     , writeX509Req
     , readX509Req
+
+    , writeCRL
+    , readCRL
     )
     where
 
@@ -29,6 +32,7 @@ import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
 import           OpenSSL.X509
 import           OpenSSL.X509.Request
+import           OpenSSL.X509.Revocation
 import           Prelude hiding (catch)
 import           System.IO
 
@@ -208,7 +212,7 @@ readPublicKey pemStr
 
 {- X.509 certificate --------------------------------------------------------- -}
 
-foreign import ccall safe "PEM_write_bio_X509_AUX"
+foreign import ccall unsafe "PEM_write_bio_X509_AUX"
         _write_bio_X509_AUX :: Ptr BIO_
                             -> Ptr X509_
                             -> IO Int
@@ -253,12 +257,12 @@ readX509 pemStr
 
 {- PKCS#10 certificate request ----------------------------------------------- -}
 
-foreign import ccall safe "PEM_write_bio_X509_REQ"
+foreign import ccall unsafe "PEM_write_bio_X509_REQ"
         _write_bio_X509_REQ :: Ptr BIO_
                             -> Ptr X509_REQ
                             -> IO Int
 
-foreign import ccall safe "PEM_write_bio_X509_REQ_NEW"
+foreign import ccall unsafe "PEM_write_bio_X509_REQ_NEW"
         _write_bio_X509_REQ_NEW :: Ptr BIO_
                                 -> Ptr X509_REQ
                                 -> IO Int
@@ -304,3 +308,48 @@ readX509Req' bio
 readX509Req :: String -> IO X509Req
 readX509Req pemStr
     = newConstMem pemStr >>= readX509Req'
+
+
+{- Certificate Revocation List ----------------------------------------------- -}
+
+foreign import ccall unsafe "PEM_write_bio_X509_CRL"
+        _write_bio_X509_CRL :: Ptr BIO_
+                            -> Ptr X509_CRL
+                            -> IO Int
+
+foreign import ccall safe "PEM_read_bio_X509_CRL"
+        _read_bio_X509_CRL :: Ptr BIO_
+                           -> Ptr (Ptr X509_CRL)
+                           -> FunPtr PemPasswordCallback
+                           -> Ptr ()
+                           -> IO (Ptr X509_CRL)
+
+
+writeCRL' :: BIO -> CRL -> IO ()
+writeCRL' bio crl
+    = withForeignPtr bio $ \ bioPtr ->
+      withForeignPtr crl $ \ crlPtr ->
+      _write_bio_X509_CRL bioPtr crlPtr
+           >>= failIf (/= 1)
+           >>  return ()
+
+
+writeCRL :: CRL -> IO String
+writeCRL crl
+    = do mem <- newMem
+         writeCRL' mem crl
+         bioRead mem
+
+
+readCRL' :: BIO -> IO CRL
+readCRL' bio
+    = withForeignPtr bio $ \ bioPtr ->
+      withCString "" $ \ passPtr ->
+      _read_bio_X509_CRL bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+           >>= failIfNull
+           >>= wrapCRL
+
+
+readCRL :: String -> IO CRL
+readCRL pemStr
+    = newConstMem pemStr >>= readCRL'

@@ -52,82 +52,10 @@
 #include "HsOpenSSL.h"
 
 module OpenSSL
-    ( -- * Initialization
-      withOpenSSL
-
-      -- * Base64
-    , encodeBase64
-    , encodeBase64BS
-    , encodeBase64LBS
-    , decodeBase64
-    , decodeBase64BS
-    , decodeBase64LBS
-
-      -- * Symmetric cipher
-    , EvpCipher
-    , CryptoMode(..)
-    , getCipherByName
-    , cipher
-    , cipherBS
-    , cipherLBS
-
-      -- * Message digest
-    , EvpMD
-    , getDigestByName
-    , digest
-    , digestBS
-    , digestLBS
-
-      -- * Keypair
-    , EvpPKey
-#ifndef OPENSSL_NO_RSA
-    , newPKeyRSA
-#endif
-
-      -- * Envelope decryption
-    , open
-    , openBS
-    , openLBS
-
-      -- * Envelope Encryption
-    , seal
-    , sealBS
-    , sealLBS
-
-      -- * Signing
-    , sign
-    , signBS
-    , signLBS
-
-      -- * Signature verification
-    , verify
-    , verifyBS
-    , verifyLBS
-
-      -- * PEM routines
-    , PemPasswordRWState(..)
-    , PemPasswordSupply(..)
-    , writePKCS8PrivateKey
-    , readPrivateKey
-    , writePublicKey
-    , readPublicKey
-
-      -- * RSA public key cryptosystem
-    , RSA
-    , generateKey
+    ( withOpenSSL
     )
     where
 
-import OpenSSL.EVP.Base64
-import OpenSSL.EVP.Cipher
-import OpenSSL.EVP.Digest
-import OpenSSL.EVP.Open
-import OpenSSL.EVP.PKey
-import OpenSSL.EVP.Seal
-import OpenSSL.EVP.Sign
-import OpenSSL.EVP.Verify
-import OpenSSL.PEM
-import OpenSSL.RSA
 import OpenSSL.SSL
 
 

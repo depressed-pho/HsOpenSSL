@@ -106,8 +106,8 @@ verifyX509Req req pkey
 printX509Req :: X509Req -> IO String
 printX509Req req
     = do mem <- newMem
-         withForeignPtr req $ \ reqPtr ->
-             withForeignPtr mem $ \ memPtr ->
+         withForeignPtr mem $ \ memPtr ->
+             withForeignPtr req $ \ reqPtr ->
                  _print memPtr reqPtr
                       >>= failIf (/= 1)
          bioRead mem

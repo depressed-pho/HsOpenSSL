@@ -33,6 +33,12 @@ ASN1_TIME* HsOpenSSL_X509_get_notAfter(X509* x509);
 long HsOpenSSL_X509_REQ_get_version(X509_REQ* req);
 X509_NAME* HsOpenSSL_X509_REQ_get_subject_name(X509_REQ* req);
 
+long HsOpenSSL_X509_CRL_get_version(X509_CRL* crl);
+ASN1_TIME* HsOpenSSL_X509_CRL_get_lastUpdate(X509_CRL* crl);
+ASN1_TIME* HsOpenSSL_X509_CRL_get_nextUpdate(X509_CRL* crl);
+X509_NAME* HsOpenSSL_X509_CRL_get_issuer(X509_CRL* crl);
+STACK_OF(X509_REVOKED)* HsOpenSSL_X509_CRL_get_REVOKED(X509_CRL* crl);
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new();
 void HsOpenSSL_M_ASN1_INTEGER_free(ASN1_INTEGER* intPtr);

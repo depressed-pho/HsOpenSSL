@@ -17,21 +17,27 @@ import OpenSSL.PEM
 import OpenSSL.RSA
 import OpenSSL.X509
 import OpenSSL.X509.Request as R
+import OpenSSL.X509.Revocation as C
 import System.IO
 import Text.Printf
 
 
 main = withOpenSSL $
-       do req <- newX509Req
-          R.setVersion req 0
-          R.setSubjectName req [("C", "JP")]
-          
+       do crl <- newCRL
+          C.setVersion crl 0
+          C.setLastUpdate crl =<< getCurrentTime
+          C.setNextUpdate crl =<< getCurrentTime
+          C.setIssuerName crl [("C", "JP")]
+          C.addRevoked crl . RevokedCertificate 12            =<< getCurrentTime
+          C.addRevoked crl . RevokedCertificate 9999999999999 =<< getCurrentTime
+          C.addRevoked crl . RevokedCertificate 1000000       =<< getCurrentTime
+          C.sortCRL crl
+
           pem  <- readFile "../tmp/priv.pem"
           pkey <- readPrivateKey pem PwNone
-          R.setPublicKey req pkey
+          signCRL crl pkey Nothing
 
-          signX509Req req pkey Nothing
-          verifyX509Req req pkey >>= print
+          printCRL crl >>= putStr
 {-
        do x509 <- readX509 =<< readFile "../tmp/cert.pem"
           getVersion      x509      >>= print

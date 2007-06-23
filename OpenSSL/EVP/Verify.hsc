@@ -12,6 +12,7 @@ import           Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import           Data.Typeable
 import           Foreign
 import           Foreign.C
 import           OpenSSL.EVP.Digest
@@ -20,7 +21,7 @@ import           OpenSSL.Utils
 
 data VerifyStatus = VerifySuccess
                   | VerifyFailure
-                    deriving (Show, Eq)
+                    deriving (Show, Eq, Typeable)
 
 
 foreign import ccall unsafe "EVP_VerifyFinal"
