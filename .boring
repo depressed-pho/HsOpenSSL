@@ -71,6 +71,7 @@ _stub\.(c|h)$
 ^OpenSSL/EVP/Verify\.hs$
 ^OpenSSL/Objects\.hs$
 ^OpenSSL/PEM\.hs$
+^OpenSSL/PKCS7\.hs$
 ^OpenSSL/RSA\.hs$
 ^OpenSSL/SSL\.hs$
 ^OpenSSL/Stack\.hs$
@@ -85,3 +86,4 @@ _stub\.(c|h)$
 ^dist($|/)
 ^examples/HelloWorld$
 ^examples/GenRSAKey$
+^examples/PKCS7$

@@ -31,6 +31,7 @@ Exposed-Modules:
         OpenSSL.EVP.Verify
         OpenSSL.Objects
         OpenSSL.PEM
+        OpenSSL.PKCS7
         OpenSSL.RSA
         OpenSSL.SSL
         OpenSSL.Stack

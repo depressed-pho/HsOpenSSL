@@ -17,6 +17,9 @@ module OpenSSL.PEM
 
     , writeCRL
     , readCRL
+
+    , writePkcs7
+    , readPkcs7
     )
     where
 
@@ -29,6 +32,7 @@ import           Foreign.C
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Cipher
 import           OpenSSL.EVP.PKey
+import           OpenSSL.PKCS7
 import           OpenSSL.Utils
 import           OpenSSL.X509
 import           OpenSSL.X509.Request
@@ -353,3 +357,48 @@ readCRL' bio
 readCRL :: String -> IO CRL
 readCRL pemStr
     = newConstMem pemStr >>= readCRL'
+
+
+{- PKCS#7 -------------------------------------------------------------------- -}
+
+foreign import ccall unsafe "PEM_write_bio_PKCS7"
+        _write_bio_PKCS7 :: Ptr BIO_
+                         -> Ptr PKCS7
+                         -> IO Int
+
+foreign import ccall safe "PEM_read_bio_PKCS7"
+        _read_bio_PKCS7 :: Ptr BIO_
+                        -> Ptr (Ptr PKCS7)
+                        -> FunPtr PemPasswordCallback
+                        -> Ptr ()
+                        -> IO (Ptr PKCS7)
+
+
+writePkcs7' :: BIO -> Pkcs7 -> IO ()
+writePkcs7' bio pkcs7
+    = withForeignPtr bio   $ \ bioPtr ->
+      withForeignPtr pkcs7 $ \ pkcs7Ptr ->
+      _write_bio_PKCS7 bioPtr pkcs7Ptr
+           >>= failIf (/= 1)
+           >>  return ()
+
+
+writePkcs7 :: Pkcs7 -> IO String
+writePkcs7 pkcs7
+    = do mem <- newMem
+         writePkcs7' mem pkcs7
+         bioRead mem
+
+
+readPkcs7' :: BIO -> IO Pkcs7
+readPkcs7' bio
+    = withForeignPtr bio $ \ bioPtr ->
+      withCString "" $ \ passPtr ->
+      _read_bio_PKCS7 bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+           >>= failIfNull
+           >>= wrapPkcs7
+
+
+readPkcs7 :: String -> IO Pkcs7
+readPkcs7 pemStr
+    = newConstMem pemStr >>= readPkcs7'
