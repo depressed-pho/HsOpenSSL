@@ -34,6 +34,8 @@ module OpenSSL.BIO
       BIO
     , BIO_
 
+    , withBioPtr -- private
+
       -- * BIO chaning
     , bioPush
     , (==>)
@@ -86,12 +88,11 @@ import           System.IO.Unsafe
 
 {- bio ---------------------------------------------------------------------- -}
 
-type BioMethod  = Ptr BIO_METHOD
-data BIO_METHOD = BIO_METHOD
+data    BIO_METHOD = BIO_METHOD
 
 -- |@BIO@ is a @ForeignPtr@ to an opaque BIO object. They are created by newXXX actions.
-type BIO  = ForeignPtr BIO_
-data BIO_ = BIO_
+newtype BIO  = BIO (ForeignPtr BIO_)
+data    BIO_ = BIO_
 
 foreign import ccall unsafe "BIO_new"
         _new :: Ptr BIO_METHOD -> IO (Ptr BIO_)
@@ -109,10 +110,14 @@ foreign import ccall unsafe "HsOpenSSL_BIO_should_retry"
         _should_retry :: Ptr BIO_ -> IO Int
 
 
-new :: BioMethod -> IO BIO
+new :: Ptr BIO_METHOD -> IO BIO
 new method
     = do ptr <- _new method >>= failIfNull
-         newForeignPtr _free ptr
+         newForeignPtr _free ptr >>= return . BIO
+
+
+withBioPtr :: BIO -> (Ptr BIO_ -> IO a) -> IO a
+withBioPtr (BIO bio) = withForeignPtr bio
 
 
 -- a の後ろに b を付ける。a の參照だけ保持してそこに書き込む事も、b の
@@ -137,7 +142,7 @@ new method
 -- >    bioRead mem >>= putStrLn
 --
 bioPush :: BIO -> BIO -> IO ()
-bioPush a b
+bioPush (BIO a) (BIO b)
     = withForeignPtr a $ \ aPtr ->
       withForeignPtr b $ \ bPtr ->
       do _push aPtr bPtr
@@ -163,12 +168,12 @@ bioJoin (a:b:xs) = bioPush a b >> bioJoin (b:xs)
 
 setFlags :: BIO -> Int -> IO ()
 setFlags bio flags
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       _set_flags bioPtr flags
 
 bioShouldRetry :: BIO -> IO Bool
 bioShouldRetry bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       _should_retry bioPtr >>= return . (/= 0)
 
 
@@ -188,13 +193,13 @@ foreign import ccall unsafe "HsOpenSSL_BIO_eof"
 -- be written.
 bioFlush :: BIO -> IO ()
 bioFlush bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       _flush bioPtr >>= failIf (/= 1) >> return ()
 
 -- |@'bioReset' bio@ typically resets a BIO to some initial state.
 bioReset :: BIO -> IO ()
 bioReset bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       _reset bioPtr >> return () -- BIO_reset の戻り値は全 BIO で共通で
                                  -- ないのでエラーチェックが出來ない。
 
@@ -202,7 +207,7 @@ bioReset bio
 -- meaning of EOF varies according to the BIO type.
 bioEOF :: BIO -> IO Bool
 bioEOF bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       _eof bioPtr >>= return . (== 1)
 
 
@@ -227,9 +232,9 @@ bioRead bio
 -- than @len@.
 bioReadBS :: BIO -> Int -> IO ByteString
 bioReadBS bio maxLen
-    = withForeignPtr bio $ \ bioPtr ->
-      createAndTrim maxLen $ \ buf ->
-      _read bioPtr (unsafeCoercePtr buf) maxLen >>= interpret
+    = withBioPtr bio       $ \ bioPtr ->
+      createAndTrim maxLen $ \ bufPtr ->
+      _read bioPtr (unsafeCoercePtr bufPtr) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -273,9 +278,9 @@ bioGets bio maxLen
 -- |'bioGetsBS' does the same as 'bioGets' but returns ByteString.
 bioGetsBS :: BIO -> Int -> IO ByteString
 bioGetsBS bio maxLen
-    = withForeignPtr bio $ \ bioPtr ->
-      createAndTrim maxLen $ \ buf ->
-      _gets bioPtr (unsafeCoercePtr buf) maxLen >>= interpret
+    = withBioPtr bio       $ \ bioPtr ->
+      createAndTrim maxLen $ \ bufPtr ->
+      _gets bioPtr (unsafeCoercePtr bufPtr) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -299,7 +304,7 @@ bioWrite bio str
 -- |@'bioWriteBS' bio bs@ writes @bs@ to @bio@.
 bioWriteBS :: BIO -> ByteString -> IO ()
 bioWriteBS bio bs
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio           $ \ bioPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       _write bioPtr buf len >>= interpret
     where
@@ -320,7 +325,7 @@ bioWriteLBS bio (LPS chunks)
 {- base64 ------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_base64"
-        f_base64 :: IO BioMethod
+        f_base64 :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
         _FLAGS_BASE64_NO_NL :: Int
@@ -347,7 +352,7 @@ newBase64 noNL
 {- buffer ------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_f_buffer"
-        f_buffer :: IO BioMethod
+        f_buffer :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_buffer_size"
         _set_buffer_size :: Ptr BIO_ -> Int -> IO Int
@@ -385,7 +390,7 @@ newBuffer :: Maybe Int -- ^ Explicit buffer size (@Just n@) or the
 newBuffer bufSize
     = do bio <- new =<< f_buffer
          case bufSize of
-           Just n  -> withForeignPtr bio $ \ bioPtr ->
+           Just n  -> withBioPtr bio $ \ bioPtr ->
                       _set_buffer_size bioPtr n
                            >>= failIf (/= 1) >> return ()
            Nothing -> return ()
@@ -395,7 +400,7 @@ newBuffer bufSize
 {- mem ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_mem"
-        s_mem :: IO BioMethod
+        s_mem :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "BIO_new_mem_buf"
         _new_mem_buf :: Ptr CChar -> Int -> IO (Ptr BIO_)
@@ -440,7 +445,7 @@ newConstMemBS bs
            bio <- newForeignPtr _free bioPtr
            GF.addForeignPtrConcFinalizer bio $ touchForeignPtr foreignBuf
            
-           return bio
+           return $ BIO bio
 
 -- |@'newConstMemLBS' lbs@ is like 'newConstMem' but takes a
 -- LazyByteString.
@@ -451,7 +456,7 @@ newConstMemLBS (LPS bss)
 {- null --------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_s_null"
-        s_null :: IO BioMethod
+        s_null :: IO (Ptr BIO_METHOD)
 
 -- |@'newNullBIO'@ creates a null BIO sink\/source. Data written to
 -- the null sink is discarded, reads return EOF.

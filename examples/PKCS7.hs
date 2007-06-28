@@ -10,7 +10,7 @@ import OpenSSL.X509
 main = withOpenSSL $
        do pkey <- generateKey 512 65537 Nothing >>= newPKeyRSA
           x509 <- genCert pkey
-          
+
           pkcs7 <- pkcs7Sign x509 pkey [] "Hello, world!" []
           writeSmime pkcs7 (Just "Hello, world!") [] >>= putStr
 

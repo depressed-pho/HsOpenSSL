@@ -4,7 +4,10 @@ module OpenSSL.EVP.PKey
     ( EvpPKey
     , EVP_PKEY
 
-    , wrapPKey -- private
+    , wrapPKeyPtr -- private
+    , withPKeyPtr -- private
+    , unsafePKeyToPtr -- private
+    , touchPKey -- private
     , pkeySize -- private
     , pkeyDefaultMD -- private
 
@@ -23,8 +26,8 @@ import           OpenSSL.RSA
 import           OpenSSL.Utils
 
 
-type EvpPKey  = ForeignPtr EVP_PKEY
-data EVP_PKEY = EVP_PKEY
+newtype EvpPKey  = EvpPKey (ForeignPtr EVP_PKEY)
+data EVP_PKEY    = EVP_PKEY
 
 
 foreign import ccall unsafe "EVP_PKEY_new"
@@ -37,19 +40,32 @@ foreign import ccall unsafe "EVP_PKEY_size"
         _pkey_size :: Ptr EVP_PKEY -> IO Int
 
 
-wrapPKey :: Ptr EVP_PKEY -> IO EvpPKey
-wrapPKey = newForeignPtr _pkey_free
+wrapPKeyPtr :: Ptr EVP_PKEY -> IO EvpPKey
+wrapPKeyPtr pkeyPtr
+    = newForeignPtr _pkey_free pkeyPtr >>= return . EvpPKey
+
+
+withPKeyPtr :: EvpPKey -> (Ptr EVP_PKEY -> IO a) -> IO a
+withPKeyPtr (EvpPKey pkey) = withForeignPtr pkey
+
+
+unsafePKeyToPtr :: EvpPKey -> Ptr EVP_PKEY
+unsafePKeyToPtr (EvpPKey pkey) = unsafeForeignPtrToPtr pkey
+
+
+touchPKey :: EvpPKey -> IO ()
+touchPKey (EvpPKey pkey) = touchForeignPtr pkey
 
 
 pkeySize :: EvpPKey -> IO Int
 pkeySize pkey
-    = withForeignPtr pkey $ \ pkeyPtr ->
+    = withPKeyPtr pkey $ \ pkeyPtr ->
       _pkey_size pkeyPtr
 
 
 pkeyDefaultMD :: EvpPKey -> IO EvpMD
 pkeyDefaultMD pkey
-    = withForeignPtr pkey $ \ pkeyPtr ->
+    = withPKeyPtr pkey $ \ pkeyPtr ->
       do pkeyType   <- (#peek EVP_PKEY, type) pkeyPtr :: IO Int
          digestName <- case pkeyType of
 #ifndef OPENSSL_NO_RSA
@@ -71,8 +87,8 @@ foreign import ccall unsafe "EVP_PKEY_set1_RSA"
 
 newPKeyRSA :: RSA -> IO EvpPKey
 newPKeyRSA rsa
-    = withForeignPtr rsa $ \ rsaPtr ->
+    = withRSAPtr rsa $ \ rsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
          _set1_RSA pkeyPtr rsaPtr >>= failIf (/= 1)
-         wrapPKey pkeyPtr
+         wrapPKeyPtr pkeyPtr
 #endif

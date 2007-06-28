@@ -124,7 +124,7 @@ foreign import ccall unsafe "ASN1_TIME_print"
 peekASN1Time :: Ptr ASN1_TIME -> IO UTCTime -- asn1/t_x509.c
 peekASN1Time time
     = do bio <- newMem
-         withForeignPtr bio $ \ bioPtr ->
+         withBioPtr bio $ \ bioPtr ->
              _ASN1_TIME_print bioPtr time
                   >>= failIf (/= 1)
          timeStr <- bioRead bio

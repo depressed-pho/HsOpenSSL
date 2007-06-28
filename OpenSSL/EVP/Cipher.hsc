@@ -3,6 +3,8 @@
 module OpenSSL.EVP.Cipher
     ( EvpCipher
     , EVP_CIPHER
+    , withCipherPtr
+
     , getCipherByName
     , getCipherNames
 
@@ -11,6 +13,7 @@ module OpenSSL.EVP.Cipher
     , EvpCipherCtx
     , EVP_CIPHER_CTX
     , newCtx -- private
+    , withCipherCtxPtr -- private
 
     , CryptoMode(..)
 
@@ -37,16 +40,20 @@ import           System.IO.Unsafe
 
 {- EVP_CIPHER ---------------------------------------------------------------- -}
 
-type EvpCipher  = Ptr EVP_CIPHER
-data EVP_CIPHER = EVP_CIPHER
+newtype EvpCipher  = EvpCipher (Ptr EVP_CIPHER)
+data    EVP_CIPHER = EVP_CIPHER
 
 
 foreign import ccall unsafe "EVP_get_cipherbyname"
-        _get_cipherbyname :: CString -> IO EvpCipher
+        _get_cipherbyname :: CString -> IO (Ptr EVP_CIPHER)
 
 
 foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_iv_length"
-        cipherIvLength :: EvpCipher -> Int
+        _iv_length :: Ptr EVP_CIPHER -> Int
+
+
+withCipherPtr :: EvpCipher -> (Ptr EVP_CIPHER -> IO a) -> IO a
+withCipherPtr (EvpCipher cipher) f = f cipher
 
 
 getCipherByName :: String -> IO (Maybe EvpCipher)
@@ -56,17 +63,21 @@ getCipherByName name
          if ptr == nullPtr then
              return Nothing
            else
-             return $ Just ptr
+             return $ Just $ EvpCipher ptr
 
 
 getCipherNames :: IO [String]
 getCipherNames = getObjNames CipherMethodType True
 
 
+cipherIvLength :: EvpCipher -> Int
+cipherIvLength (EvpCipher cipher) = _iv_length cipher
+
+
 {- EVP_CIPHER_CTX ------------------------------------------------------------ -}
 
-type EvpCipherCtx   = ForeignPtr EVP_CIPHER_CTX
-data EVP_CIPHER_CTX = EVP_CIPHER_CTX
+newtype EvpCipherCtx   = EvpCipherCtx (ForeignPtr EVP_CIPHER_CTX)
+data    EVP_CIPHER_CTX = EVP_CIPHER_CTX
 
 
 foreign import ccall unsafe "EVP_CIPHER_CTX_init"
@@ -84,7 +95,11 @@ newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_CIPHER_CTX)
             withForeignPtr ctx $ \ ctxPtr ->
                 _ctx_init ctxPtr
             addForeignPtrFinalizer _ctx_cleanup ctx
-            return ctx
+            return $ EvpCipherCtx ctx
+
+
+withCipherCtxPtr :: EvpCipherCtx -> (Ptr EVP_CIPHER_CTX -> IO a) -> IO a
+withCipherCtxPtr (EvpCipherCtx ctx) = withForeignPtr ctx
 
 
 {- encrypt/decrypt ----------------------------------------------------------- -}
@@ -94,7 +109,7 @@ data CryptoMode = Encrypt
 
 
 foreign import ccall unsafe "EVP_CipherInit"
-        _CipherInit :: Ptr EVP_CIPHER_CTX -> EvpCipher -> CString -> CString -> Int -> IO Int
+        _CipherInit :: Ptr EVP_CIPHER_CTX -> Ptr EVP_CIPHER -> CString -> CString -> Int -> IO Int
 
 foreign import ccall unsafe "EVP_CipherUpdate"
         _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr Int -> Ptr CChar -> Int -> IO Int
@@ -109,9 +124,9 @@ cryptoModeToInt Decrypt = 0
 
 
 cipherInit :: EvpCipher -> String -> String -> CryptoMode -> IO EvpCipherCtx
-cipherInit c key iv mode
+cipherInit (EvpCipher c) key iv mode
     = do ctx <- newCtx
-         withForeignPtr ctx $ \ ctxPtr ->
+         withCipherCtxPtr ctx $ \ ctxPtr ->
              withCString key $ \ keyPtr ->
                  withCString iv $ \ ivPtr ->
                      _CipherInit ctxPtr c keyPtr ivPtr (cryptoModeToInt mode)
@@ -121,7 +136,7 @@ cipherInit c key iv mode
 
 cipherUpdateBS :: EvpCipherCtx -> ByteString -> IO ByteString
 cipherUpdateBS ctx inBS
-    = withForeignPtr ctx $ \ ctxPtr ->
+    = withCipherCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (inLen + _ctx_block_size ctxPtr - 1) $ \ outBuf ->
       alloca $ \ outLenPtr ->
@@ -132,7 +147,7 @@ cipherUpdateBS ctx inBS
 
 cipherFinalBS :: EvpCipherCtx -> IO ByteString
 cipherFinalBS ctx
-    = withForeignPtr ctx $ \ ctxPtr ->
+    = withCipherCtxPtr ctx $ \ ctxPtr ->
       createAndTrim (_ctx_block_size ctxPtr) $ \ outBuf ->
       alloca $ \ outLenPtr ->
       _CipherFinal ctxPtr (unsafeCoercePtr outBuf) outLenPtr

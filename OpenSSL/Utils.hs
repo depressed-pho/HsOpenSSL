@@ -8,8 +8,6 @@ module OpenSSL.Utils
     , raiseOpenSSLError
 
     , unsafeCoercePtr
-
-    , withForeignPtrM
     )
     where
 
@@ -39,8 +37,3 @@ raiseOpenSSLError = getError >>= errorString >>= fail
 
 unsafeCoercePtr :: Ptr a -> Ptr b
 unsafeCoercePtr = unsafeCoerce#
-
-
-withForeignPtrM :: Maybe (ForeignPtr a) -> (Ptr a -> IO b) -> IO b
-withForeignPtrM Nothing   f = f nullPtr
-withForeignPtrM (Just fp) f = withForeignPtr fp f

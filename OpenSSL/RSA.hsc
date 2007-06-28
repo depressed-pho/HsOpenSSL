@@ -2,6 +2,7 @@
 module OpenSSL.RSA
     ( RSA
     , RSA_
+    , withRSAPtr
 
     , generateKey
 
@@ -25,12 +26,16 @@ import           OpenSSL.BN
 import           OpenSSL.Utils
 
 
-type RSA  = ForeignPtr RSA_
-data RSA_ = RSA_
+newtype RSA  = RSA (ForeignPtr RSA_)
+data    RSA_ = RSA_
 
 
 foreign import ccall unsafe "&RSA_free"
         _free :: FunPtr (Ptr RSA_ -> IO ())
+
+
+withRSAPtr :: RSA -> (Ptr RSA_ -> IO a) -> IO a
+withRSAPtr (RSA rsa) = withForeignPtr rsa
 
 
 {- generation --------------------------------------------------------------- -}
@@ -50,7 +55,7 @@ generateKey :: Int -> Int -> Maybe (Int -> Int -> IO ()) -> IO RSA
 generateKey nbits e Nothing
     = do ptr <- _generate_key nbits e nullFunPtr nullPtr
          failIfNull ptr
-         newForeignPtr _free ptr
+         newForeignPtr _free ptr >>= return . RSA
 
 generateKey nbits e (Just cb)
     = do cbPtr <- mkGenKeyCallback
@@ -58,14 +63,14 @@ generateKey nbits e (Just cb)
          ptr   <- _generate_key nbits e cbPtr nullPtr
          freeHaskellFunPtr cbPtr
          failIfNull ptr
-         newForeignPtr _free ptr
+         newForeignPtr _free ptr >>= return . RSA
 
 
 {- exploration -------------------------------------------------------------- -}
 
 peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO Integer
 peekRSAPublic peeker rsa
-    = withForeignPtr rsa $ \ rsaPtr ->
+    = withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
          peekBN bn
@@ -73,7 +78,7 @@ peekRSAPublic peeker rsa
 
 peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
 peekRSAPrivate peeker rsa
-    = withForeignPtr rsa $ \ rsaPtr ->
+    = withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          if bn == nullPtr then
              return Nothing

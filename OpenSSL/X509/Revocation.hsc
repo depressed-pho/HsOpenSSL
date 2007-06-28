@@ -6,6 +6,7 @@ module OpenSSL.X509.Revocation
     , RevokedCertificate(..)
     , newCRL
     , wrapCRL -- private
+    , withCRLPtr -- private
 
     , signCRL
     , verifyCRL
@@ -44,8 +45,8 @@ import           OpenSSL.Utils
 import           OpenSSL.X509.Name
 
 
-type CRL      = ForeignPtr X509_CRL
-data X509_CRL = X509_CRL
+newtype CRL      = CRL (ForeignPtr X509_CRL)
+data    X509_CRL = X509_CRL
 
 data X509_REVOKED = X509_REVOKED
 
@@ -125,25 +126,30 @@ newCRL = _new >>= wrapCRL
 
 
 wrapCRL :: Ptr X509_CRL -> IO CRL
-wrapCRL = newForeignPtr _free
+wrapCRL crlPtr = newForeignPtr _free crlPtr >>= return . CRL
+
+
+withCRLPtr :: CRL -> (Ptr X509_CRL -> IO a) -> IO a
+withCRLPtr (CRL crl) = withForeignPtr crl
 
 
 signCRL :: CRL -> EvpPKey -> Maybe EvpMD -> IO ()
 signCRL crl pkey mDigest
-    = withForeignPtr crl  $ \ crlPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withCRLPtr crl   $ \ crlPtr  ->
+      withPKeyPtr pkey $ \ pkeyPtr ->
       do digest <- case mDigest of
                      Just md -> return md
                      Nothing -> pkeyDefaultMD pkey
-         _sign crlPtr pkeyPtr digest
-              >>= failIf (== 0)
+         withMDPtr digest $ \ digestPtr ->
+             _sign crlPtr pkeyPtr digestPtr
+                  >>= failIf (== 0)
          return ()
 
 
 verifyCRL :: CRL -> EvpPKey -> IO Bool
 verifyCRL crl pkey
-    = withForeignPtr crl  $ \ crlPtr ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withCRLPtr crl   $ \ crlPtr ->
+      withPKeyPtr pkey $ \ pkeyPtr ->
       _verify crlPtr pkeyPtr
            >>= interpret
     where
@@ -156,8 +162,8 @@ verifyCRL crl pkey
 printCRL :: CRL -> IO String
 printCRL crl
     = do mem <- newMem
-         withForeignPtr mem $ \ memPtr ->
-             withForeignPtr crl $ \ crlPtr ->
+         withBioPtr mem $ \ memPtr ->
+             withCRLPtr crl $ \ crlPtr ->
                  _print memPtr crlPtr
                       >>= failIf (/= 1)
          bioRead mem
@@ -165,13 +171,13 @@ printCRL crl
 
 getVersion :: CRL -> IO Int
 getVersion crl
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       liftM fromIntegral $ _get_version crlPtr
 
 
 setVersion :: CRL -> Int -> IO ()
 setVersion crl ver
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       _set_version crlPtr (fromIntegral ver)
            >>= failIf (/= 1)
            >>  return ()
@@ -179,14 +185,14 @@ setVersion crl ver
 
 getLastUpdate :: CRL -> IO UTCTime
 getLastUpdate crl
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       _get_lastUpdate crlPtr
            >>= peekASN1Time
 
 
 setLastUpdate :: CRL -> UTCTime -> IO ()
 setLastUpdate crl utc
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       withASN1Time utc $ \ time ->
       _set_lastUpdate crlPtr time
            >>= failIf (/= 1)
@@ -195,14 +201,14 @@ setLastUpdate crl utc
 
 getNextUpdate :: CRL -> IO UTCTime
 getNextUpdate crl
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       _get_nextUpdate crlPtr
            >>= peekASN1Time
 
 
 setNextUpdate :: CRL -> UTCTime -> IO ()
 setNextUpdate crl utc
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       withASN1Time utc $ \ time ->
       _set_nextUpdate crlPtr time
            >>= failIf (/= 1)
@@ -211,14 +217,14 @@ setNextUpdate crl utc
 
 getIssuerName :: CRL -> Bool -> IO [(String, String)]
 getIssuerName crl wantLongName
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       do namePtr <- _get_issuer_name crlPtr
          peekX509Name namePtr wantLongName
 
 
 setIssuerName :: CRL -> [(String, String)] -> IO ()
 setIssuerName crl issuer
-    = withForeignPtr crl  $ \ crlPtr  ->
+    = withCRLPtr crl  $ \ crlPtr  ->
       withX509Name issuer $ \ namePtr ->
       _set_issuer_name crlPtr namePtr
            >>= failIf (/= 1)
@@ -227,7 +233,7 @@ setIssuerName crl issuer
 
 getRevokedList :: CRL -> IO [RevokedCertificate]
 getRevokedList crl
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       do stRevoked <- _get_REVOKED crlPtr
          mapStack peekRevoked stRevoked
     where
@@ -258,7 +264,7 @@ newRevoked revoked
 
 addRevoked :: CRL -> RevokedCertificate -> IO ()
 addRevoked crl revoked
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       do revPtr <- newRevoked revoked
          ret    <- _add0_revoked crlPtr revPtr
          case ret of
@@ -268,7 +274,7 @@ addRevoked crl revoked
 
 sortCRL :: CRL -> IO ()
 sortCRL crl
-    = withForeignPtr crl $ \ crlPtr ->
+    = withCRLPtr crl $ \ crlPtr ->
       _sort crlPtr
            >>= failIf (/= 1)
            >>  return ()

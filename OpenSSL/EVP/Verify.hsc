@@ -30,9 +30,9 @@ foreign import ccall unsafe "EVP_VerifyFinal"
 
 verifyFinalBS :: EvpMDCtx -> String -> EvpPKey -> IO VerifyStatus
 verifyFinalBS ctx sig pkey
-    = withForeignPtr ctx $ \ ctxPtr ->
+    = withDigestCtxPtr ctx $ \ ctxPtr ->
       withCStringLen sig $ \ (buf, len) ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr pkey $ \ pkeyPtr ->
       _VerifyFinal ctxPtr buf (fromIntegral len) pkeyPtr >>= interpret
     where
       interpret :: Int -> IO VerifyStatus

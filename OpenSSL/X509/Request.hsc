@@ -5,6 +5,7 @@ module OpenSSL.X509.Request
     , X509_REQ
     , newX509Req
     , wrapX509Req -- private
+    , withX509ReqPtr -- private
 
     , signX509Req
     , verifyX509Req
@@ -32,8 +33,8 @@ import           OpenSSL.Utils
 import           OpenSSL.X509.Name
 
 
-type X509Req  = ForeignPtr X509_REQ
-data X509_REQ = X509_REQ
+newtype X509Req  = X509Req (ForeignPtr X509_REQ)
+data    X509_REQ = X509_REQ
 
 
 foreign import ccall unsafe "X509_REQ_new"
@@ -75,25 +76,30 @@ newX509Req = _new >>= wrapX509Req
 
 
 wrapX509Req :: Ptr X509_REQ -> IO X509Req
-wrapX509Req = newForeignPtr _free
+wrapX509Req reqPtr = newForeignPtr _free reqPtr >>= return . X509Req
+
+
+withX509ReqPtr :: X509Req -> (Ptr X509_REQ -> IO a) -> IO a
+withX509ReqPtr (X509Req req) = withForeignPtr req
 
 
 signX509Req :: X509Req -> EvpPKey -> Maybe EvpMD -> IO ()
 signX509Req req pkey mDigest
-    = withForeignPtr req  $ \ reqPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withX509ReqPtr req  $ \ reqPtr  ->
+      withPKeyPtr    pkey $ \ pkeyPtr ->
       do digest <- case mDigest of
                      Just md -> return md
                      Nothing -> pkeyDefaultMD pkey
-         _sign reqPtr pkeyPtr digest
-              >>= failIf (== 0)
+         withMDPtr digest $ \ digestPtr ->
+             _sign reqPtr pkeyPtr digestPtr
+                  >>= failIf (== 0)
          return ()
 
 
 verifyX509Req :: X509Req -> EvpPKey -> IO Bool
 verifyX509Req req pkey
-    = withForeignPtr req  $ \ reqPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withX509ReqPtr req  $ \ reqPtr  ->
+      withPKeyPtr    pkey $ \ pkeyPtr ->
       _verify reqPtr pkeyPtr
            >>= interpret
     where
@@ -106,8 +112,8 @@ verifyX509Req req pkey
 printX509Req :: X509Req -> IO String
 printX509Req req
     = do mem <- newMem
-         withForeignPtr mem $ \ memPtr ->
-             withForeignPtr req $ \ reqPtr ->
+         withBioPtr mem $ \ memPtr ->
+             withX509ReqPtr req $ \ reqPtr ->
                  _print memPtr reqPtr
                       >>= failIf (/= 1)
          bioRead mem
@@ -115,13 +121,13 @@ printX509Req req
 
 getVersion :: X509Req -> IO Int
 getVersion req
-    = withForeignPtr req $ \ reqPtr ->
+    = withX509ReqPtr req $ \ reqPtr ->
       liftM fromIntegral $ _get_version reqPtr
 
 
 setVersion :: X509Req -> Int -> IO ()
 setVersion req ver
-    = withForeignPtr req $ \ reqPtr ->
+    = withX509ReqPtr req $ \ reqPtr ->
       _set_version reqPtr (fromIntegral ver)
            >>= failIf (/= 1)
            >>  return ()
@@ -129,14 +135,14 @@ setVersion req ver
 
 getSubjectName :: X509Req -> Bool -> IO [(String, String)]
 getSubjectName req wantLongName
-    = withForeignPtr req $ \ reqPtr ->
+    = withX509ReqPtr req $ \ reqPtr ->
       do namePtr <- _get_subject_name reqPtr
          peekX509Name namePtr wantLongName
 
 
 setSubjectName :: X509Req -> [(String, String)] -> IO ()
 setSubjectName req subject
-    = withForeignPtr req $ \ reqPtr ->
+    = withX509ReqPtr req $ \ reqPtr ->
       withX509Name subject $ \ namePtr ->
       _set_subject_name reqPtr namePtr
            >>= failIf (/= 1)
@@ -145,16 +151,16 @@ setSubjectName req subject
 
 getPublicKey :: X509Req -> IO EvpPKey
 getPublicKey req
-    = withForeignPtr req $ \ reqPtr ->
+    = withX509ReqPtr req $ \ reqPtr ->
       _get_pubkey reqPtr
            >>= failIfNull
-           >>= wrapPKey
+           >>= wrapPKeyPtr
 
 
 setPublicKey :: X509Req -> EvpPKey -> IO ()
 setPublicKey req pkey
-    = withForeignPtr req  $ \ reqPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withX509ReqPtr req  $ \ reqPtr  ->
+      withPKeyPtr    pkey $ \ pkeyPtr ->
       _set_pubkey reqPtr pkeyPtr
            >>= failIf (/= 1)
            >>  return ()

@@ -3,11 +3,14 @@
 module OpenSSL.EVP.Digest
     ( EvpMD
     , EVP_MD
+    , withMDPtr
+
     , getDigestByName
     , getDigestNames
 
     , EvpMDCtx
     , EVP_MD_CTX
+    , withDigestCtxPtr
 
     , digestStrictly -- private
     , digestLazily   -- private
@@ -30,15 +33,19 @@ import           OpenSSL.Utils
 
 {- EVP_MD -------------------------------------------------------------------- -}
 
-type EvpMD  = Ptr EVP_MD
-data EVP_MD = EVP_MD
+newtype EvpMD  = EvpMD (Ptr EVP_MD)
+data    EVP_MD = EVP_MD
 
 
 foreign import ccall unsafe "EVP_get_digestbyname"
-        _get_digestbyname :: CString -> IO EvpMD
+        _get_digestbyname :: CString -> IO (Ptr EVP_MD)
 
 foreign import ccall unsafe "HsOpenSSL_EVP_MD_size"
-        mdSize :: EvpMD -> Int
+        mdSize :: Ptr EVP_MD -> Int
+
+
+withMDPtr :: EvpMD -> (Ptr EVP_MD -> IO a) -> IO a
+withMDPtr (EvpMD mdPtr) f = f mdPtr
 
 
 getDigestByName :: String -> IO (Maybe EvpMD)
@@ -48,7 +55,7 @@ getDigestByName name
          if ptr == nullPtr then
              return Nothing
            else
-             return $ Just ptr
+             return $ Just $ EvpMD ptr
 
 
 getDigestNames :: IO [String]
@@ -57,8 +64,8 @@ getDigestNames = getObjNames MDMethodType True
 
 {- EVP_MD_CTX ---------------------------------------------------------------- -}
 
-type EvpMDCtx   = ForeignPtr EVP_MD_CTX
-data EVP_MD_CTX = EVP_MD_CTX
+newtype EvpMDCtx   = EvpMDCtx (ForeignPtr EVP_MD_CTX)
+data    EVP_MD_CTX = EVP_MD_CTX
 
 
 foreign import ccall unsafe "EVP_MD_CTX_init"
@@ -73,7 +80,11 @@ newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_MD_CTX)
             withForeignPtr ctx $ \ ctxPtr ->
                 _ctx_init ctxPtr
             addForeignPtrFinalizer _ctx_cleanup ctx
-            return ctx
+            return $ EvpMDCtx ctx
+
+
+withDigestCtxPtr :: EvpMDCtx -> (Ptr EVP_MD_CTX -> IO a) -> IO a
+withDigestCtxPtr (EvpMDCtx ctx) = withForeignPtr ctx
 
 
 {- digest -------------------------------------------------------------------- -}
@@ -88,18 +99,17 @@ foreign import ccall unsafe "EVP_DigestFinal"
         _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO Int
 
 
-
 digestInit :: EvpMD -> IO EvpMDCtx
-digestInit md
+digestInit (EvpMD md)
     = do ctx <- newCtx
-         withForeignPtr ctx $ \ ctxPtr ->
+         withDigestCtxPtr ctx $ \ ctxPtr ->
              _DigestInit ctxPtr md >>= failIf (/= 1)
          return ctx   
 
 
 digestUpdateBS :: EvpMDCtx -> ByteString -> IO ()
 digestUpdateBS ctx bs
-    = withForeignPtr ctx $ \ ctxPtr ->
+    = withDigestCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
 
@@ -111,7 +121,7 @@ digestUpdateLBS ctx (LPS chunks)
 
 digestFinal :: EvpMDCtx -> IO String
 digestFinal ctx
-    = withForeignPtr ctx $ \ ctxPtr ->
+    = withDigestCtxPtr ctx $ \ ctxPtr ->
       allocaArray (#const EVP_MAX_MD_SIZE) $ \ bufPtr ->
       alloca $ \ bufLenPtr ->
       do _DigestFinal ctxPtr bufPtr bufLenPtr >>= failIf (/= 1)

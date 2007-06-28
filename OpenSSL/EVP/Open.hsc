@@ -32,10 +32,10 @@ foreign import ccall unsafe "EVP_OpenInit"
 openInit :: EvpCipher -> String -> String -> EvpPKey -> IO EvpCipherCtx
 openInit cipher encKey iv pkey
     = do ctx <- newCtx
-         withForeignPtr ctx $ \ ctxPtr ->
+         withCipherCtxPtr ctx $ \ ctxPtr ->
              withCStringLen encKey $ \ (encKeyPtr, encKeyLen) ->
                  withCString iv $ \ ivPtr ->
-                     withForeignPtr pkey $ \ pkeyPtr ->
+                     withPKeyPtr pkey $ \ pkeyPtr ->
                          _OpenInit ctxPtr cipher encKeyPtr encKeyLen ivPtr pkeyPtr
                               >>= failIf (== 0)
          return ctx

@@ -101,8 +101,8 @@ writePKCS8PrivateKey' :: BIO
                       -> Maybe (EvpCipher, PemPasswordSupply)
                       -> IO ()
 writePKCS8PrivateKey' bio pkey encryption
-    = withForeignPtr bio  $ \ bioPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withBioPtr bio   $ \ bioPtr  ->
+      withPKeyPtr pkey $ \ pkeyPtr ->
       do ret <- case encryption of
                   Nothing
                       -> _write_bio_PKCS8PrivateKey bioPtr pkeyPtr nullPtr nullPtr 0 nullFunPtr nullPtr
@@ -112,16 +112,19 @@ writePKCS8PrivateKey' bio pkey encryption
 
                   Just (cipher, PwStr passStr)
                       -> withCStringLen passStr $ \ (passPtr, passLen) ->
-                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipher passPtr passLen nullFunPtr nullPtr
+                         withCipherPtr cipher   $ \ cipherPtr          ->
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr passPtr passLen nullFunPtr nullPtr
 
                   Just (cipher, PwCallback cb)
-                      -> do cbPtr <- mkPemPasswordCallback $ callPasswordCB cb
-                            ret   <- _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipher nullPtr 0 cbPtr nullPtr
+                      -> withCipherPtr cipher $ \ cipherPtr ->
+                         do cbPtr <- mkPemPasswordCallback $ callPasswordCB cb
+                            ret   <- _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr nullPtr 0 cbPtr nullPtr
                             freeHaskellFunPtr cbPtr
                             return ret
                
                   Just (cipher, PwTTY)
-                      -> _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipher nullPtr 0 nullFunPtr nullPtr
+                      -> withCipherPtr cipher $ \ cipherPtr ->
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr nullPtr 0 nullFunPtr nullPtr
          failIf (/= 1) ret
          return ()
 
@@ -142,7 +145,7 @@ foreign import ccall safe "PEM_read_bio_PrivateKey"
 
 readPrivateKey' :: BIO -> PemPasswordSupply -> IO EvpPKey
 readPrivateKey' bio supply
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       do pkeyPtr <- case supply of
                       PwNone
                           -> withCString "" $ \ strPtr ->
@@ -163,7 +166,7 @@ readPrivateKey' bio supply
                       PwTTY
                           -> _read_bio_PrivateKey bioPtr nullPtr nullFunPtr nullPtr 
          failIfNull pkeyPtr
-         wrapPKey pkeyPtr
+         wrapPKeyPtr pkeyPtr
 
 
 readPrivateKey :: String -> PemPasswordSupply -> IO EvpPKey
@@ -187,8 +190,8 @@ foreign import ccall unsafe "PEM_read_bio_PUBKEY"
 
 writePublicKey' :: BIO -> EvpPKey -> IO ()
 writePublicKey' bio pkey
-    = withForeignPtr bio  $ \ bioPtr  ->
-      withForeignPtr pkey $ \ pkeyPtr ->
+    = withBioPtr bio   $ \ bioPtr  ->
+      withPKeyPtr pkey $ \ pkeyPtr ->
       _write_bio_PUBKEY bioPtr pkeyPtr >>= failIf (/= 1) >> return ()
 
 
@@ -202,11 +205,11 @@ writePublicKey pkey
 -- any form of encrypted public key?
 readPublicKey' :: BIO -> IO EvpPKey
 readPublicKey' bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
            >>= failIfNull
-           >>= wrapPKey
+           >>= wrapPKeyPtr
 
 
 readPublicKey :: String -> IO EvpPKey
@@ -230,8 +233,8 @@ foreign import ccall safe "PEM_read_bio_X509_AUX"
 
 writeX509' :: BIO -> X509 -> IO ()
 writeX509' bio x509
-    = withForeignPtr bio  $ \ bioPtr  ->
-      withForeignPtr x509 $ \ x509Ptr ->
+    = withBioPtr bio   $ \ bioPtr  ->
+      withX509Ptr x509 $ \ x509Ptr ->
       _write_bio_X509_AUX bioPtr x509Ptr
            >>= failIf (/= 1)
            >>  return ()
@@ -247,7 +250,7 @@ writeX509 x509
 -- I believe X.509 isn't encrypted.
 readX509' :: BIO -> IO X509
 readX509' bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_X509_AUX bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
            >>= failIfNull
@@ -281,8 +284,8 @@ foreign import ccall safe "PEM_read_bio_X509_REQ"
 
 writeX509Req' :: BIO -> X509Req -> Bool -> IO ()
 writeX509Req' bio req new
-    = withForeignPtr bio $ \ bioPtr ->
-      withForeignPtr req $ \ reqPtr ->
+    = withBioPtr bio     $ \ bioPtr ->
+      withX509ReqPtr req $ \ reqPtr ->
       writer bioPtr reqPtr
                  >>= failIf (/= 1)
                  >>  return ()
@@ -302,7 +305,7 @@ writeX509Req req new
 
 readX509Req' :: BIO -> IO X509Req
 readX509Req' bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_X509_REQ bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
            >>= failIfNull
@@ -331,8 +334,8 @@ foreign import ccall safe "PEM_read_bio_X509_CRL"
 
 writeCRL' :: BIO -> CRL -> IO ()
 writeCRL' bio crl
-    = withForeignPtr bio $ \ bioPtr ->
-      withForeignPtr crl $ \ crlPtr ->
+    = withBioPtr bio $ \ bioPtr ->
+      withCRLPtr crl $ \ crlPtr ->
       _write_bio_X509_CRL bioPtr crlPtr
            >>= failIf (/= 1)
            >>  return ()
@@ -347,7 +350,7 @@ writeCRL crl
 
 readCRL' :: BIO -> IO CRL
 readCRL' bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_X509_CRL bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
            >>= failIfNull
@@ -376,8 +379,8 @@ foreign import ccall safe "PEM_read_bio_PKCS7"
 
 writePkcs7' :: BIO -> Pkcs7 -> IO ()
 writePkcs7' bio pkcs7
-    = withForeignPtr bio   $ \ bioPtr ->
-      withForeignPtr pkcs7 $ \ pkcs7Ptr ->
+    = withBioPtr bio     $ \ bioPtr ->
+      withPkcs7Ptr pkcs7 $ \ pkcs7Ptr ->
       _write_bio_PKCS7 bioPtr pkcs7Ptr
            >>= failIf (/= 1)
            >>  return ()
@@ -392,11 +395,11 @@ writePkcs7 pkcs7
 
 readPkcs7' :: BIO -> IO Pkcs7
 readPkcs7' bio
-    = withForeignPtr bio $ \ bioPtr ->
+    = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_PKCS7 bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
            >>= failIfNull
-           >>= wrapPkcs7
+           >>= wrapPkcs7Ptr
 
 
 readPkcs7 :: String -> IO Pkcs7

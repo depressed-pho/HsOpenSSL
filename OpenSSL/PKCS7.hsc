@@ -6,7 +6,8 @@ module OpenSSL.PKCS7
     ( Pkcs7
     , PKCS7
     , Pkcs7Flag(..)
-    , wrapPkcs7 -- private
+    , wrapPkcs7Ptr -- private
+    , withPkcs7Ptr -- private
 
     , pkcs7Sign
 
@@ -32,8 +33,8 @@ import           OpenSSL.X509
 
 {- PKCS#7 -------------------------------------------------------------------- -}
 
-type Pkcs7 = ForeignPtr PKCS7
-data PKCS7 = PKCS7
+newtype Pkcs7 = Pkcs7 (ForeignPtr PKCS7)
+data    PKCS7 = PKCS7
 
 data Pkcs7Flag = Pkcs7Text
                | Pkcs7NoCerts
@@ -73,26 +74,30 @@ foreign import ccall "PKCS7_sign"
         _sign :: Ptr X509_ -> Ptr EVP_PKEY -> Ptr STACK -> Ptr BIO_ -> Int -> IO (Ptr PKCS7)
 
 
-wrapPkcs7 :: Ptr PKCS7 -> IO Pkcs7
-wrapPkcs7 = newForeignPtr _free
+wrapPkcs7Ptr :: Ptr PKCS7 -> IO Pkcs7
+wrapPkcs7Ptr p7Ptr = newForeignPtr _free p7Ptr >>= return . Pkcs7
+
+
+withPkcs7Ptr :: Pkcs7 -> (Ptr PKCS7 -> IO a) -> IO a
+withPkcs7Ptr (Pkcs7 pkcs7) = withForeignPtr pkcs7
 
 
 pkcs7Sign' :: X509 -> EvpPKey -> [X509] -> BIO -> [Pkcs7Flag] -> IO Pkcs7
 pkcs7Sign' signCert pkey certs input flagList
-    = withForeignPtr signCert $ \ signCertPtr ->
-      withForeignPtr pkey     $ \ pkeyPtr     ->
-      -- [X509] から [Ptr X509_] を作る。後で touchForeignPtr する事を
+    = withX509Ptr signCert $ \ signCertPtr ->
+      withPKeyPtr pkey     $ \ pkeyPtr     ->
+      -- [X509] から [Ptr X509_] を作る。後で touchX509 する事を
       -- 忘れてはならない。
-      do let certPtrs = map unsafeForeignPtrToPtr certs
+      do let certPtrs = map unsafeX509ToPtr certs
              flags    = flagListToInt flagList
 
-         pkcs7 <- withStack certPtrs $ \ certStack ->
-                  withForeignPtr input $ \ inputPtr ->
+         pkcs7 <- withStack  certPtrs $ \ certStack ->
+                  withBioPtr input    $ \ inputPtr ->
                       _sign signCertPtr pkeyPtr certStack inputPtr flags
                       >>= failIfNull
-                      >>= wrapPkcs7
+                      >>= wrapPkcs7Ptr
 
-         mapM_ touchForeignPtr certs
+         mapM_ touchX509 certs
          return pkcs7
 
 
@@ -118,9 +123,13 @@ writeSmime pkcs7 dataStr flagList
 
 writeSmime' :: BIO -> Pkcs7 -> Maybe BIO -> [Pkcs7Flag] -> IO ()
 writeSmime' outBio pkcs7 dataBio flagList
-    = withForeignPtr  outBio  $ \ outBioPtr  ->
-      withForeignPtr  pkcs7   $ \ pkcs7Ptr   ->
-      withForeignPtrM dataBio $ \ dataBioPtr ->
+    = withBioPtr   outBio  $ \ outBioPtr  ->
+      withPkcs7Ptr pkcs7   $ \ pkcs7Ptr   ->
+      withBioPtr'  dataBio $ \ dataBioPtr ->
       _SMIME_write_PKCS7 outBioPtr pkcs7Ptr dataBioPtr (flagListToInt flagList)
            >>= failIf (/= 1)
            >>  return ()
+    where
+      withBioPtr' :: Maybe BIO -> (Ptr BIO_ -> IO a) -> IO a
+      withBioPtr' Nothing    f = f nullPtr
+      withBioPtr' (Just bio) f = withBioPtr bio f

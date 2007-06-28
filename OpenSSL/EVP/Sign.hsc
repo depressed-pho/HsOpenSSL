@@ -25,8 +25,8 @@ foreign import ccall unsafe "EVP_SignFinal"
 signFinal :: EvpMDCtx -> EvpPKey -> IO String
 signFinal ctx pkey
     = do maxLen <- pkeySize pkey
-         withForeignPtr ctx  $ \ ctxPtr  ->
-             withForeignPtr pkey $ \ pkeyPtr ->
+         withDigestCtxPtr ctx $ \ ctxPtr ->
+             withPKeyPtr pkey $ \ pkeyPtr ->
                  allocaArray maxLen $ \ bufPtr ->
                      alloca $ \ bufLenPtr ->
                          do _SignFinal ctxPtr bufPtr bufLenPtr pkeyPtr

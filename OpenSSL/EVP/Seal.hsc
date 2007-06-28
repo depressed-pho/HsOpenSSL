@@ -54,7 +54,7 @@ sealInit cipher pubKeys
 
          -- [EvpPKey] から Ptr (Ptr EVP_PKEY) を作る。後でそれぞれの
          -- EvpPKey を touchForeignPtr する事を忘れてはならない。
-         pubKeysPtr <- newArray $ map unsafeForeignPtrToPtr pubKeys
+         pubKeysPtr <- newArray $ map unsafePKeyToPtr pubKeys
 
          -- 確保した領域を解放する IO アクションを作って置く
          let cleanup = do mapM_ free encKeyBufs
@@ -62,10 +62,10 @@ sealInit cipher pubKeys
                           free encKeyBufsLenPtr
                           free ivPtr
                           free pubKeysPtr
-                          mapM_ touchForeignPtr pubKeys
+                          mapM_ touchPKey pubKeys
 
          -- いよいよ EVP_SealInit を呼ぶ。
-         ret <- withForeignPtr ctx $ \ ctxPtr ->
+         ret <- withCipherCtxPtr ctx $ \ ctxPtr ->
                 _SealInit ctxPtr cipher encKeyBufsPtr encKeyBufsLenPtr ivPtr pubKeysPtr nKeys
 
          if ret == 0 then
