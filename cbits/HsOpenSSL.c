@@ -97,6 +97,13 @@ STACK_OF(X509_REVOKED)* HsOpenSSL_X509_CRL_get_REVOKED(X509_CRL* crl) {
     return X509_CRL_get_REVOKED(crl);
 }
 
+
+/* PKCS#7 *********************************************************************/
+long HsOpenSSL_PKCS7_is_detached(PKCS7* pkcs7) {
+    return PKCS7_is_detached(pkcs7);
+}
+
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new() {
     return M_ASN1_INTEGER_new();

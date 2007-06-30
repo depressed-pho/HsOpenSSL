@@ -20,6 +20,8 @@ module OpenSSL.X509.Request
 
     , getPublicKey
     , setPublicKey
+
+    , makeX509FromReq
     )
     where
 
@@ -30,6 +32,8 @@ import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
+import           OpenSSL.X509 (X509)
+import qualified OpenSSL.X509 as Cert
 import           OpenSSL.X509.Name
 
 
@@ -164,3 +168,25 @@ setPublicKey req pkey
       _set_pubkey reqPtr pkeyPtr
            >>= failIf (/= 1)
            >>  return ()
+
+
+-- FIXME: この函數で作った X509 は署名されてゐないし色々と情報が抜けて
+-- ゐる事をドキュメントで警告する。ちゃんとした X509 を作るサンプルコー
+-- ドも書く。
+makeX509FromReq :: X509Req
+                -> X509
+                -> IO X509
+makeX509FromReq req caCert
+    = do reqPubKey <- getPublicKey req
+         verified  <- verifyX509Req req reqPubKey
+
+         unless verified
+                    $ fail "makeX509FromReq: the request isn't properly signed by its own key."
+
+         cert <- Cert.newX509
+         Cert.setVersion cert 2 -- Version 2 means X509 v3. It's confusing.
+         Cert.setIssuerName  cert =<< Cert.getSubjectName caCert False
+         Cert.setSubjectName cert =<< getSubjectName req False
+         Cert.setPublicKey   cert =<< getPublicKey req
+
+         return cert

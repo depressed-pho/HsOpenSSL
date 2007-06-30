@@ -4,6 +4,7 @@ module OpenSSL.Stack
     ( STACK
     , mapStack
     , withStack
+    , withForeignStack
     )
     where
 
@@ -19,7 +20,7 @@ data STACK = STACK
 foreign import ccall unsafe "sk_new_null"
         skNewNull :: IO (Ptr STACK)
 
-foreign import ccall unsafe "sk_new_null"
+foreign import ccall unsafe "sk_free"
         skFree :: Ptr STACK -> IO ()
 
 foreign import ccall unsafe "sk_push"
@@ -49,3 +50,14 @@ newStack values
 withStack :: [Ptr a] -> (Ptr STACK -> IO b) -> IO b
 withStack values f
     = bracket (newStack values) skFree f
+
+
+withForeignStack :: (fp -> Ptr obj)
+                 -> (fp -> IO ())
+                 -> [fp]
+                 -> (Ptr STACK -> IO ret)
+                 -> IO ret
+withForeignStack unsafeFpToPtr touchFp fps action
+    = do ret <- withStack (map unsafeFpToPtr fps) action
+         mapM_ touchFp fps
+         return ret

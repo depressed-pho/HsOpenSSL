@@ -40,6 +40,7 @@ Exposed-Modules:
         OpenSSL.X509.Revocation
         OpenSSL.X509.Name
         OpenSSL.X509.Request
+        OpenSSL.X509.Store
 Extensions:
         ForeignFunctionInterface
 ghc-options:

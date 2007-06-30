@@ -6,8 +6,11 @@ module OpenSSL.X509
     , newX509
     , wrapX509 -- private
     , withX509Ptr -- private
+    , withX509Stack -- private
     , unsafeX509ToPtr -- private
-    , touchX509
+    , touchX509 -- private
+
+    , compareX509
 
     , signX509
     , verifyX509
@@ -64,6 +67,9 @@ foreign import ccall unsafe "&X509_free"
 
 foreign import ccall unsafe "X509_print"
         _print :: Ptr BIO_ -> Ptr X509_ -> IO Int
+
+foreign import ccall unsafe "X509_cmp"
+        _cmp :: Ptr X509_ -> Ptr X509_ -> IO Int
 
 foreign import ccall unsafe "HsOpenSSL_X509_get_version"
         _get_version :: Ptr X509_ -> IO CLong
@@ -132,12 +138,29 @@ withX509Ptr :: X509 -> (Ptr X509_ -> IO a) -> IO a
 withX509Ptr (X509 x509) = withForeignPtr x509
 
 
+withX509Stack :: [X509] -> (Ptr STACK -> IO a) -> IO a
+withX509Stack = withForeignStack unsafeX509ToPtr touchX509
+
+
 unsafeX509ToPtr :: X509 -> Ptr X509_
 unsafeX509ToPtr (X509 x509) = unsafeForeignPtrToPtr x509
 
 
 touchX509 :: X509 -> IO ()
 touchX509 (X509 x509) = touchForeignPtr x509
+
+
+compareX509 :: X509 -> X509 -> IO Ordering
+compareX509 cert1 cert2
+    = withX509Ptr cert1 $ \ cert1Ptr ->
+      withX509Ptr cert2 $ \ cert2Ptr ->
+      _cmp cert1Ptr cert2Ptr >>= return . interpret
+    where
+      interpret :: Int -> Ordering
+      interpret n
+          | n > 0     = GT
+          | n < 0     = LT
+          | otherwise = EQ
 
 
 signX509 :: X509 -> EvpPKey -> Maybe EvpMD -> IO ()

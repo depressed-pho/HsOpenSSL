@@ -39,6 +39,9 @@ ASN1_TIME* HsOpenSSL_X509_CRL_get_nextUpdate(X509_CRL* crl);
 X509_NAME* HsOpenSSL_X509_CRL_get_issuer(X509_CRL* crl);
 STACK_OF(X509_REVOKED)* HsOpenSSL_X509_CRL_get_REVOKED(X509_CRL* crl);
 
+/* PKCS#7 *********************************************************************/
+long HsOpenSSL_PKCS7_is_detached(PKCS7* pkcs7);
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new();
 void HsOpenSSL_M_ASN1_INTEGER_free(ASN1_INTEGER* intPtr);

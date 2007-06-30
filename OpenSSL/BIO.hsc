@@ -34,7 +34,9 @@ module OpenSSL.BIO
       BIO
     , BIO_
 
-    , withBioPtr -- private
+    , wrapBioPtr  -- private
+    , withBioPtr  -- private
+    , withBioPtr' -- private
 
       -- * BIO chaning
     , bioPush
@@ -112,12 +114,20 @@ foreign import ccall unsafe "HsOpenSSL_BIO_should_retry"
 
 new :: Ptr BIO_METHOD -> IO BIO
 new method
-    = do ptr <- _new method >>= failIfNull
-         newForeignPtr _free ptr >>= return . BIO
+    = _new method >>= failIfNull >>= wrapBioPtr
+
+
+wrapBioPtr :: Ptr BIO_ -> IO BIO
+wrapBioPtr bioPtr = newForeignPtr _free bioPtr >>= return . BIO
 
 
 withBioPtr :: BIO -> (Ptr BIO_ -> IO a) -> IO a
 withBioPtr (BIO bio) = withForeignPtr bio
+
+
+withBioPtr' :: Maybe BIO -> (Ptr BIO_ -> IO a) -> IO a
+withBioPtr' Nothing    f = f nullPtr
+withBioPtr' (Just bio) f = withBioPtr bio f
 
 
 -- a の後ろに b を付ける。a の參照だけ保持してそこに書き込む事も、b の
