@@ -1,8 +1,17 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to PKCS#10 certificate request.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.X509.Request
-    ( X509Req
-    , X509_REQ
+    ( -- * Type
+      X509Req
+    , X509_REQ -- private
+
+      -- * Functions to manipulate request
     , newX509Req
     , wrapX509Req -- private
     , withX509ReqPtr -- private
@@ -12,6 +21,9 @@ module OpenSSL.X509.Request
 
     , printX509Req
 
+    , makeX509FromReq
+
+      -- * Accessors
     , getVersion
     , setVersion
 
@@ -20,8 +32,6 @@ module OpenSSL.X509.Request
 
     , getPublicKey
     , setPublicKey
-
-    , makeX509FromReq
     )
     where
 
@@ -31,14 +41,16 @@ import           Foreign.C
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Verify
 import           OpenSSL.Utils
 import           OpenSSL.X509 (X509)
 import qualified OpenSSL.X509 as Cert
 import           OpenSSL.X509.Name
 
-
+-- |@'X509Req'@ is an opaque object that represents PKCS#10
+-- certificate request.
 newtype X509Req  = X509Req (ForeignPtr X509_REQ)
-data    X509_REQ = X509_REQ
+data    X509_REQ
 
 
 foreign import ccall unsafe "X509_REQ_new"
@@ -74,7 +86,16 @@ foreign import ccall unsafe "X509_REQ_get_pubkey"
 foreign import ccall unsafe "X509_REQ_set_pubkey"
         _set_pubkey :: Ptr X509_REQ -> Ptr EVP_PKEY -> IO Int
 
-
+-- |@'newX509Req'@ creates an empty certificate request. You must set
+-- the following properties to and sign it (see 'signX509Req') to
+-- actually use the certificate request.
+--
+--  [/Version/] See 'setVersion'.
+--
+--  [/Subject Name/] See 'setSubjectName'.
+--
+--  [/Public Key/] See 'setPublicKey'.
+--
 newX509Req :: IO X509Req
 newX509Req = _new >>= wrapX509Req
 
@@ -86,8 +107,14 @@ wrapX509Req reqPtr = newForeignPtr _free reqPtr >>= return . X509Req
 withX509ReqPtr :: X509Req -> (Ptr X509_REQ -> IO a) -> IO a
 withX509ReqPtr (X509Req req) = withForeignPtr req
 
-
-signX509Req :: X509Req -> EvpPKey -> Maybe EvpMD -> IO ()
+-- |@'signX509Req'@ signs a certificate request with a subject private
+-- key.
+signX509Req :: X509Req      -- ^ The request to be signed.
+            -> PKey         -- ^ The private key to sign with.
+            -> Maybe Digest -- ^ A hashing algorithm to use. If
+                            --   @Nothing@ the most suitable algorithm
+                            --   for the key is automatically used.
+            -> IO ()
 signX509Req req pkey mDigest
     = withX509ReqPtr req  $ \ reqPtr  ->
       withPKeyPtr    pkey $ \ pkeyPtr ->
@@ -99,20 +126,24 @@ signX509Req req pkey mDigest
                   >>= failIf (== 0)
          return ()
 
-
-verifyX509Req :: X509Req -> EvpPKey -> IO Bool
+-- |@'verifyX509Req'@ verifies a signature of certificate request with
+-- a subject public key.
+verifyX509Req :: X509Req -- ^ The request to be verified.
+              -> PKey    -- ^ The public key to verify with.
+              -> IO VerifyStatus
 verifyX509Req req pkey
     = withX509ReqPtr req  $ \ reqPtr  ->
       withPKeyPtr    pkey $ \ pkeyPtr ->
       _verify reqPtr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO Bool
-      interpret 1 = return True
-      interpret 0 = return False
+      interpret :: Int -> IO VerifyStatus
+      interpret 1 = return VerifySuccess
+      interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError
 
-
+-- |@'printX509Req' req@ translates a certificate request into
+-- human-readable format.
 printX509Req :: X509Req -> IO String
 printX509Req req
     = do mem <- newMem
@@ -122,13 +153,15 @@ printX509Req req
                       >>= failIf (/= 1)
          bioRead mem
 
-
+-- |@'getVersion' req@ returns the version number of certificate
+-- request.
 getVersion :: X509Req -> IO Int
 getVersion req
     = withX509ReqPtr req $ \ reqPtr ->
       liftM fromIntegral $ _get_version reqPtr
 
-
+-- |@'setVersion' req ver@ updates the version number of certificate
+-- request.
 setVersion :: X509Req -> Int -> IO ()
 setVersion req ver
     = withX509ReqPtr req $ \ reqPtr ->
@@ -136,14 +169,18 @@ setVersion req ver
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getSubjectName' req wantLongName@ returns the subject name of
+-- certificate request. See 'OpenSSL.X509.getSubjectName' of
+-- "OpenSSL.X509".
 getSubjectName :: X509Req -> Bool -> IO [(String, String)]
 getSubjectName req wantLongName
     = withX509ReqPtr req $ \ reqPtr ->
       do namePtr <- _get_subject_name reqPtr
          peekX509Name namePtr wantLongName
 
-
+-- |@'setSubjectName' req name@ updates the subject name of
+-- certificate request. See 'OpenSSL.X509.setSubjectName' of
+-- "OpenSSL.X509".
 setSubjectName :: X509Req -> [(String, String)] -> IO ()
 setSubjectName req subject
     = withX509ReqPtr req $ \ reqPtr ->
@@ -152,16 +189,18 @@ setSubjectName req subject
            >>= failIf (/= 1)
            >>  return ()
 
-
-getPublicKey :: X509Req -> IO EvpPKey
+-- |@'getPublicKey' req@ returns the public key of the subject of
+-- certificate request.
+getPublicKey :: X509Req -> IO PKey
 getPublicKey req
     = withX509ReqPtr req $ \ reqPtr ->
       _get_pubkey reqPtr
            >>= failIfNull
            >>= wrapPKeyPtr
 
-
-setPublicKey :: X509Req -> EvpPKey -> IO ()
+-- |@'setPublicKey' req@ updates the public key of the subject of
+-- certificate request.
+setPublicKey :: X509Req -> PKey -> IO ()
 setPublicKey req pkey
     = withX509ReqPtr req  $ \ reqPtr  ->
       withPKeyPtr    pkey $ \ pkeyPtr ->
@@ -170,9 +209,29 @@ setPublicKey req pkey
            >>  return ()
 
 
--- FIXME: この函數で作った X509 は署名されてゐないし色々と情報が抜けて
--- ゐる事をドキュメントで警告する。ちゃんとした X509 を作るサンプルコー
--- ドも書く。
+-- |@'makeX509FromReq' req cert@ creates an empty X.509 certificate
+-- and copies as much data from the request as possible. The resulting
+-- certificate doesn't have the following data and it isn't signed so
+-- you must fill them and sign it yourself.
+--
+--   * Serial number
+--
+--   * Validity (Not Before and Not After)
+--
+-- Example:
+--
+-- > import Data.Time.Clock
+-- >
+-- > genCert :: X509 -> EvpPKey -> Integer -> Int -> X509Req -> IO X509
+-- > genCert caCert caKey serial days req
+-- >     = do cert <- makeX509FromReq req caCert
+-- >          now  <- getCurrentTime
+-- >          setSerialNumber cert serial
+-- >          setNotBefore cert $ addUTCTime (-1) now
+-- >          setNotAfter  cert $ addUTCTime (days * 24 * 60 * 60) now
+-- >          signX509 cert caKey Nothing
+-- >          return cert
+--
 makeX509FromReq :: X509Req
                 -> X509
                 -> IO X509
@@ -180,8 +239,8 @@ makeX509FromReq req caCert
     = do reqPubKey <- getPublicKey req
          verified  <- verifyX509Req req reqPubKey
 
-         unless verified
-                    $ fail "makeX509FromReq: the request isn't properly signed by its own key."
+         when (verified == VerifyFailure)
+                  $ fail "makeX509FromReq: the request isn't properly signed by its own key."
 
          cert <- Cert.newX509
          Cert.setVersion cert 2 -- Version 2 means X509 v3. It's confusing.

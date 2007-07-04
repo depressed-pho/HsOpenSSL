@@ -22,8 +22,8 @@
 --   [/Key generation of DSA and Diffie-Hellman algorithms/] Only RSA
 --   keys can currently be generated.
 --
---   [/X.509 certificate handling/] No operations related to X.509 are
---   currently supported. They should be supported in the future.
+--   [/X.509 v3 extension handling/] It shoule be supported in the
+--   future.
 --
 --   [/HMAC message authentication/] 
 --
@@ -33,21 +33,16 @@
 --   [/pseudo-random number generator/] rand(3) functionalities are
 --   uncovered, but OpenSSL works very well by default.
 --
---   [/API to ASN.1, PKCS\#7 and PKCS\#12 functionalities/] They
---   should be covered someday, but there seems no documents for those
---   APIs.
+--   [/API to PKCS\#12 functionality/] It should be covered someday.
 --
---   [/BIO/] BIO isn't needed because we are Haskell hackers.
+--   [/BIO/] BIO isn't needed because we are Haskell hackers. Though
+--   HsOpenSSL itself uses BIO internally.
 --
 --   [/ENGINE cryptographic module/] The default implementations work
 --   very well, don't they?
 --
---   [/bn(3), buffer(3), lhash(3), objects(3), stack(3) and txt_db(3)/]
---   These internal functions are rarely used by application
---   programmers.
---
 -- So if you find out some features you want aren't supported, you
--- must write your own patch. Happy hacking.
+-- must write your own patch (then please. Happy hacking.
 
 #include "HsOpenSSL.h"
 

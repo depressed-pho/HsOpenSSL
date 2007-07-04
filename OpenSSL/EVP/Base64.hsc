@@ -1,10 +1,16 @@
 {- -*- haskell -*- -}
+
+-- |An interface to Base64 codec.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.EVP.Base64
-    ( encodeBase64
+    ( -- * Encoding
+      encodeBase64
     , encodeBase64BS
     , encodeBase64LBS
 
+      -- * Decoding
     , decodeBase64
     , decodeBase64BS
     , decodeBase64LBS
@@ -53,14 +59,19 @@ encodeBlock inBS
       inputLen  = B.length inBS
 
 
+-- |@'encodeBase64' str@ lazilly encodes a stream of data to
+-- Base64. The string doesn't have to be finite. Note that the string
+-- must not contain any letters which aren't in the range of U+0000 -
+-- U+00FF.
 encodeBase64 :: String -> String
 encodeBase64 = L8.unpack . encodeBase64LBS . L8.pack
 
-
+-- |@'encodeBase64BS' bs@ strictly encodes a chunk of data to Base64.
 encodeBase64BS :: ByteString -> ByteString
 encodeBase64BS = encodeBlock
 
-
+-- |@'encodeBase64LBS' lbs@ lazilly encodes a stream of data to
+-- Base64. The string doesn't have to be finite.
 encodeBase64LBS :: LazyByteString -> LazyByteString
 encodeBase64LBS inLBS
     | L8.null inLBS = L8.empty
@@ -98,15 +109,18 @@ decodeBlock inBS
       createAndTrim (B.length inBS) $ \ outBuf ->
       _DecodeBlock (unsafeCoercePtr outBuf) inBuf inLen
 
-
+-- |@'decodeBase64' str@ lazilly decodes a stream of data from
+-- Base64. The string doesn't have to be finite.
 decodeBase64 :: String -> String
 decodeBase64 = L8.unpack . decodeBase64LBS . L8.pack
 
-
+-- |@'decodeBase64BS' bs@ strictly decodes a chunk of data from
+-- Base64.
 decodeBase64BS :: ByteString -> ByteString
 decodeBase64BS = decodeBlock
 
-
+-- |@'decodeBase64LBS' lbs@ lazilly decodes a stream of data from
+-- Base64. The string doesn't have to be finite.
 decodeBase64LBS :: LazyByteString -> LazyByteString
 decodeBase64LBS inLBS
     | L8.null inLBS = L8.empty

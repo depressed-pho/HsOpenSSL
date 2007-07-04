@@ -90,11 +90,11 @@ import           System.IO.Unsafe
 
 {- bio ---------------------------------------------------------------------- -}
 
-data    BIO_METHOD = BIO_METHOD
+data    BIO_METHOD
 
 -- |@BIO@ is a @ForeignPtr@ to an opaque BIO object. They are created by newXXX actions.
 newtype BIO  = BIO (ForeignPtr BIO_)
-data    BIO_ = BIO_
+data    BIO_
 
 foreign import ccall unsafe "BIO_new"
         _new :: Ptr BIO_METHOD -> IO (Ptr BIO_)

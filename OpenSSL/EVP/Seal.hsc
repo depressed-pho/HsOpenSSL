@@ -1,5 +1,10 @@
 {- -*- haskell -*- -}
+
 #include "HsOpenSSL.h"
+
+-- |Asymmetric cipher decryption using encrypted symmetric key. This
+-- is an opposite of "OpenSSL.EVP.Open".
+
 module OpenSSL.EVP.Seal
     ( seal
     , sealBS
@@ -21,7 +26,7 @@ import           OpenSSL.Utils
 
 foreign import ccall unsafe "EVP_SealInit"
         _SealInit :: Ptr EVP_CIPHER_CTX
-                  -> EvpCipher
+                  -> Cipher
                   -> Ptr (Ptr CChar)
                   -> Ptr Int
                   -> CString
@@ -30,7 +35,7 @@ foreign import ccall unsafe "EVP_SealInit"
                   -> IO Int
 
 
-sealInit :: EvpCipher -> [EvpPKey] -> IO (EvpCipherCtx, [String], String)
+sealInit :: Cipher -> [PKey] -> IO (CipherCtx, [String], String)
 
 sealInit _ []
     = fail "sealInit: at least one public key is required"
@@ -52,8 +57,8 @@ sealInit cipher pubKeys
          -- IV の書き込まれる場所を作る。
          ivPtr <- mallocArray (cipherIvLength cipher)
 
-         -- [EvpPKey] から Ptr (Ptr EVP_PKEY) を作る。後でそれぞれの
-         -- EvpPKey を touchForeignPtr する事を忘れてはならない。
+         -- [PKey] から Ptr (Ptr EVP_PKEY) を作る。後でそれぞれの
+         -- PKey を touchForeignPtr する事を忘れてはならない。
          pubKeysPtr <- newArray $ map unsafePKeyToPtr pubKeys
 
          -- 確保した領域を解放する IO アクションを作って置く
@@ -80,43 +85,52 @@ sealInit cipher pubKeys
       nKeys :: Int
       nKeys = length pubKeys
 
-      mallocEncKeyBuf :: Storable a => EvpPKey -> IO (Ptr a)
+      mallocEncKeyBuf :: Storable a => PKey -> IO (Ptr a)
       mallocEncKeyBuf pubKey
           = pkeySize pubKey >>= mallocArray
 
-
-seal :: EvpCipher
-     -> [EvpPKey]
-     -> String
-     -> IO ( String
-           , [String]
-           , String
-           )
+-- |@'seal'@ lazilly encrypts a stream of data. The input string
+-- doesn't necessarily have to be finite.
+seal :: Cipher        -- ^ symmetric cipher algorithm to use
+     -> [PKey]        -- ^ A list of public keys to encrypt a
+                      --   symmetric key. At least one public key must
+                      --   be supplied. If two or more keys are given,
+                      --   the symmetric key are encrypted by each
+                      --   public keys so that any of the
+                      --   corresponding private keys can decrypt the
+                      --   message.
+     -> String        -- ^ input string to encrypt
+     -> IO (String, [String], String) -- ^ (encrypted string, list of
+                                      --   encrypted asymmetric keys,
+                                      --   IV)
 seal cipher pubKeys input
     = do (output, encKeys, iv) <- sealLBS cipher pubKeys $ L8.pack input
          return (L8.unpack output, encKeys, iv)
 
-
-sealBS :: EvpCipher
-       -> [EvpPKey]
-       -> ByteString
-       -> IO ( ByteString
-             , [String]
-             , String
-             )
+-- |@'sealBS'@ strictly encrypts a chunk of data.
+sealBS :: Cipher     -- ^ symmetric cipher algorithm to use
+       -> [PKey]     -- ^ list of public keys to encrypt a symmetric
+                     --   key
+       -> ByteString -- ^ input string to encrypt
+       -> IO (ByteString, [String], String) -- ^ (encrypted string,
+                                            --   list of encrypted
+                                            --   asymmetric keys, IV)
 sealBS cipher pubKeys input
     = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
          output             <- cipherStrictly ctx input
          return (output, encKeys, iv)
 
-
-sealLBS :: EvpCipher
-        -> [EvpPKey]
-        -> LazyByteString
-        -> IO ( LazyByteString
-              , [String]
-              , String
-              )
+-- |@'sealLBS'@ lazilly encrypts a stream of data. The input string
+-- doesn't necessarily have to be finite.
+sealLBS :: Cipher         -- ^ symmetric cipher algorithm to use
+        -> [PKey]         -- ^ list of public keys to encrypt a
+                          --   symmetric key
+        -> LazyByteString -- ^ input string to encrypt
+        -> IO (LazyByteString, [String], String) -- ^ (encrypted
+                                                 --   string, list of
+                                                 --   encrypted
+                                                 --   asymmetric keys,
+                                                 --   IV)
 sealLBS cipher pubKeys input
     = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
          output             <- cipherLazily ctx input

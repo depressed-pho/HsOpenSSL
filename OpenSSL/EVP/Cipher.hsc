@@ -1,17 +1,23 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to symmetric cipher algorithms.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.EVP.Cipher
-    ( EvpCipher
-    , EVP_CIPHER
-    , withCipherPtr
+    ( Cipher
+    , EVP_CIPHER -- private
+    , withCipherPtr -- private
 
     , getCipherByName
     , getCipherNames
 
     , cipherIvLength -- private
 
-    , EvpCipherCtx
-    , EVP_CIPHER_CTX
+    , CipherCtx -- private
+    , EVP_CIPHER_CTX -- private
     , newCtx -- private
     , withCipherCtxPtr -- private
 
@@ -40,8 +46,10 @@ import           System.IO.Unsafe
 
 {- EVP_CIPHER ---------------------------------------------------------------- -}
 
-newtype EvpCipher  = EvpCipher (Ptr EVP_CIPHER)
-data    EVP_CIPHER = EVP_CIPHER
+-- |@Cipher@ is an opaque object that represents an algorithm of
+-- symmetric cipher.
+newtype Cipher     = Cipher (Ptr EVP_CIPHER)
+data    EVP_CIPHER
 
 
 foreign import ccall unsafe "EVP_get_cipherbyname"
@@ -52,32 +60,35 @@ foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_iv_length"
         _iv_length :: Ptr EVP_CIPHER -> Int
 
 
-withCipherPtr :: EvpCipher -> (Ptr EVP_CIPHER -> IO a) -> IO a
-withCipherPtr (EvpCipher cipher) f = f cipher
+withCipherPtr :: Cipher -> (Ptr EVP_CIPHER -> IO a) -> IO a
+withCipherPtr (Cipher cipher) f = f cipher
 
-
-getCipherByName :: String -> IO (Maybe EvpCipher)
+-- |@'getCipherByName' name@ returns a symmetric cipher algorithm
+-- whose name is @name@. If no algorithms are found, the result is
+-- @Nothing@.
+getCipherByName :: String -> IO (Maybe Cipher)
 getCipherByName name
     = withCString name $ \ namePtr ->
       do ptr <- _get_cipherbyname namePtr
          if ptr == nullPtr then
              return Nothing
            else
-             return $ Just $ EvpCipher ptr
+             return $ Just $ Cipher ptr
 
-
+-- |@'getCipherNames'@ returns a list of name of symmetric cipher
+-- algorithms.
 getCipherNames :: IO [String]
 getCipherNames = getObjNames CipherMethodType True
 
 
-cipherIvLength :: EvpCipher -> Int
-cipherIvLength (EvpCipher cipher) = _iv_length cipher
+cipherIvLength :: Cipher -> Int
+cipherIvLength (Cipher cipher) = _iv_length cipher
 
 
 {- EVP_CIPHER_CTX ------------------------------------------------------------ -}
 
-newtype EvpCipherCtx   = EvpCipherCtx (ForeignPtr EVP_CIPHER_CTX)
-data    EVP_CIPHER_CTX = EVP_CIPHER_CTX
+newtype CipherCtx      = CipherCtx (ForeignPtr EVP_CIPHER_CTX)
+data    EVP_CIPHER_CTX
 
 
 foreign import ccall unsafe "EVP_CIPHER_CTX_init"
@@ -90,22 +101,22 @@ foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_CTX_block_size"
         _ctx_block_size :: Ptr EVP_CIPHER_CTX -> Int
 
 
-newCtx :: IO EvpCipherCtx
+newCtx :: IO CipherCtx
 newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_CIPHER_CTX)
             withForeignPtr ctx $ \ ctxPtr ->
                 _ctx_init ctxPtr
             addForeignPtrFinalizer _ctx_cleanup ctx
-            return $ EvpCipherCtx ctx
+            return $ CipherCtx ctx
 
 
-withCipherCtxPtr :: EvpCipherCtx -> (Ptr EVP_CIPHER_CTX -> IO a) -> IO a
-withCipherCtxPtr (EvpCipherCtx ctx) = withForeignPtr ctx
+withCipherCtxPtr :: CipherCtx -> (Ptr EVP_CIPHER_CTX -> IO a) -> IO a
+withCipherCtxPtr (CipherCtx ctx) = withForeignPtr ctx
 
 
 {- encrypt/decrypt ----------------------------------------------------------- -}
 
-data CryptoMode = Encrypt
-                | Decrypt
+-- |@CryptoMode@ represents instruction to 'cipher' and such like.
+data CryptoMode = Encrypt | Decrypt
 
 
 foreign import ccall unsafe "EVP_CipherInit"
@@ -123,8 +134,8 @@ cryptoModeToInt Encrypt = 1
 cryptoModeToInt Decrypt = 0
 
 
-cipherInit :: EvpCipher -> String -> String -> CryptoMode -> IO EvpCipherCtx
-cipherInit (EvpCipher c) key iv mode
+cipherInit :: Cipher -> String -> String -> CryptoMode -> IO CipherCtx
+cipherInit (Cipher c) key iv mode
     = do ctx <- newCtx
          withCipherCtxPtr ctx $ \ ctxPtr ->
              withCString key $ \ keyPtr ->
@@ -134,7 +145,7 @@ cipherInit (EvpCipher c) key iv mode
          return ctx
 
 
-cipherUpdateBS :: EvpCipherCtx -> ByteString -> IO ByteString
+cipherUpdateBS :: CipherCtx -> ByteString -> IO ByteString
 cipherUpdateBS ctx inBS
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
@@ -145,7 +156,7 @@ cipherUpdateBS ctx inBS
            >>  peek outLenPtr
 
 
-cipherFinalBS :: EvpCipherCtx -> IO ByteString
+cipherFinalBS :: CipherCtx -> IO ByteString
 cipherFinalBS ctx
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       createAndTrim (_ctx_block_size ctxPtr) $ \ outBuf ->
@@ -154,47 +165,52 @@ cipherFinalBS ctx
            >>= failIf (/= 1)
            >>  peek outLenPtr
 
-
-cipher :: EvpCipher
-       -> String
-       -> String
-       -> CryptoMode
-       -> String
-       -> IO String
+-- |@'cipher'@ lazilly encrypts or decrypts a stream of data. The
+-- input string doesn't necessarily have to be finite.
+cipher :: Cipher     -- ^ algorithm to use
+       -> String     -- ^ symmetric key
+       -> String     -- ^ IV
+       -> CryptoMode -- ^ operation
+       -> String     -- ^ An input string to encrypt\/decrypt. Note
+                     --   that the string must not contain any letters
+                     --   which aren't in the range of U+0000 -
+                     --   U+00FF.
+       -> IO String  -- ^ the result string
 cipher c key iv mode input
     = liftM L8.unpack $ cipherLBS c key iv mode $ L8.pack input
 
-
-cipherBS :: EvpCipher
-         -> String
-         -> String
-         -> CryptoMode
-         -> ByteString
-         -> IO ByteString
+-- |@'cipherBS'@ strictly encrypts or decrypts a chunk of data.
+cipherBS :: Cipher        -- ^ algorithm to use
+         -> String        -- ^ symmetric key
+         -> String        -- ^ IV
+         -> CryptoMode    -- ^ operation
+         -> ByteString    -- ^ input string to encrypt\/decrypt
+         -> IO ByteString -- ^ the result string
 cipherBS c key iv mode input
     = do ctx <- cipherInit c key iv mode
          cipherStrictly ctx input
 
-
-cipherLBS :: EvpCipher
-          -> String
-          -> String
-          -> CryptoMode
-          -> LazyByteString
-          -> IO LazyByteString
+-- |@'cipherLBS'@ lazilly encrypts or decrypts a stream of data. The
+-- input string doesn't necessarily have to be finite.
+cipherLBS :: Cipher            -- ^ algorithm to use
+          -> String            -- ^ symmetric key
+          -> String            -- ^ IV
+          -> CryptoMode        -- ^ operation
+          -> LazyByteString    -- ^ input string to encrypt\/decrypt
+          -> IO LazyByteString -- ^ the result string
 cipherLBS c key iv mode input
     = do ctx <- cipherInit c key iv mode
          cipherLazily ctx input
 
 
-cipherStrictly :: EvpCipherCtx -> ByteString -> IO ByteString
+cipherStrictly :: CipherCtx -> ByteString -> IO ByteString
 cipherStrictly ctx input
     = do output'  <- cipherUpdateBS ctx input
          output'' <- cipherFinalBS ctx
          return $ B.append output' output''
 
 
-cipherLazily :: EvpCipherCtx -> LazyByteString -> IO LazyByteString
+cipherLazily :: CipherCtx -> LazyByteString -> IO LazyByteString
 
 cipherLazily ctx (LPS [])
     = cipherFinalBS ctx >>= \ bs -> (return . LPS) [bs]

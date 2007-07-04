@@ -1,5 +1,9 @@
 {- -*- haskell -*- -}
+
+-- #hide
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.ASN1
     ( ASN1_OBJECT
     , obj2nid

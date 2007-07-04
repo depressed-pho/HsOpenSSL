@@ -1,29 +1,41 @@
 {- -*- haskell -*- -}
+
+-- |An interface to PEM routines.
+
+#include "HsOpenSSL.h"
+
 module OpenSSL.PEM
-    ( PemPasswordRWState(..)
+    ( -- * Password supply
+      PemPasswordCallback
+    , PemPasswordRWState(..)
     , PemPasswordSupply(..)
 
+      -- * Private key
     , writePKCS8PrivateKey
     , readPrivateKey
 
+      -- * Public key
     , writePublicKey
     , readPublicKey
 
+      -- * X.509 certificate
     , writeX509
     , readX509
 
+      -- * PKCS#10 certificate request
+    , PemX509ReqFormat(..)
     , writeX509Req
     , readX509Req
 
+      -- * Certificate Revocation List
     , writeCRL
     , readCRL
 
+      -- * PKCS#7 structure
     , writePkcs7
     , readPkcs7
     )
     where
-
-#include "HsOpenSSL.h"
 
 import           Control.Exception
 import           Control.Monad
@@ -41,20 +53,42 @@ import           Prelude hiding (catch)
 import           System.IO
 
 
-type PemPasswordCallback = Ptr CChar -> Int -> Int -> Ptr () -> IO Int
+-- |@'PemPasswordCallback'@ represents a callback function to supply a
+-- password.
+type PemPasswordCallback
+    =  Int                -- ^ maximum length of the password to be
+                          --   accepted
+    -> PemPasswordRWState -- ^ context
+    -> IO String          -- ^ the result password
 
-data PemPasswordRWState = PwRead
-                        | PwWrite
+type PemPasswordCallback' = Ptr CChar -> Int -> Int -> Ptr () -> IO Int
 
--- FIXME: using PwTTY causes an error but I don't know why.
--- error:0906406D:PEM routines:DEF_CALLBACK:problems getting password
-data PemPasswordSupply = PwNone
-                       | PwStr String
-                       | PwCallback (Int -> PemPasswordRWState -> IO String)
-                       | PwTTY
+
+-- |@'PemPasswordRWState'@ represents a context of
+-- 'PemPasswordCallback'.
+data PemPasswordRWState = PwRead  -- ^ The callback was called to get
+                                  --   a password to read something
+                                  --   encrypted.
+                        | PwWrite -- ^ The callback was called to get
+                                  --   a password to encrypt
+                                  --   something.
+
+-- |@'PemPasswordSupply'@ represents a way to supply password.
+--
+-- FIXME: using PwTTY causes an error but I don't know why:
+-- \"error:0906406D:PEM routines:DEF_CALLBACK:problems getting
+-- password\"
+data PemPasswordSupply = PwNone       -- ^ no password
+                       | PwStr String -- ^ password in a static string
+                       | PwCallback PemPasswordCallback -- ^ get a
+                                                        --   password
+                                                        --   by a
+                                                        --   callback
+                       | PwTTY        -- ^ read a password from TTY
+
 
 foreign import ccall "wrapper"
-        mkPemPasswordCallback :: PemPasswordCallback -> IO (FunPtr PemPasswordCallback)
+        mkPemPasswordCallback :: PemPasswordCallback' -> IO (FunPtr PemPasswordCallback')
 
 
 rwflagToState :: Int -> PemPasswordRWState
@@ -62,7 +96,7 @@ rwflagToState 0 = PwRead
 rwflagToState 1 = PwWrite
 
 
-callPasswordCB :: (Int -> PemPasswordRWState -> IO String) -> PemPasswordCallback
+callPasswordCB :: PemPasswordCallback -> PemPasswordCallback'
 callPasswordCB cb buf bufLen rwflag _
     = let mode = rwflagToState rwflag
           try  = do passStr <- cb bufLen mode
@@ -92,13 +126,13 @@ foreign import ccall safe "PEM_write_bio_PKCS8PrivateKey"
                                    -> Ptr EVP_CIPHER
                                    -> Ptr CChar
                                    -> Int
-                                   -> FunPtr PemPasswordCallback
+                                   -> FunPtr PemPasswordCallback'
                                    -> Ptr a
                                    -> IO Int
 
 writePKCS8PrivateKey' :: BIO
-                      -> EvpPKey
-                      -> Maybe (EvpCipher, PemPasswordSupply)
+                      -> PKey
+                      -> Maybe (Cipher, PemPasswordSupply)
                       -> IO ()
 writePKCS8PrivateKey' bio pkey encryption
     = withBioPtr bio   $ \ bioPtr  ->
@@ -128,8 +162,17 @@ writePKCS8PrivateKey' bio pkey encryption
          failIf (/= 1) ret
          return ()
 
-
-writePKCS8PrivateKey :: EvpPKey -> Maybe (EvpCipher, PemPasswordSupply) -> IO String
+-- |@'writePKCS8PrivateKey'@ writes a private key to PEM string in
+-- PKCS#8 format.
+writePKCS8PrivateKey
+    :: PKey      -- ^ private key to write
+    -> Maybe (Cipher, PemPasswordSupply) -- ^ Either (symmetric cipher
+                                         --   algorithm, password
+                                         --   supply) or @Nothing@. If
+                                         --   @Nothing@ is given the
+                                         --   private key is not
+                                         --   encrypted.
+    -> IO String -- ^ the result PEM string
 writePKCS8PrivateKey pkey encryption
     = do mem <- newMem
          writePKCS8PrivateKey' mem pkey encryption
@@ -139,11 +182,11 @@ writePKCS8PrivateKey pkey encryption
 foreign import ccall safe "PEM_read_bio_PrivateKey"
         _read_bio_PrivateKey :: Ptr BIO_
                              -> Ptr (Ptr EVP_PKEY)
-                             -> FunPtr PemPasswordCallback
+                             -> FunPtr PemPasswordCallback'
                              -> Ptr ()
                              -> IO (Ptr EVP_PKEY)
 
-readPrivateKey' :: BIO -> PemPasswordSupply -> IO EvpPKey
+readPrivateKey' :: BIO -> PemPasswordSupply -> IO PKey
 readPrivateKey' bio supply
     = withBioPtr bio $ \ bioPtr ->
       do pkeyPtr <- case supply of
@@ -168,8 +211,8 @@ readPrivateKey' bio supply
          failIfNull pkeyPtr
          wrapPKeyPtr pkeyPtr
 
-
-readPrivateKey :: String -> PemPasswordSupply -> IO EvpPKey
+-- |@'readPrivateKey' pem supply@ reads a private key in PEM string.
+readPrivateKey :: String -> PemPasswordSupply -> IO PKey
 readPrivateKey pemStr supply
     = do mem <- newConstMem pemStr
          readPrivateKey' mem supply
@@ -183,19 +226,19 @@ foreign import ccall unsafe "PEM_write_bio_PUBKEY"
 foreign import ccall unsafe "PEM_read_bio_PUBKEY"
         _read_bio_PUBKEY :: Ptr BIO_
                          -> Ptr (Ptr EVP_PKEY)
-                         -> FunPtr PemPasswordCallback
+                         -> FunPtr PemPasswordCallback'
                          -> Ptr ()
                          -> IO (Ptr EVP_PKEY)
 
 
-writePublicKey' :: BIO -> EvpPKey -> IO ()
+writePublicKey' :: BIO -> PKey -> IO ()
 writePublicKey' bio pkey
     = withBioPtr bio   $ \ bioPtr  ->
       withPKeyPtr pkey $ \ pkeyPtr ->
       _write_bio_PUBKEY bioPtr pkeyPtr >>= failIf (/= 1) >> return ()
 
-
-writePublicKey :: EvpPKey -> IO String
+-- |@'writePublicKey' pubkey@ writes a public to PEM string.
+writePublicKey :: PKey -> IO String
 writePublicKey pkey
     = do mem <- newMem
          writePublicKey' mem pkey
@@ -203,7 +246,7 @@ writePublicKey pkey
 
 -- Why the heck PEM_read_bio_PUBKEY takes pem_password_cb? Is there
 -- any form of encrypted public key?
-readPublicKey' :: BIO -> IO EvpPKey
+readPublicKey' :: BIO -> IO PKey
 readPublicKey' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
@@ -211,8 +254,8 @@ readPublicKey' bio
            >>= failIfNull
            >>= wrapPKeyPtr
 
-
-readPublicKey :: String -> IO EvpPKey
+-- |@'readPublicKey' pem@ reads a public key in PEM string.
+readPublicKey :: String -> IO PKey
 readPublicKey pemStr
     = newConstMem pemStr >>= readPublicKey'
 
@@ -227,7 +270,7 @@ foreign import ccall unsafe "PEM_write_bio_X509_AUX"
 foreign import ccall safe "PEM_read_bio_X509_AUX"
         _read_bio_X509_AUX :: Ptr BIO_
                            -> Ptr (Ptr X509_)
-                           -> FunPtr PemPasswordCallback
+                           -> FunPtr PemPasswordCallback'
                            -> Ptr ()
                            -> IO (Ptr X509_)
 
@@ -239,7 +282,7 @@ writeX509' bio x509
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'writeX509' cert@ writes an X.509 certificate to PEM string.
 writeX509 :: X509 -> IO String
 writeX509 x509
     = do mem <- newMem
@@ -256,7 +299,7 @@ readX509' bio
            >>= failIfNull
            >>= wrapX509
 
-
+-- |@'readX509' pem@ reads an X.509 certificate in PEM string.
 readX509 :: String -> IO X509
 readX509 pemStr
     = newConstMem pemStr >>= readX509'
@@ -277,29 +320,39 @@ foreign import ccall unsafe "PEM_write_bio_X509_REQ_NEW"
 foreign import ccall safe "PEM_read_bio_X509_REQ"
         _read_bio_X509_REQ :: Ptr BIO_
                            -> Ptr (Ptr X509_REQ)
-                           -> FunPtr PemPasswordCallback
+                           -> FunPtr PemPasswordCallback'
                            -> Ptr ()
                            -> IO (Ptr X509_REQ)
 
+-- |@'PemX509ReqFormat'@ represents format of PKCS#10 certificate
+-- request.
+data PemX509ReqFormat
+    = ReqNewFormat -- ^ The new format, whose header is \"NEW
+                   --   CERTIFICATE REQUEST\".
+    | ReqOldFormat -- ^ The old format, whose header is \"CERTIFICATE
+                   --   REQUEST\".
 
-writeX509Req' :: BIO -> X509Req -> Bool -> IO ()
-writeX509Req' bio req new
+
+writeX509Req' :: BIO -> X509Req -> PemX509ReqFormat -> IO ()
+writeX509Req' bio req format
     = withBioPtr bio     $ \ bioPtr ->
       withX509ReqPtr req $ \ reqPtr ->
       writer bioPtr reqPtr
                  >>= failIf (/= 1)
                  >>  return ()
     where
-      writer = if new then
-                   _write_bio_X509_REQ_NEW
-               else
-                   _write_bio_X509_REQ
+      writer = case format of
+                 ReqNewFormat -> _write_bio_X509_REQ_NEW
+                 ReqOldFormat -> _write_bio_X509_REQ
 
-
-writeX509Req :: X509Req -> Bool -> IO String
-writeX509Req req new
+-- |@'writeX509Req'@ writes a PKCS#10 certificate request to PEM
+-- string.
+writeX509Req :: X509Req          -- ^ request
+             -> PemX509ReqFormat -- ^ format
+             -> IO String        -- ^ the result PEM string
+writeX509Req req format
     = do mem <- newMem
-         writeX509Req' mem req new
+         writeX509Req' mem req format
          bioRead mem
 
 
@@ -311,7 +364,7 @@ readX509Req' bio
            >>= failIfNull
            >>= wrapX509Req
 
-
+-- |@'readX509Req'@ reads a PKCS#10 certificate request in PEM string.
 readX509Req :: String -> IO X509Req
 readX509Req pemStr
     = newConstMem pemStr >>= readX509Req'
@@ -327,7 +380,7 @@ foreign import ccall unsafe "PEM_write_bio_X509_CRL"
 foreign import ccall safe "PEM_read_bio_X509_CRL"
         _read_bio_X509_CRL :: Ptr BIO_
                            -> Ptr (Ptr X509_CRL)
-                           -> FunPtr PemPasswordCallback
+                           -> FunPtr PemPasswordCallback'
                            -> Ptr ()
                            -> IO (Ptr X509_CRL)
 
@@ -340,7 +393,8 @@ writeCRL' bio crl
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'writeCRL' crl@ writes a Certificate Revocation List to PEM
+-- string.
 writeCRL :: CRL -> IO String
 writeCRL crl
     = do mem <- newMem
@@ -356,7 +410,7 @@ readCRL' bio
            >>= failIfNull
            >>= wrapCRL
 
-
+-- |@'readCRL' pem@ reads a Certificate Revocation List in PEM string.
 readCRL :: String -> IO CRL
 readCRL pemStr
     = newConstMem pemStr >>= readCRL'
@@ -372,7 +426,7 @@ foreign import ccall unsafe "PEM_write_bio_PKCS7"
 foreign import ccall safe "PEM_read_bio_PKCS7"
         _read_bio_PKCS7 :: Ptr BIO_
                         -> Ptr (Ptr PKCS7)
-                        -> FunPtr PemPasswordCallback
+                        -> FunPtr PemPasswordCallback'
                         -> Ptr ()
                         -> IO (Ptr PKCS7)
 
@@ -385,7 +439,7 @@ writePkcs7' bio pkcs7
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'writePkcs7' p7@ writes a PKCS#7 structure to PEM string.
 writePkcs7 :: Pkcs7 -> IO String
 writePkcs7 pkcs7
     = do mem <- newMem
@@ -401,7 +455,7 @@ readPkcs7' bio
            >>= failIfNull
            >>= wrapPkcs7Ptr
 
-
+-- |@'readPkcs7' pem@ reads a PKCS#7 structure in PEM string.
 readPkcs7 :: String -> IO Pkcs7
 readPkcs7 pemStr
     = newConstMem pemStr >>= readPkcs7'

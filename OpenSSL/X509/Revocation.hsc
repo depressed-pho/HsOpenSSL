@@ -1,9 +1,18 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to Certificate Revocation List.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.X509.Revocation
-    ( CRL
-    , X509_CRL
+    ( -- * Types
+      CRL
+    , X509_CRL -- privae
     , RevokedCertificate(..)
+
+      -- * Functions to manipulate revocation list
     , newCRL
     , wrapCRL -- private
     , withCRLPtr -- private
@@ -13,6 +22,9 @@ module OpenSSL.X509.Revocation
 
     , printCRL
 
+    , sortCRL
+
+      -- * Accessors
     , getVersion
     , setVersion
 
@@ -27,7 +39,6 @@ module OpenSSL.X509.Revocation
 
     , getRevokedList
     , addRevoked
-    , sortCRL
     )
     where
 
@@ -40,16 +51,21 @@ import           OpenSSL.ASN1
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Verify
 import           OpenSSL.Stack
 import           OpenSSL.Utils
 import           OpenSSL.X509.Name
 
+-- |@'CRL'@ is an opaque object that represents Certificate Revocation
+-- List.
+newtype CRL          = CRL (ForeignPtr X509_CRL)
+data    X509_CRL
+data    X509_REVOKED
 
-newtype CRL      = CRL (ForeignPtr X509_CRL)
-data    X509_CRL = X509_CRL
-
-data X509_REVOKED = X509_REVOKED
-
+-- |@'RevokedCertificate'@ represents a revoked certificate in a
+-- list. Each certificates are supposed to be distinguishable by
+-- issuer name and serial number, so it is sufficient to have only
+-- serial number on each entries.
 data RevokedCertificate
     = RevokedCertificate {
         revSerialNumber   :: Integer
@@ -120,7 +136,19 @@ foreign import ccall unsafe "X509_REVOKED_set_serialNumber"
 foreign import ccall unsafe "X509_REVOKED_set_revocationDate"
         _set_revocationDate :: Ptr X509_REVOKED -> Ptr ASN1_TIME -> IO Int
 
-
+-- |@'newCRL'@ creates an empty revocation list. You must set the
+-- following properties to and sign it (see 'signCRL') to actually use
+-- the revocation list. If you have any certificates to be listed, you
+-- must of course add them (see 'addRevoked') before signing the list.
+--
+--   [/Version/] See 'setVersion'.
+--
+--   [/Last Update/] See 'setLastUpdate'.
+--
+--   [/Next Update/] See 'setNextUpdate'.
+--
+--   [/Issuer Name/] See 'setIssuerName'.
+--
 newCRL :: IO CRL
 newCRL = _new >>= wrapCRL
 
@@ -132,8 +160,13 @@ wrapCRL crlPtr = newForeignPtr _free crlPtr >>= return . CRL
 withCRLPtr :: CRL -> (Ptr X509_CRL -> IO a) -> IO a
 withCRLPtr (CRL crl) = withForeignPtr crl
 
-
-signCRL :: CRL -> EvpPKey -> Maybe EvpMD -> IO ()
+-- |@'signCRL'@ signs a revocation list with an issuer private key.
+signCRL :: CRL          -- ^ The revocation list to be signed.
+        -> PKey         -- ^ The private key to sign with.
+        -> Maybe Digest -- ^ A hashing algorithm to use. If @Nothing@
+                        --   the most suitable algorithm for the key
+                        --   is automatically used.
+        -> IO ()
 signCRL crl pkey mDigest
     = withCRLPtr crl   $ \ crlPtr  ->
       withPKeyPtr pkey $ \ pkeyPtr ->
@@ -145,20 +178,22 @@ signCRL crl pkey mDigest
                   >>= failIf (== 0)
          return ()
 
-
-verifyCRL :: CRL -> EvpPKey -> IO Bool
+-- |@'verifyCRL'@ verifies a signature of revocation list with an
+-- issuer public key.
+verifyCRL :: CRL -> PKey -> IO VerifyStatus
 verifyCRL crl pkey
     = withCRLPtr crl   $ \ crlPtr ->
       withPKeyPtr pkey $ \ pkeyPtr ->
       _verify crlPtr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO Bool
-      interpret 1 = return True
-      interpret 0 = return False
+      interpret :: Int -> IO VerifyStatus
+      interpret 1 = return VerifySuccess
+      interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError
 
-
+-- |@'printCRL'@ translates a revocation list into human-readable
+-- format.
 printCRL :: CRL -> IO String
 printCRL crl
     = do mem <- newMem
@@ -168,13 +203,14 @@ printCRL crl
                       >>= failIf (/= 1)
          bioRead mem
 
-
+-- |@'getVersion' crl@ returns the version number of revocation list.
 getVersion :: CRL -> IO Int
 getVersion crl
     = withCRLPtr crl $ \ crlPtr ->
       liftM fromIntegral $ _get_version crlPtr
 
-
+-- |@'setVersion' crl ver@ updates the version number of revocation
+-- list.
 setVersion :: CRL -> Int -> IO ()
 setVersion crl ver
     = withCRLPtr crl $ \ crlPtr ->
@@ -182,14 +218,16 @@ setVersion crl ver
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getLastUpdate' crl@ returns the time when the revocation list
+-- has last been updated.
 getLastUpdate :: CRL -> IO UTCTime
 getLastUpdate crl
     = withCRLPtr crl $ \ crlPtr ->
       _get_lastUpdate crlPtr
            >>= peekASN1Time
 
-
+-- |@'setLastUpdate' crl utc@ updates the time when the revocation
+-- list has last been updated.
 setLastUpdate :: CRL -> UTCTime -> IO ()
 setLastUpdate crl utc
     = withCRLPtr crl $ \ crlPtr ->
@@ -198,14 +236,16 @@ setLastUpdate crl utc
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getNextUpdate' crl@ returns the time when the revocation list
+-- will next be updated.
 getNextUpdate :: CRL -> IO UTCTime
 getNextUpdate crl
     = withCRLPtr crl $ \ crlPtr ->
       _get_nextUpdate crlPtr
            >>= peekASN1Time
 
-
+-- |@'setNextUpdate' crl utc@ updates the time when the revocation
+-- list will next be updated.
 setNextUpdate :: CRL -> UTCTime -> IO ()
 setNextUpdate crl utc
     = withCRLPtr crl $ \ crlPtr ->
@@ -214,14 +254,17 @@ setNextUpdate crl utc
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getIssuerName' crl wantLongName@ returns the issuer name of
+-- revocation list. See 'OpenSSL.X509.getIssuerName' of
+-- "OpenSSL.X509".
 getIssuerName :: CRL -> Bool -> IO [(String, String)]
 getIssuerName crl wantLongName
     = withCRLPtr crl $ \ crlPtr ->
       do namePtr <- _get_issuer_name crlPtr
          peekX509Name namePtr wantLongName
 
-
+-- |@'setIssuerName' crl name@ updates the issuer name of revocation
+-- list. See 'OpenSSL.X509.setIssuerName' of "OpenSSL.X509".
 setIssuerName :: CRL -> [(String, String)] -> IO ()
 setIssuerName crl issuer
     = withCRLPtr crl  $ \ crlPtr  ->
@@ -230,7 +273,7 @@ setIssuerName crl issuer
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getRevokedList' crl@ returns the list of revoked certificates.
 getRevokedList :: CRL -> IO [RevokedCertificate]
 getRevokedList crl
     = withCRLPtr crl $ \ crlPtr ->
@@ -261,7 +304,8 @@ newRevoked revoked
            else
              return revPtr
 
-
+-- |@'addRevoked' crl revoked@ add the certificate to the revocation
+-- list.
 addRevoked :: CRL -> RevokedCertificate -> IO ()
 addRevoked crl revoked
     = withCRLPtr crl $ \ crlPtr ->
@@ -271,7 +315,7 @@ addRevoked crl revoked
            1 -> return ()
            _ -> freeRevoked revPtr >> raiseOpenSSLError
 
-
+-- |@'sortCRL' crl@ sorts the certificates in the revocation list.
 sortCRL :: CRL -> IO ()
 sortCRL crl
     = withCRLPtr crl $ \ crlPtr ->

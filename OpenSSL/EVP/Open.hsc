@@ -1,5 +1,10 @@
 {- -*- haskell -*- -}
+
 #include "HsOpenSSL.h"
+
+-- |Asymmetric cipher decryption using encrypted symmetric key. This
+-- is an opposite of "OpenSSL.EVP.Seal".
+
 module OpenSSL.EVP.Open
     ( open
     , openBS
@@ -21,7 +26,7 @@ import           OpenSSL.Utils
 
 foreign import ccall unsafe "EVP_OpenInit"
         _OpenInit :: Ptr EVP_CIPHER_CTX
-                  -> EvpCipher
+                  -> Cipher
                   -> Ptr CChar
                   -> Int
                   -> CString
@@ -29,7 +34,7 @@ foreign import ccall unsafe "EVP_OpenInit"
                   -> IO Int
 
 
-openInit :: EvpCipher -> String -> String -> EvpPKey -> IO EvpCipherCtx
+openInit :: Cipher -> String -> String -> PKey -> IO CipherCtx
 openInit cipher encKey iv pkey
     = do ctx <- newCtx
          withCipherCtxPtr ctx $ \ ctxPtr ->
@@ -40,34 +45,38 @@ openInit cipher encKey iv pkey
                               >>= failIf (== 0)
          return ctx
 
-
-open :: EvpCipher
-     -> String
-     -> String
-     -> EvpPKey
-     -> String
-     -> IO String
+-- |@'open'@ lazilly decrypts a stream of data. The input string
+-- doesn't necessarily have to be finite.
+open :: Cipher -- ^ symmetric cipher algorithm to use
+     -> String -- ^ encrypted symmetric key to decrypt the input string
+     -> String -- ^ IV
+     -> PKey   -- ^ private key to decrypt the symmetric key
+     -> String -- ^ input string to decrypt
+     -> String -- ^ decrypted string
 open cipher encKey iv pkey input
-    = liftM L8.unpack $ openLBS cipher encKey iv pkey $ L8.pack input
+    = L8.unpack $ openLBS cipher encKey iv pkey $ L8.pack input
 
-
-openBS :: EvpCipher
-       -> String
-       -> String
-       -> EvpPKey
-       -> ByteString
-       -> IO ByteString
+-- |@'openBS'@ decrypts a chunk of data.
+openBS :: Cipher     -- ^ symmetric cipher algorithm to use
+       -> String     -- ^ encrypted symmetric key to decrypt the input string
+       -> String     -- ^ IV
+       -> PKey       -- ^ private key to decrypt the symmetric key
+       -> ByteString -- ^ input string to decrypt
+       -> ByteString -- ^ decrypted string
 openBS cipher encKey iv pkey input
-    = do ctx      <- openInit cipher encKey iv pkey
+    = unsafePerformIO $
+      do ctx <- openInit cipher encKey iv pkey
          cipherStrictly ctx input
 
-
-openLBS :: EvpCipher
-        -> String
-        -> String
-        -> EvpPKey
-        -> LazyByteString
-        -> IO LazyByteString
+-- |@'openLBS'@ lazilly decrypts a stream of data. The input string
+-- doesn't necessarily have to be finite.
+openLBS :: Cipher         -- ^ symmetric cipher algorithm to use
+        -> String         -- ^ encrypted symmetric key to decrypt the input string
+        -> String         -- ^ IV
+        -> PKey           -- ^ private key to decrypt the symmetric key
+        -> LazyByteString -- ^ input string to decrypt
+        -> LazyByteString -- ^ decrypted string
 openLBS cipher encKey iv pkey input
-    = do ctx <- openInit cipher encKey iv pkey
+    = unsafePerformIO $
+      do ctx <- openInit cipher encKey iv pkey
          cipherLazily ctx input

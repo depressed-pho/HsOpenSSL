@@ -1,8 +1,14 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to asymmetric cipher keypair.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.EVP.PKey
-    ( EvpPKey
-    , EVP_PKEY
+    ( PKey
+    , EVP_PKEY -- private
 
     , wrapPKeyPtr -- private
     , withPKeyPtr -- private
@@ -18,16 +24,17 @@ module OpenSSL.EVP.PKey
     )
     where
 
-
 import           Foreign
 import           Foreign.C
 import           OpenSSL.EVP.Digest
 import           OpenSSL.RSA
 import           OpenSSL.Utils
 
-
-newtype EvpPKey  = EvpPKey (ForeignPtr EVP_PKEY)
-data EVP_PKEY    = EVP_PKEY
+-- |@PKey@ is an opaque object that represents either public key or
+-- public\/private keypair. The concrete algorithm of asymmetric
+-- cipher is hidden in the object.
+newtype PKey     = PKey (ForeignPtr EVP_PKEY)
+data    EVP_PKEY
 
 
 foreign import ccall unsafe "EVP_PKEY_new"
@@ -40,30 +47,30 @@ foreign import ccall unsafe "EVP_PKEY_size"
         _pkey_size :: Ptr EVP_PKEY -> IO Int
 
 
-wrapPKeyPtr :: Ptr EVP_PKEY -> IO EvpPKey
+wrapPKeyPtr :: Ptr EVP_PKEY -> IO PKey
 wrapPKeyPtr pkeyPtr
-    = newForeignPtr _pkey_free pkeyPtr >>= return . EvpPKey
+    = newForeignPtr _pkey_free pkeyPtr >>= return . PKey
 
 
-withPKeyPtr :: EvpPKey -> (Ptr EVP_PKEY -> IO a) -> IO a
-withPKeyPtr (EvpPKey pkey) = withForeignPtr pkey
+withPKeyPtr :: PKey -> (Ptr EVP_PKEY -> IO a) -> IO a
+withPKeyPtr (PKey pkey) = withForeignPtr pkey
 
 
-unsafePKeyToPtr :: EvpPKey -> Ptr EVP_PKEY
-unsafePKeyToPtr (EvpPKey pkey) = unsafeForeignPtrToPtr pkey
+unsafePKeyToPtr :: PKey -> Ptr EVP_PKEY
+unsafePKeyToPtr (PKey pkey) = unsafeForeignPtrToPtr pkey
 
 
-touchPKey :: EvpPKey -> IO ()
-touchPKey (EvpPKey pkey) = touchForeignPtr pkey
+touchPKey :: PKey -> IO ()
+touchPKey (PKey pkey) = touchForeignPtr pkey
 
 
-pkeySize :: EvpPKey -> IO Int
+pkeySize :: PKey -> IO Int
 pkeySize pkey
     = withPKeyPtr pkey $ \ pkeyPtr ->
       _pkey_size pkeyPtr
 
 
-pkeyDefaultMD :: EvpPKey -> IO EvpMD
+pkeyDefaultMD :: PKey -> IO Digest
 pkeyDefaultMD pkey
     = withPKeyPtr pkey $ \ pkeyPtr ->
       do pkeyType   <- (#peek EVP_PKEY, type) pkeyPtr :: IO Int
@@ -85,9 +92,11 @@ pkeyDefaultMD pkey
 foreign import ccall unsafe "EVP_PKEY_set1_RSA"
         _set1_RSA :: Ptr EVP_PKEY -> Ptr RSA_ -> IO Int
 
-newPKeyRSA :: RSA -> IO EvpPKey
+-- |@'newPKeyRSA' rsa@ encapsulates an 'RSA' key into 'PKey'.
+newPKeyRSA :: RSA -> PKey
 newPKeyRSA rsa
-    = withRSAPtr rsa $ \ rsaPtr ->
+    = unsafePerformIO $
+      withRSAPtr rsa $ \ rsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
          _set1_RSA pkeyPtr rsaPtr >>= failIf (/= 1)
          wrapPKeyPtr pkeyPtr

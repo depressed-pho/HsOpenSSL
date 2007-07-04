@@ -1,5 +1,9 @@
 {- -*- haskell -*- -}
+
+-- #hide
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.Objects
     ( ObjNameType(..)
     , getObjNames

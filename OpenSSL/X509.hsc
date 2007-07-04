@@ -1,8 +1,17 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to X.509 certificate.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.X509
-    ( X509
+    ( -- * Type
+      X509
     , X509_
+
+      -- * Functions to manipulate certificate
     , newX509
     , wrapX509 -- private
     , withX509Ptr -- private
@@ -17,6 +26,7 @@ module OpenSSL.X509
 
     , printX509
 
+      -- * Accessors
     , getVersion
     , setVersion
 
@@ -50,13 +60,14 @@ import           OpenSSL.ASN1
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Verify
 import           OpenSSL.Utils
 import           OpenSSL.Stack
 import           OpenSSL.X509.Name
 
-
+-- |@'X509'@ is an opaque object that represents X.509 certificate.
 newtype X509  = X509 (ForeignPtr X509_)
-data    X509_ = X509_
+data    X509_
 
 
 foreign import ccall unsafe "X509_new"
@@ -125,7 +136,22 @@ foreign import ccall unsafe "X509_sign"
 foreign import ccall unsafe "X509_verify"
         _verify :: Ptr X509_ -> Ptr EVP_PKEY -> IO Int
 
-
+-- |@'newX509'@ creates an empty certificate. You must set the
+-- following properties to and sign it (see 'signX509') to actually
+-- use the certificate.
+--
+--   [/Version/] See 'setVersion'.
+--
+--   [/Serial number/] See 'setSerialNumber'.
+--
+--   [/Issuer name/] See 'setIssuerName'.
+--
+--   [/Subject name/] See 'setSubjectName'.
+--
+--   [/Validity/] See 'setNotBefore' and 'setNotAfter'.
+--
+--   [/Public Key/] See 'setPublicKey'.
+--
 newX509 :: IO X509
 newX509 = _new >>= failIfNull >>= wrapX509
 
@@ -149,7 +175,7 @@ unsafeX509ToPtr (X509 x509) = unsafeForeignPtrToPtr x509
 touchX509 :: X509 -> IO ()
 touchX509 (X509 x509) = touchForeignPtr x509
 
-
+-- |@'compareX509' cert1 cert2@ compares two certificates.
 compareX509 :: X509 -> X509 -> IO Ordering
 compareX509 cert1 cert2
     = withX509Ptr cert1 $ \ cert1Ptr ->
@@ -162,8 +188,13 @@ compareX509 cert1 cert2
           | n < 0     = LT
           | otherwise = EQ
 
-
-signX509 :: X509 -> EvpPKey -> Maybe EvpMD -> IO ()
+-- |@'signX509'@ signs a certificate with an issuer private key.
+signX509 :: X509         -- ^ The certificate to be signed.
+         -> PKey         -- ^ The private key to sign with.
+         -> Maybe Digest -- ^ A hashing algorithm to use. If @Nothing@
+                         --   the most suitable algorithm for the key
+                         --   is automatically used.
+         -> IO ()
 signX509 x509 pkey mDigest
     = withX509Ptr x509 $ \ x509Ptr ->
       withPKeyPtr pkey $ \ pkeyPtr ->
@@ -175,20 +206,24 @@ signX509 x509 pkey mDigest
                   >>= failIf (== 0)
          return ()
 
-
-verifyX509 :: X509 -> EvpPKey -> IO Bool
+-- |@'verifyX509'@ verifies a signature of certificate with an issuer
+-- public key.
+verifyX509 :: X509 -- ^ The certificate to be verified.
+           -> PKey -- ^ The public key to verify with.
+           -> IO VerifyStatus
 verifyX509 x509 pkey
     = withX509Ptr x509 $ \ x509Ptr ->
       withPKeyPtr pkey $ \ pkeyPtr ->
       _verify x509Ptr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO Bool
-      interpret 1 = return True
-      interpret 0 = return False
+      interpret :: Int -> IO VerifyStatus
+      interpret 1 = return VerifySuccess
+      interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError
 
-
+-- |@'printX509' cert@ translates a certificate into human-readable
+-- format.
 printX509 :: X509 -> IO String
 printX509 x509
     = do mem <- newMem
@@ -198,13 +233,14 @@ printX509 x509
                       >>= failIf (/= 1)
          bioRead mem
 
-
+-- |@'getVersion' cert@ returns the version number of certificate. It
+-- seems the number is 0-origin: version 2 means X.509 v3.
 getVersion :: X509 -> IO Int
 getVersion x509
     = withX509Ptr x509 $ \ x509Ptr ->
       liftM fromIntegral $ _get_version x509Ptr
 
-
+-- |@'setVersion' cert ver@ updates the version number of certificate.
 setVersion :: X509 -> Int -> IO ()
 setVersion x509 ver
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -212,14 +248,15 @@ setVersion x509 ver
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getSerialNumber' cert@ returns the serial number of certificate.
 getSerialNumber :: X509 -> IO Integer
 getSerialNumber x509
     = withX509Ptr x509 $ \ x509Ptr ->
       _get_serialNumber x509Ptr
            >>= peekASN1Integer
 
-
+-- |@'setSerialNumber' cert num@ updates the serial number of
+-- certificate.
 setSerialNumber :: X509 -> Integer -> IO ()
 setSerialNumber x509 serial
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -228,14 +265,23 @@ setSerialNumber x509 serial
            >>= failIf (/= 1)
            >>  return ()
 
-
-getIssuerName :: X509 -> Bool -> IO [(String, String)]
+-- |@'getIssuerName'@ returns the issuer name of certificate.
+getIssuerName :: X509 -- ^ The certificate to examine.
+              -> Bool -- ^ @True@ if you want the keys of each parts
+                      --   to be of long form (e.g. \"commonName\"),
+                      --   or @False@ if you don't (e.g. \"CN\").
+              -> IO [(String, String)] -- ^ Pairs of key and value,
+                                       -- for example \[(\"C\",
+                                       -- \"JP\"), (\"ST\",
+                                       -- \"Some-State\"), ...\].
 getIssuerName x509 wantLongName
     = withX509Ptr x509 $ \ x509Ptr ->
       do namePtr <- _get_issuer_name x509Ptr
          peekX509Name namePtr wantLongName
 
-
+-- |@'setIssuerName' cert name@ updates the issuer name of
+-- certificate. Keys of each parts may be of either long form or short
+-- form. See 'getIssuerName'.
 setIssuerName :: X509 -> [(String, String)] -> IO ()
 setIssuerName x509 issuer
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -244,14 +290,16 @@ setIssuerName x509 issuer
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getSubjectName' cert wantLongName@ returns the subject name of
+-- certificate. See 'getIssuerName'.
 getSubjectName :: X509 -> Bool -> IO [(String, String)]
 getSubjectName x509 wantLongName
     = withX509Ptr x509 $ \ x509Ptr ->
       do namePtr <- _get_subject_name x509Ptr
          peekX509Name namePtr wantLongName
 
-
+-- |@'setSubjectName' cert name@ updates the subject name of
+-- certificate. See 'setIssuerName'.
 setSubjectName :: X509 -> [(String, String)] -> IO ()
 setSubjectName x509 subject
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -260,14 +308,16 @@ setSubjectName x509 subject
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getNotBefore' cert@ returns the time when the certificate begins
+-- to be valid.
 getNotBefore :: X509 -> IO UTCTime
 getNotBefore x509
     = withX509Ptr x509 $ \ x509Ptr ->
       _get_notBefore x509Ptr
            >>= peekASN1Time
 
-
+-- |@'setNotBefore' cert utc@ updates the time when the certificate
+-- begins to be valid.
 setNotBefore :: X509 -> UTCTime -> IO ()
 setNotBefore x509 utc
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -276,14 +326,16 @@ setNotBefore x509 utc
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getNotAfter' cert@ returns the time when the certificate
+-- expires.
 getNotAfter :: X509 -> IO UTCTime
 getNotAfter x509
     = withX509Ptr x509 $ \ x509Ptr ->
       _get_notAfter x509Ptr
            >>= peekASN1Time
 
-
+-- |@'setNotAfter' cert utc@ updates the time when the certificate
+-- expires.
 setNotAfter :: X509 -> UTCTime -> IO ()
 setNotAfter x509 utc
     = withX509Ptr x509 $ \ x509Ptr ->
@@ -292,16 +344,18 @@ setNotAfter x509 utc
            >>= failIf (/= 1)
            >>  return ()
 
-
-getPublicKey :: X509 -> IO EvpPKey
+-- |@'getPublicKey' cert@ returns the public key of the subject of
+-- certificate.
+getPublicKey :: X509 -> IO PKey
 getPublicKey x509
     = withX509Ptr x509 $ \ x509Ptr ->
       _get_pubkey x509Ptr
            >>= failIfNull
            >>= wrapPKeyPtr
 
-
-setPublicKey :: X509 -> EvpPKey -> IO ()
+-- |@'setPublicKey' cert pubkey@ updates the public key of the subject
+-- of certificate.
+setPublicKey :: X509 -> PKey -> IO ()
 setPublicKey x509 pkey
     = withX509Ptr x509 $ \ x509Ptr ->
       withPKeyPtr pkey $ \ pkeyPtr ->
@@ -309,7 +363,8 @@ setPublicKey x509 pkey
            >>= failIf (/= 1)
            >>  return ()
 
-
+-- |@'getSubjectEmail' cert@ returns every subject email addresses in
+-- the certificate.
 getSubjectEmail :: X509 -> IO [String]
 getSubjectEmail x509
     = withX509Ptr x509 $ \ x509Ptr ->

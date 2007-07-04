@@ -1,16 +1,22 @@
 {- -*- haskell -*- -}
+
+-- #prune
+
+-- |An interface to message digest algorithms.
+
 #include "HsOpenSSL.h"
+
 module OpenSSL.EVP.Digest
-    ( EvpMD
-    , EVP_MD
-    , withMDPtr
+    ( Digest
+    , EVP_MD -- private
+    , withMDPtr -- private
 
     , getDigestByName
     , getDigestNames
 
-    , EvpMDCtx
-    , EVP_MD_CTX
-    , withDigestCtxPtr
+    , DigestCtx -- private
+    , EVP_MD_CTX -- private
+    , withDigestCtxPtr -- private
 
     , digestStrictly -- private
     , digestLazily   -- private
@@ -33,8 +39,10 @@ import           OpenSSL.Utils
 
 {- EVP_MD -------------------------------------------------------------------- -}
 
-newtype EvpMD  = EvpMD (Ptr EVP_MD)
-data    EVP_MD = EVP_MD
+-- |@Digest@ is an opaque object that represents an algorithm of
+-- message digest.
+newtype Digest  = Digest (Ptr EVP_MD)
+data    EVP_MD
 
 
 foreign import ccall unsafe "EVP_get_digestbyname"
@@ -44,28 +52,31 @@ foreign import ccall unsafe "HsOpenSSL_EVP_MD_size"
         mdSize :: Ptr EVP_MD -> Int
 
 
-withMDPtr :: EvpMD -> (Ptr EVP_MD -> IO a) -> IO a
-withMDPtr (EvpMD mdPtr) f = f mdPtr
+withMDPtr :: Digest -> (Ptr EVP_MD -> IO a) -> IO a
+withMDPtr (Digest mdPtr) f = f mdPtr
 
-
-getDigestByName :: String -> IO (Maybe EvpMD)
+-- |@'getDigestByName' name@ returns a message digest algorithm whose
+-- name is @name@. If no algorithms are found, the result is
+-- @Nothing@.
+getDigestByName :: String -> IO (Maybe Digest)
 getDigestByName name
     = withCString name $ \ namePtr ->
       do ptr <- _get_digestbyname namePtr
          if ptr == nullPtr then
              return Nothing
            else
-             return $ Just $ EvpMD ptr
+             return $ Just $ Digest ptr
 
-
+-- |@'getDigestNames'@ returns a list of name of message digest
+-- algorithms.
 getDigestNames :: IO [String]
 getDigestNames = getObjNames MDMethodType True
 
 
 {- EVP_MD_CTX ---------------------------------------------------------------- -}
 
-newtype EvpMDCtx   = EvpMDCtx (ForeignPtr EVP_MD_CTX)
-data    EVP_MD_CTX = EVP_MD_CTX
+newtype DigestCtx  = DigestCtx (ForeignPtr EVP_MD_CTX)
+data    EVP_MD_CTX
 
 
 foreign import ccall unsafe "EVP_MD_CTX_init"
@@ -75,16 +86,16 @@ foreign import ccall unsafe "&EVP_MD_CTX_cleanup"
         _ctx_cleanup :: FunPtr (Ptr EVP_MD_CTX -> IO ())
 
 
-newCtx :: IO EvpMDCtx
+newCtx :: IO DigestCtx
 newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_MD_CTX)
             withForeignPtr ctx $ \ ctxPtr ->
                 _ctx_init ctxPtr
             addForeignPtrFinalizer _ctx_cleanup ctx
-            return $ EvpMDCtx ctx
+            return $ DigestCtx ctx
 
 
-withDigestCtxPtr :: EvpMDCtx -> (Ptr EVP_MD_CTX -> IO a) -> IO a
-withDigestCtxPtr (EvpMDCtx ctx) = withForeignPtr ctx
+withDigestCtxPtr :: DigestCtx -> (Ptr EVP_MD_CTX -> IO a) -> IO a
+withDigestCtxPtr (DigestCtx ctx) = withForeignPtr ctx
 
 
 {- digest -------------------------------------------------------------------- -}
@@ -99,27 +110,27 @@ foreign import ccall unsafe "EVP_DigestFinal"
         _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO Int
 
 
-digestInit :: EvpMD -> IO EvpMDCtx
-digestInit (EvpMD md)
+digestInit :: Digest -> IO DigestCtx
+digestInit (Digest md)
     = do ctx <- newCtx
          withDigestCtxPtr ctx $ \ ctxPtr ->
              _DigestInit ctxPtr md >>= failIf (/= 1)
          return ctx   
 
 
-digestUpdateBS :: EvpMDCtx -> ByteString -> IO ()
+digestUpdateBS :: DigestCtx -> ByteString -> IO ()
 digestUpdateBS ctx bs
     = withDigestCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
 
 
-digestUpdateLBS :: EvpMDCtx -> LazyByteString -> IO ()
+digestUpdateLBS :: DigestCtx -> LazyByteString -> IO ()
 digestUpdateLBS ctx (LPS chunks)
     = mapM_ (digestUpdateBS ctx) chunks
 
 
-digestFinal :: EvpMDCtx -> IO String
+digestFinal :: DigestCtx -> IO String
 digestFinal ctx
     = withDigestCtxPtr ctx $ \ ctxPtr ->
       allocaArray (#const EVP_MAX_MD_SIZE) $ \ bufPtr ->
@@ -129,32 +140,36 @@ digestFinal ctx
          peekCStringLen (bufPtr, bufLen)
 
 
-digestStrictly :: EvpMD -> ByteString -> IO EvpMDCtx
+digestStrictly :: Digest -> ByteString -> IO DigestCtx
 digestStrictly md input
     = do ctx <- digestInit md
          digestUpdateBS ctx input
          return ctx
 
 
-digestLazily :: EvpMD -> LazyByteString -> IO EvpMDCtx
+digestLazily :: Digest -> LazyByteString -> IO DigestCtx
 digestLazily md (LPS input)
     = do ctx <- digestInit md
          mapM_ (digestUpdateBS ctx) input
          return ctx
 
-
-digest :: EvpMD -> String -> IO String
+-- |@'digest'@ digests a stream of data. The string must
+-- not contain any letters which aren't in the range of U+0000 -
+-- U+00FF.
+digest :: Digest -> String -> String
 digest md input
     = digestLBS md $ L8.pack input
 
-
-digestBS :: EvpMD -> ByteString -> IO String
+-- |@'digestBS'@ digests a chunk of data.
+digestBS :: Digest -> ByteString -> String
 digestBS md input
-    = do ctx <- digestStrictly md input
+    = unsafePerformIO $
+      do ctx <- digestStrictly md input
          digestFinal ctx
 
-
-digestLBS :: EvpMD -> LazyByteString -> IO String
+-- |@'digestLBS'@ digests a stream of data.
+digestLBS :: Digest -> LazyByteString -> String
 digestLBS md input
-    = do ctx <- digestLazily md input
+    = unsafePerformIO $
+      do ctx <- digestLazily md input
          digestFinal ctx
