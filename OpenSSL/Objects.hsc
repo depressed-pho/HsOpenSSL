@@ -16,7 +16,7 @@ import           Foreign.C
 
 
 type ObjName  = Ptr OBJ_NAME
-data OBJ_NAME = OBJ_NAME
+data OBJ_NAME
 
 type DoAllCallback = ObjName -> Ptr () -> IO ()
 

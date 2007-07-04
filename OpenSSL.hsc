@@ -22,7 +22,7 @@
 --   [/Key generation of DSA and Diffie-Hellman algorithms/] Only RSA
 --   keys can currently be generated.
 --
---   [/X.509 v3 extension handling/] It shoule be supported in the
+--   [/X.509 v3 extension handling/] It should be supported in the
 --   future.
 --
 --   [/HMAC message authentication/] 
@@ -42,7 +42,7 @@
 --   very well, don't they?
 --
 -- So if you find out some features you want aren't supported, you
--- must write your own patch (then please. Happy hacking.
+-- must write your own patch. Happy hacking.
 
 #include "HsOpenSSL.h"
 
@@ -60,7 +60,7 @@ foreign import ccall "HsOpenSSL_setupMutex"
 
 -- |Computation of @'withOpenSSL' action@ initializes the OpenSSL
 -- library and computes @action@. Every applications that use OpenSSL
--- must wrap any other operations related to OpenSSL or they will
+-- must wrap any other operations related to OpenSSL or they might
 -- crash.
 --
 -- > module Main where

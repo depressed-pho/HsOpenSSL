@@ -4,8 +4,6 @@
 
 -- |An interface to X.509 certificate store.
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.X509.Store
     ( X509Store
     , X509_STORE -- private

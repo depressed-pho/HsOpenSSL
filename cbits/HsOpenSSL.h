@@ -1,10 +1,19 @@
 #ifndef HSOPENSSL_H_INCLUDED
 #define HSOPENSSL_H_INCLUDED
-#include <openssl/opensslconf.h>
+#include <openssl/asn1.h>
 #include <openssl/bio.h>
-#include <openssl/evp.h>
+#include <openssl/bn.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/objects.h>
+#include <openssl/opensslconf.h>
+#include <openssl/pem.h>
+#include <openssl/pkcs7.h>
 #include <openssl/ssl.h>
+#include <openssl/stack.h>
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
+#include <openssl/x509v3.h>
 
 /* OpenSSL ********************************************************************/
 void HsOpenSSL_OpenSSL_add_all_algorithms();

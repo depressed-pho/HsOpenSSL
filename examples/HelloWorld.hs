@@ -17,7 +17,7 @@ main = withOpenSSL $
           des <- liftM fromJust $ getCipherByName "DES-CBC"
 
           putStrLn "generating RSA keypair..."
-          pkey <- generateKey 512 65537 Nothing >>= newPKeyRSA
+          pkey <- liftM newPKeyRSA $ generateKey 512 65537 Nothing
 
           let plainText = "Hello, world!"
           putStrLn ("plain text to encrypt: " ++ plainText)
@@ -34,7 +34,7 @@ main = withOpenSSL $
           putStrLn ""
 
           putStrLn "decrypting..."
-          decrypted <- open des encKey iv pkey encrypted
+          let decrypted = open des encKey iv pkey encrypted
 
           putStrLn ("decrypted message: " ++ decrypted)
 

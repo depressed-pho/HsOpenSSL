@@ -1,10 +1,10 @@
 {- -*- haskell -*- -}
 
-#include "HsOpenSSL.h"
-
 -- #prune
 
 -- |An interface to RSA public key generator.
+
+#include "HsOpenSSL.h"
 
 module OpenSSL.RSA
     ( -- * Type

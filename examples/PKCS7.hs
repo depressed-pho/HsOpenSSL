@@ -12,7 +12,7 @@ import OpenSSL.X509
 import OpenSSL.X509.Store
 
 main = withOpenSSL $
-       do pkey <- generateKey 512 65537 Nothing >>= newPKeyRSA
+       do pkey <- liftM newPKeyRSA $ generateKey 512 65537 Nothing
           cert <- genCert pkey
 
           pkcs7 <- pkcs7Sign cert pkey [] "Hello, world!" [Pkcs7NoCerts]
@@ -24,7 +24,7 @@ main = withOpenSSL $
           return ()
 
 
-genCert :: EvpPKey -> IO X509
+genCert :: PKey -> IO X509
 genCert pkey
     = do x509 <- newX509
          setVersion x509 2

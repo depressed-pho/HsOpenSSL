@@ -4,8 +4,6 @@
 
 -- |An interface to PKCS#10 certificate request.
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.X509.Request
     ( -- * Type
       X509Req

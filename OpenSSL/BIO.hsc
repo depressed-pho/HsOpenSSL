@@ -19,8 +19,6 @@
 {- --------------------------------------------------------------------------- -}
 
 
-#include "HsOpenSSL.h"
-
 -- |A BIO is an I\/O abstraction, it hides many of the underlying I\/O
 -- details from an application, if you are writing a pure C
 -- application...

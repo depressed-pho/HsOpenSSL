@@ -43,6 +43,6 @@ main = withOpenSSL $
           printf "dmq1 (d mod (q-1)) = %s\n" (show dmq1)
           printf "iqmp (q^-1 mod p) = %s\n" (show iqmp)
 
-          pkey <- newPKeyRSA rsa
+          let pkey = newPKeyRSA rsa
           writePKCS8PrivateKey pkey Nothing >>= putStr
           -- writePublicKey pkey >>= putStr

@@ -7,8 +7,8 @@ Description:
         messages.
 Version: 0.1
 License: PublicDomain
-Author: PHO <phonohawk TA ps TOD sakura TOD ne TOD jp>
-Maintainer: PHO <phonohawk TA ps TOD sakura TOD ne TOD jp>
+Author: PHO <phonohawk AT ps DOT sakura DOT ne DOT jp>
+Maintainer: PHO <phonohawk AT ps DOT sakura DOT ne DOT jp>
 Stability: experimental
 Homepage: http://ccm.sherry.jp/hs-openssl/
 Category: Cryptography
@@ -44,8 +44,18 @@ Exposed-Modules:
 Extensions:
         ForeignFunctionInterface
 ghc-options:
-         -fglasgow-exts
+         -fglasgow-exts -O2
 C-Sources:
         cbits/HsOpenSSL.c
 Include-Dirs:
         cbits
+Install-Includes:
+        HsOpenSSL.h
+Extra-Source-Files:
+        HsOpenSSL.buildinfo.in
+        configure
+        configure.ac
+        examples/Makefile
+        examples/GenRSAKey.hs
+        examples/HelloWorld.hs
+        examples/PKCS7.hs

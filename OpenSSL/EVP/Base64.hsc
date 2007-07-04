@@ -2,8 +2,6 @@
 
 -- |An interface to Base64 codec.
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.EVP.Base64
     ( -- * Encoding
       encodeBase64

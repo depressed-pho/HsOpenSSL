@@ -1,7 +1,5 @@
 {- -*- haskell -*- -}
 
-#include "HsOpenSSL.h"
-
 -- |Asymmetric cipher decryption using encrypted symmetric key. This
 -- is an opposite of "OpenSSL.EVP.Open".
 

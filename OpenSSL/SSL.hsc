@@ -8,8 +8,6 @@ module OpenSSL.SSL
     )
     where
 
-#include "HsOpenSSL.h"
-
 foreign import ccall unsafe "SSL_load_error_strings"
         loadErrorStrings :: IO ()
 

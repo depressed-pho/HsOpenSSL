@@ -20,8 +20,8 @@ import           OpenSSL.ASN1
 import           OpenSSL.Utils
 
 
-data X509_NAME       = X509_NAME
-data X509_NAME_ENTRY = X509_NAME_ENTRY
+data X509_NAME
+data X509_NAME_ENTRY
 
 foreign import ccall unsafe "X509_NAME_new"
         _new :: IO (Ptr X509_NAME)

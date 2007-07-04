@@ -4,8 +4,6 @@
 
 -- |An interface to X.509 certificate.
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.X509
     ( -- * Type
       X509

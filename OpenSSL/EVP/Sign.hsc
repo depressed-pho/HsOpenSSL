@@ -1,7 +1,5 @@
 {- -*- haskell -*- -}
 
-#include "HsOpenSSL.h"
-
 -- |Message signing using asymmetric cipher and message digest
 -- algorithm. This is an opposite of "OpenSSL.EVP.Verify".
 

@@ -2,8 +2,6 @@
 
 -- #hide
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.ERR
     ( getError
     , peekError

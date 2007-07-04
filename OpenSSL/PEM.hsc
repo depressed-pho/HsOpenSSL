@@ -2,8 +2,6 @@
 
 -- |An interface to PEM routines.
 
-#include "HsOpenSSL.h"
-
 module OpenSSL.PEM
     ( -- * Password supply
       PemPasswordCallback

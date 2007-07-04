@@ -1,7 +1,9 @@
+GHCFLAGS = -O2 -fglasgow-exts
+
 build:
-	ghc --make GenRSAKey -fglasgow-exts
-	ghc --make HelloWorld -fglasgow-exts
-	ghc --make PKCS7 -fglasgow-exts
+	ghc $(GHCFLAGS) --make GenRSAKey
+	ghc $(GHCFLAGS) --make HelloWorld
+	ghc $(GHCFLAGS) --make PKCS7
 
 run: build
 	./PKCS7

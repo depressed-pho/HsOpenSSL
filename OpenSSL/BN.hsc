@@ -1,7 +1,5 @@
 {- -*- haskell -*- -}
 
-#include "HsOpenSSL.h"
-
 -- #hide
 
 module OpenSSL.BN

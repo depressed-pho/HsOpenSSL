@@ -38,7 +38,7 @@ import           System.Locale
 
 {- ASN1_OBJECT --------------------------------------------------------------- -}
 
-data ASN1_OBJECT = ASN1_OBJECT
+data ASN1_OBJECT
 
 foreign import ccall unsafe "OBJ_obj2nid"
         obj2nid :: Ptr ASN1_OBJECT -> IO Int
@@ -60,7 +60,7 @@ nid2ln nid = _nid2ln nid >>= peekCString
 
 {- ASN1_STRING --------------------------------------------------------------- -}
 
-data ASN1_STRING = ASN1_STRING
+data ASN1_STRING
 
 peekASN1String :: Ptr ASN1_STRING -> IO String
 peekASN1String strPtr
@@ -71,7 +71,7 @@ peekASN1String strPtr
 
 {- ASN1_INTEGER -------------------------------------------------------------- -}
 
-data ASN1_INTEGER = ASN1_INTEGER
+data ASN1_INTEGER
 
 foreign import ccall unsafe "HsOpenSSL_M_ASN1_INTEGER_new"
         _ASN1_INTEGER_new :: IO (Ptr ASN1_INTEGER)
@@ -110,7 +110,7 @@ withASN1Integer int m
 
 {- ASN1_TIME ---------------------------------------------------------------- -}
 
-data ASN1_TIME = ASN1_TIME
+data ASN1_TIME
 
 foreign import ccall unsafe "HsOpenSSL_M_ASN1_TIME_new"
         _ASN1_TIME_new :: IO (Ptr ASN1_TIME)
