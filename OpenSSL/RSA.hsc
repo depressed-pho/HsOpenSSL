@@ -30,7 +30,6 @@ module OpenSSL.RSA
 
 import           Control.Monad
 import           Foreign
-import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
 

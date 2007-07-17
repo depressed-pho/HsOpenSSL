@@ -27,11 +27,6 @@ module OpenSSL.PKCS7
     )
     where
 
-import           Data.Bits
-import qualified Data.ByteString            as B
-import           Data.ByteString.Base
-import qualified Data.ByteString.Char8      as B8
-import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.List
 import           Data.Traversable
 import           Data.Typeable

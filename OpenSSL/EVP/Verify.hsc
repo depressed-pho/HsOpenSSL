@@ -12,7 +12,6 @@ module OpenSSL.EVP.Verify
     where
 
 import           Control.Monad
-import           Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8

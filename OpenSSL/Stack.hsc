@@ -12,11 +12,10 @@ module OpenSSL.Stack
 
 import           Control.Exception
 import           Foreign
-import           Foreign.C
 import           OpenSSL.Utils
 
 
-data STACK = STACK
+data STACK
 
 
 foreign import ccall unsafe "sk_new_null"

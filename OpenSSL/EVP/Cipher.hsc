@@ -33,7 +33,6 @@ module OpenSSL.EVP.Cipher
     where
 
 import           Control.Monad
-import qualified Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -207,7 +206,7 @@ cipherStrictly :: CipherCtx -> ByteString -> IO ByteString
 cipherStrictly ctx input
     = do output'  <- cipherUpdateBS ctx input
          output'' <- cipherFinalBS ctx
-         return $ B.append output' output''
+         return $ B8.append output' output''
 
 
 cipherLazily :: CipherCtx -> LazyByteString -> IO LazyByteString

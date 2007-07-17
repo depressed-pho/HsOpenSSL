@@ -76,7 +76,6 @@ module OpenSSL.BIO
     where
 
 import           Control.Monad
-import qualified Data.ByteString            as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8      as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -261,7 +260,7 @@ bioReadLBS bio = lazyRead >>= return . LPS
       lazyRead = unsafeInterleaveIO loop
 
       loop = do bs <- bioReadBS bio chunkSize
-                if B.null bs then
+                if B8.null bs then
                     do isEOF <- bioEOF bio
                        if isEOF then
                            return []
@@ -318,10 +317,10 @@ bioWriteBS bio bs
     where
       interpret :: Int -> IO ()
       interpret n
-          | n == B.length bs = return ()
-          | n == -1          = bioWriteBS bio bs -- full retry
-          | n <  -1          = raiseOpenSSLError
-          | otherwise        = bioWriteBS bio (B.drop n bs) -- partial retry
+          | n == B8.length bs = return ()
+          | n == -1           = bioWriteBS bio bs -- full retry
+          | n <  -1           = raiseOpenSSLError
+          | otherwise         = bioWriteBS bio (B8.drop n bs) -- partial retry
 
 -- |@'bioWriteLBS' bio lbs@ lazily writes entire @lbs@ to @bio@. The
 -- string doesn't necessarily have to be finite.
@@ -459,7 +458,7 @@ newConstMemBS bs
 -- LazyByteString.
 newConstMemLBS :: LazyByteString -> IO BIO
 newConstMemLBS (LPS bss)
-    = (return . B.concat) bss >>= newConstMemBS
+    = (return . B8.concat) bss >>= newConstMemBS
 
 {- null --------------------------------------------------------------------- -}
 

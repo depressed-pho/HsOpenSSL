@@ -16,7 +16,6 @@ module OpenSSL.EVP.Base64
     where
 
 import           Control.Exception
-import qualified Data.ByteString as B
 import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -27,13 +26,13 @@ import           OpenSSL.Utils
 
 
 -- エンコード時: 最低 3 バイト以上になるまで次のブロックを取り出し續け
--- る。返された[ByteString] は B.concat してから、その文字列長より小さ
+-- る。返された[ByteString] は B8.concat してから、その文字列長より小さ
 -- な最大の 3 の倍數の位置で分割し、殘りは次のブロックの一部と見做す。
 --
 -- デコード時: 分割のアルゴリズムは同じだが最低バイト数が 4。
 nextBlock :: Int -> ([ByteString], LazyByteString) -> ([ByteString], LazyByteString)
 nextBlock _      (xs, LPS [] ) = (xs, LPS [])
-nextBlock minLen (xs, LPS src) = if foldl' (+) 0 (map B.length xs) >= minLen then
+nextBlock minLen (xs, LPS src) = if foldl' (+) 0 (map B8.length xs) >= minLen then
                                      (xs, LPS src)
                                  else
                                      case src of
@@ -54,7 +53,7 @@ encodeBlock inBS
       _EncodeBlock (unsafeCoercePtr outBuf) inBuf inLen
     where
       maxOutLen = (inputLen `div` 3 + 1) * 4 + 1 -- +1: '\0'
-      inputLen  = B.length inBS
+      inputLen  = B8.length inBS
 
 
 -- |@'encodeBase64' str@ lazilly encodes a stream of data to
@@ -75,14 +74,14 @@ encodeBase64LBS inLBS
     | L8.null inLBS = L8.empty
     | otherwise
         = let (blockParts', remain' ) = nextBlock 3 ([], inLBS)
-              block'                  = B.concat blockParts'
-              blockLen'               = B.length block'
+              block'                  = B8.concat blockParts'
+              blockLen'               = B8.length block'
               (block      , leftover) = if blockLen' < 3 then
                                             -- 最後の半端
-                                            (block', B.empty)
+                                            (block', B8.empty)
                                         else
-                                            B.splitAt (blockLen' - blockLen' `mod` 3) block'
-              remain                  = if B.null leftover then
+                                            B8.splitAt (blockLen' - blockLen' `mod` 3) block'
+              remain                  = if B8.null leftover then
                                             remain'
                                         else
                                             case remain' of
@@ -101,10 +100,10 @@ foreign import ccall unsafe "EVP_DecodeBlock"
 
 decodeBlock :: ByteString -> ByteString
 decodeBlock inBS
-    = assert (B.length inBS `mod` 4 == 0) $
+    = assert (B8.length inBS `mod` 4 == 0) $
       unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
-      createAndTrim (B.length inBS) $ \ outBuf ->
+      createAndTrim (B8.length inBS) $ \ outBuf ->
       _DecodeBlock (unsafeCoercePtr outBuf) inBuf inLen
 
 -- |@'decodeBase64' str@ lazilly decodes a stream of data from
@@ -124,11 +123,11 @@ decodeBase64LBS inLBS
     | L8.null inLBS = L8.empty
     | otherwise
         = let (blockParts', remain' ) = nextBlock 4 ([], inLBS)
-              block'                  = B.concat blockParts'
-              blockLen'               = B.length block'
+              block'                  = B8.concat blockParts'
+              blockLen'               = B8.length block'
               (block      , leftover) = assert (blockLen' >= 4) $
-                                        B.splitAt (blockLen' - blockLen' `mod` 4) block'
-              remain                  = if B.null leftover then
+                                        B8.splitAt (blockLen' - blockLen' `mod` 4) block'
+              remain                  = if B8.null leftover then
                                             remain'
                                         else
                                             case remain' of

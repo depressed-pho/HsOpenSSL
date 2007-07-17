@@ -12,7 +12,6 @@ module OpenSSL.Utils
     where
 
 import           Foreign
-import           Foreign.C
 import           GHC.Base
 import           OpenSSL.ERR
 

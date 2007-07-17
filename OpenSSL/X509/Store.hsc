@@ -17,7 +17,6 @@ module OpenSSL.X509.Store
     where
 
 import           Foreign
-import           Foreign.C
 import           OpenSSL.X509
 import           OpenSSL.X509.Revocation
 import           OpenSSL.Utils

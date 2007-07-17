@@ -25,7 +25,6 @@ module OpenSSL.EVP.PKey
     where
 
 import           Foreign
-import           Foreign.C
 import           OpenSSL.EVP.Digest
 import           OpenSSL.RSA
 import           OpenSSL.Utils
