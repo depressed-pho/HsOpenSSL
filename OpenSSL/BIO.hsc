@@ -241,7 +241,7 @@ bioReadBS :: BIO -> Int -> IO ByteString
 bioReadBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
-      _read bioPtr (unsafeCoercePtr bufPtr) maxLen >>= interpret
+      _read bioPtr (castPtr bufPtr) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -287,7 +287,7 @@ bioGetsBS :: BIO -> Int -> IO ByteString
 bioGetsBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
-      _gets bioPtr (unsafeCoercePtr bufPtr) maxLen >>= interpret
+      _gets bioPtr (castPtr bufPtr) maxLen >>= interpret
     where
       interpret :: Int -> IO Int
       interpret n
@@ -446,7 +446,7 @@ newConstMemBS bs
       in
         -- ByteString への參照を BIO の finalizer に持たせる。
         withForeignPtr foreignBuf $ \ buf ->
-        do bioPtr <- _new_mem_buf (unsafeCoercePtr $ buf `plusPtr` off) len
+        do bioPtr <- _new_mem_buf (castPtr $ buf `plusPtr` off) len
                      >>= failIfNull
 
            bio <- newForeignPtr _free bioPtr

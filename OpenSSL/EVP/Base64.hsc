@@ -22,7 +22,6 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.List
 import           Foreign
 import           Foreign.C
-import           OpenSSL.Utils
 
 
 -- エンコード時: 最低 3 バイト以上になるまで次のブロックを取り出し續け
@@ -50,7 +49,7 @@ encodeBlock inBS
     = unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim maxOutLen $ \ outBuf ->
-      _EncodeBlock (unsafeCoercePtr outBuf) inBuf inLen
+      _EncodeBlock (castPtr outBuf) inBuf inLen
     where
       maxOutLen = (inputLen `div` 3 + 1) * 4 + 1 -- +1: '\0'
       inputLen  = B8.length inBS
@@ -104,7 +103,7 @@ decodeBlock inBS
       unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (B8.length inBS) $ \ outBuf ->
-      _DecodeBlock (unsafeCoercePtr outBuf) inBuf inLen
+      _DecodeBlock (castPtr outBuf) inBuf inLen
 
 -- |@'decodeBase64' str@ lazilly decodes a stream of data from
 -- Base64. The string doesn't have to be finite.

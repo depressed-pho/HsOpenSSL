@@ -6,13 +6,10 @@ module OpenSSL.Utils
     ( failIfNull
     , failIf
     , raiseOpenSSLError
-
-    , unsafeCoercePtr
     )
     where
 
 import           Foreign
-import           GHC.Base
 import           OpenSSL.ERR
 
 
@@ -32,7 +29,3 @@ failIf f a
 
 raiseOpenSSLError :: IO a
 raiseOpenSSLError = getError >>= errorString >>= fail
-
-
-unsafeCoercePtr :: Ptr a -> Ptr b
-unsafeCoercePtr = unsafeCoerce#

@@ -190,7 +190,7 @@ readPrivateKey' bio supply
       do pkeyPtr <- case supply of
                       PwNone
                           -> withCString "" $ \ strPtr ->
-                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr (unsafeCoercePtr strPtr)
+                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr (castPtr strPtr)
                                 
                       PwStr passStr
                           -> do cbPtr <- mkPemPasswordCallback $
@@ -248,7 +248,7 @@ readPublicKey' :: BIO -> IO PKey
 readPublicKey' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+      _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapPKeyPtr
 
@@ -293,7 +293,7 @@ readX509' :: BIO -> IO X509
 readX509' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_X509_AUX bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+      _read_bio_X509_AUX bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapX509
 
@@ -358,7 +358,7 @@ readX509Req' :: BIO -> IO X509Req
 readX509Req' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_X509_REQ bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+      _read_bio_X509_REQ bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapX509Req
 
@@ -404,7 +404,7 @@ readCRL' :: BIO -> IO CRL
 readCRL' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_X509_CRL bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+      _read_bio_X509_CRL bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapCRL
 
@@ -449,7 +449,7 @@ readPkcs7' :: BIO -> IO Pkcs7
 readPkcs7' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_PKCS7 bioPtr nullPtr nullFunPtr (unsafeCoercePtr passPtr)
+      _read_bio_PKCS7 bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapPkcs7Ptr
 

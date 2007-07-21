@@ -43,9 +43,9 @@ Exposed-Modules:
         OpenSSL.X509.Request
         OpenSSL.X509.Store
 Extensions:
-        ForeignFunctionInterface
+        ForeignFunctionInterface, EmptyDataDecls
 ghc-options:
-        -fglasgow-exts -O2 -fwarn-unused-imports
+        -O2 -fwarn-unused-imports
 C-Sources:
         cbits/HsOpenSSL.c
 Include-Dirs:

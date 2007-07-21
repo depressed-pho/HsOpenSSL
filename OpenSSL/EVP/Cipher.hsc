@@ -150,7 +150,7 @@ cipherUpdateBS ctx inBS
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (inLen + _ctx_block_size ctxPtr - 1) $ \ outBuf ->
       alloca $ \ outLenPtr ->
-      _CipherUpdate ctxPtr (unsafeCoercePtr outBuf) outLenPtr inBuf inLen
+      _CipherUpdate ctxPtr (castPtr outBuf) outLenPtr inBuf inLen
            >>= failIf (/= 1)
            >>  peek outLenPtr
 
@@ -160,7 +160,7 @@ cipherFinalBS ctx
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       createAndTrim (_ctx_block_size ctxPtr) $ \ outBuf ->
       alloca $ \ outLenPtr ->
-      _CipherFinal ctxPtr (unsafeCoercePtr outBuf) outLenPtr
+      _CipherFinal ctxPtr (castPtr outBuf) outLenPtr
            >>= failIf (/= 1)
            >>  peek outLenPtr
 
