@@ -5,6 +5,7 @@ module OpenSSL.BN
     , allocaBN
     , withBN
     , peekBN
+    , newBN
     )
     where
 
@@ -59,3 +60,13 @@ peekBN bn
          _openssl_free strPtr
 
          return $ read str
+
+
+-- | Return a new, alloced bignum
+newBN :: Integer -> IO BigNum
+newBN i = do
+  withCString (show i) (\str -> do
+    alloca (\bnptr -> do
+      poke bnptr nullPtr
+      _dec2bn bnptr str >>= failIf (== 0)
+      peek bnptr))
