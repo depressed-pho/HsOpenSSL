@@ -44,7 +44,8 @@ withBN :: Integer -> (BigNum -> IO a) -> IO a
 withBN dec m
     = withCString (show dec) $ \ strPtr ->
       alloca $ \ bnPtr ->
-      do _dec2bn bnPtr strPtr
+      do poke bnPtr nullPtr
+         _dec2bn bnPtr strPtr
               >>= failIf (== 0)
          bracket (peek bnPtr) _free m
 
