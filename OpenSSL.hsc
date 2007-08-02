@@ -41,8 +41,9 @@
 --   [/ENGINE cryptographic module/] The default implementations work
 --   very well, don't they?
 --
--- So if you find out some features you want aren't supported, you
--- must write your own patch. Happy hacking.
+-- So if you find out any features you want aren't supported, you must
+-- write your own patch (or take over the HsOpenSSL project). Happy
+-- hacking.
 
 #include "HsOpenSSL.h"
 
@@ -59,9 +60,9 @@ foreign import ccall "HsOpenSSL_setupMutex"
 
 
 -- |Computation of @'withOpenSSL' action@ initializes the OpenSSL
--- library and computes @action@. Every applications that use OpenSSL
--- must wrap any other operations related to OpenSSL or they might
--- crash.
+-- library and computes @action@. Every applications that use
+-- HsOpenSSL must wrap any operations related to OpenSSL with
+-- 'withOpenSSL', or they might crash.
 --
 -- > module Main where
 -- > import OpenSSL
