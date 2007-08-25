@@ -1,7 +1,3 @@
-{- -*- haskell -*- -}
-
--- #hide
-
 module OpenSSL.Stack
     ( STACK
     , mapStack

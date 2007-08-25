@@ -1,0 +1,4 @@
+Changes from 0.1 to 0.1.1
+-------------------------
+* Moved hidden modules from Exposed-Modules to Other-Modules.
+* Added "ghc >= 6.6.1" to the Build-Depends.

@@ -1,7 +1,3 @@
-{- -*- haskell -*- -}
-
--- #hide
-
 #include "HsOpenSSL.h"
 
 module OpenSSL.X509.Name

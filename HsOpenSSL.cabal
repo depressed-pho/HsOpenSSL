@@ -5,7 +5,7 @@ Description:
         generate RSA keys, read and write PEM files, generate message
         digests, sign and verify messages, encrypt and decrypt
         messages.
-Version: 0.1
+Version: 0.1.1
 License: PublicDomain
 License-File: COPYING
 Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
@@ -15,13 +15,9 @@ Homepage: http://ccm.sherry.jp/HsOpenSSL/
 Category: Cryptography
 Tested-With: GHC == 6.6.1
 Build-Depends:
-        base, time
+        base, time, ghc >= 6.6.1
 Exposed-Modules:
         OpenSSL
-        OpenSSL.ASN1
-        OpenSSL.BIO
-        OpenSSL.BN
-        OpenSSL.ERR
         OpenSSL.EVP.Base64
         OpenSSL.EVP.Cipher
         OpenSSL.EVP.Digest
@@ -30,18 +26,23 @@ Exposed-Modules:
         OpenSSL.EVP.Seal
         OpenSSL.EVP.Sign
         OpenSSL.EVP.Verify
-        OpenSSL.Objects
         OpenSSL.PEM
         OpenSSL.PKCS7
         OpenSSL.RSA
+        OpenSSL.X509
+        OpenSSL.X509.Revocation
+        OpenSSL.X509.Request
+        OpenSSL.X509.Store
+Other-Modules:
+        OpenSSL.ASN1
+        OpenSSL.BIO
+        OpenSSL.BN
+        OpenSSL.ERR
+        OpenSSL.Objects
         OpenSSL.SSL
         OpenSSL.Stack
         OpenSSL.Utils
-        OpenSSL.X509
-        OpenSSL.X509.Revocation
         OpenSSL.X509.Name
-        OpenSSL.X509.Request
-        OpenSSL.X509.Store
 Extensions:
         ForeignFunctionInterface, EmptyDataDecls
 ghc-options:
@@ -54,6 +55,7 @@ Install-Includes:
         HsOpenSSL.h
 Extra-Source-Files:
         HsOpenSSL.buildinfo.in
+        NEWS
         cbits/HsOpenSSL.h
         configure
         configure.ac
