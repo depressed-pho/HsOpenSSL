@@ -15,7 +15,7 @@ Homepage: http://ccm.sherry.jp/HsOpenSSL/
 Category: Cryptography
 Tested-With: GHC == 6.6.1
 Build-Depends:
-        base, time, ghc >= 6.6.1
+        base, time >= 1.1.1
 Exposed-Modules:
         OpenSSL
         OpenSSL.EVP.Base64
