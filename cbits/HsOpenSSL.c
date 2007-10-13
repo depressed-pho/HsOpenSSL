@@ -181,3 +181,24 @@ void HsOpenSSL_setupMutex() {
     CRYPTO_set_dynlock_destroy_callback(HsOpenSSL_dynlockDestroyCallback);
 }
 
+/* DSA ************************************************************************/
+
+/* OpenSSL sadly wants to ASN1 encode the resulting bignums so we use this
+ * function to skip that. Returns > 0 on success */
+int HsOpenSSL_dsa_sign(DSA *dsa, const unsigned char *ddata, int dlen,
+                       BIGNUM **r, BIGNUM **s) {
+  DSA_SIG *const sig = dsa->meth->dsa_do_sign(ddata, dlen, dsa);
+  if (!sig) return 0;
+  *r = sig->r;
+  *s = sig->s;
+  free(sig);
+  return 1;
+}
+
+int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int dlen,
+                         BIGNUM *r, BIGNUM *s) {
+  DSA_SIG sig;
+  sig.r = r;
+  sig.s = s;
+  return dsa->meth->dsa_do_verify(ddata, dlen, &sig, dsa);
+}

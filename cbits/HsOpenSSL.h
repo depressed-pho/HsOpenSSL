@@ -14,6 +14,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
+#include <openssl/dsa.h>
 
 /* OpenSSL ********************************************************************/
 void HsOpenSSL_OpenSSL_add_all_algorithms();
@@ -59,5 +60,12 @@ void HsOpenSSL_M_ASN1_TIME_free(ASN1_TIME* timePtr);
 
 /* Threads ********************************************************************/
 void HsOpenSSL_setupMutex();
+
+/* DSA ************************************************************************/
+int HsOpenSSL_dsa_sign(DSA *dsa, const unsigned char *ddata, int len,
+                       BIGNUM **r, BIGNUM **s);
+int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int len,
+                         BIGNUM *r, BIGNUM *s);
+
 
 #endif
