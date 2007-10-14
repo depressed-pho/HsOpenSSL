@@ -1,6 +1,4 @@
-{- -*- haskell -*- -}
-
--- #hide
+#include "HsOpenSSL.h"
 
 module OpenSSL.BN
     ( BigNum
@@ -107,10 +105,10 @@ newBN i = do
 -- to
 
 foreign import ccall unsafe "memcpy"
-        _copy_in :: ByteArray## -> CInt -> CSize -> IO ()
+        _copy_in :: ByteArray## -> Ptr () -> CSize -> IO ()
 
 foreign import ccall unsafe "memcpy"
-        _copy_out :: Ptr () -> ByteArray## -> Int -> IO ()
+        _copy_out :: Ptr () -> ByteArray## -> CSize -> IO ()
 
 -- These are taken from Data.Binary's disabled fast Integer support
 data ByteArray = BA  {-# UNPACK #-} !ByteArray##
@@ -174,7 +172,7 @@ integerToBN v@(J## nlimbs_ bytearray)
       limbs <- mallocBytes ((#size unsigned) * nlimbs)
       (#poke BIGNUM, d) bnptr limbs
       (#poke BIGNUM, flags) bnptr (1 :: Word32)
-      _copy_out limbs bytearray ((#size unsigned) * nlimbs)
+      _copy_out limbs bytearray (fromIntegral $ (#size unsigned) * nlimbs)
       (#poke BIGNUM, top) bnptr ((fromIntegral nlimbs) :: Word32)
       (#poke BIGNUM, dmax) bnptr ((fromIntegral nlimbs) :: Word32)
       (#poke BIGNUM, neg) bnptr (0 :: Word32)

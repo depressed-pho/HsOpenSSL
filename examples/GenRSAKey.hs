@@ -1,7 +1,5 @@
 import Control.Monad hiding (join)
 import OpenSSL
-import OpenSSL.BN
-import OpenSSL.BIO
 import OpenSSL.EVP.PKey
 import OpenSSL.PEM
 import OpenSSL.RSA

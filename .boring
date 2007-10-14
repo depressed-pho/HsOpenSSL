@@ -60,6 +60,7 @@ _stub\.(c|h)$
 ^OpenSSL/ASN1\.hs$
 ^OpenSSL/BIO\.hs$
 ^OpenSSL/BN\.hs$
+^OpenSSL/DSA\.hs$
 ^OpenSSL/ERR\.hs$
 ^OpenSSL/EVP/Base64\.hs$
 ^OpenSSL/EVP/Cipher\.hs$

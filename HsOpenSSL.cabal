@@ -2,10 +2,10 @@ Name: HsOpenSSL
 Synopsis: (Part of) OpenSSL binding for Haskell
 Description:
         HsOpenSSL is a (part of) OpenSSL binding for Haskell. It can
-        generate RSA keys, read and write PEM files, generate message
-        digests, sign and verify messages, encrypt and decrypt
+        generate RSA and DSA keys, read and write PEM files, generate
+        message digests, sign and verify messages, encrypt and decrypt
         messages.
-Version: 0.1.1
+Version: 0.2
 License: PublicDomain
 License-File: COPYING
 Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
@@ -28,7 +28,7 @@ Exposed-Modules:
         OpenSSL.EVP.Verify
         OpenSSL.PEM
         OpenSSL.PKCS7
-	OpenSSL.DSA
+        OpenSSL.DSA
         OpenSSL.RSA
         OpenSSL.X509
         OpenSSL.X509.Revocation
@@ -55,6 +55,7 @@ Include-Dirs:
 Install-Includes:
         HsOpenSSL.h
 Extra-Source-Files:
+        AUTHORS
         HsOpenSSL.buildinfo.in
         NEWS
         cbits/HsOpenSSL.h

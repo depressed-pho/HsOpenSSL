@@ -1,3 +1,14 @@
+Changes from 0.1.1. to 0.2
+--------------------------
+* Applied patches by Adam Langley:
+  - OpenSSL.DSA: Add DSA support
+  - OpenSSL.BN: Add support for fast Integer<->BN conversions
+  - OpenSSL.BN: New BN utility function, newBN
+  - OpenSSL.BN: FIX: set the BN ptr to NULL before calling BN_dec2bn,
+    otherwise that function thinks that there's a valid BN there
+  - OpenSSL.Utils: Add utility functions to print and read hex numbers
+
+
 Changes from 0.1 to 0.1.1
 -------------------------
 * Moved hidden modules from Exposed-Modules to Other-Modules.

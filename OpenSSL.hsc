@@ -1,10 +1,10 @@
 {- -*- haskell -*- -}
 
 -- |HsOpenSSL is a (part of) OpenSSL binding for Haskell. It can
--- generate RSA keys, read and write PEM files, generate message
--- digests, sign and verify messages, encrypt and decrypt messages.
--- But since OpenSSL is a very large library, it is uneasy to cover
--- everything in it.
+-- generate RSA and DSA keys, read and write PEM files, generate
+-- message digests, sign and verify messages, encrypt and decrypt
+-- messages.  But since OpenSSL is a very large library, it is uneasy
+-- to cover everything in it.
 --
 -- Features that aren't (yet) supported:
 --
@@ -19,7 +19,7 @@
 --   (EVP) is available. But I believe no one will complain about the
 --   absence of functions like @RSA_public_encrypt@.
 --
---   [/Key generation of DSA and Diffie-Hellman algorithms/] Only RSA
+--   [/Key generation of Diffie-Hellman algorithm/] Only RSA and DSA
 --   keys can currently be generated.
 --
 --   [/X.509 v3 extension handling/] It should be supported in the

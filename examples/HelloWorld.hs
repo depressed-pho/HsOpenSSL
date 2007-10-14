@@ -2,7 +2,6 @@ import Control.Monad
 import Data.List
 import Data.Maybe
 import OpenSSL
-import OpenSSL.BN
 import OpenSSL.EVP.Cipher
 import OpenSSL.EVP.Open
 import OpenSSL.EVP.PKey
