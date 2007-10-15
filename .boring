@@ -89,3 +89,4 @@ _stub\.(c|h)$
 ^examples/HelloWorld$
 ^examples/GenRSAKey$
 ^examples/PKCS7$
+^tests/DSA$
