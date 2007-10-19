@@ -13,17 +13,28 @@ module OpenSSL.BN
     , integerToBN
     , bnToInteger
 #endif
+    , integerToMPI
+    , mpiToInteger
+    , modexp
+
+      -- * Random number generation
+    , randIntegerUptoNMinusOneSuchThat
+    , prandIntegerUptoNMinusOneSuchThat
+    , randIntegerZeroToNMinusOne
+    , prandIntegerZeroToNMinusOne
+    , randIntegerOneToNMinusOne
+    , prandIntegerOneToNMinusOne
     )
     where
 
 import           Control.Exception
 import           Foreign
-
+import qualified Data.ByteString as BS
+import           OpenSSL.Utils
 
 #ifndef __GLASGOW_HASKELL__
 import           Control.Monad
 import           Foreign.C
-import           OpenSSL.Utils
 #else
 import           Foreign.C.Types
 import           Data.Word (Word32)
@@ -208,4 +219,115 @@ peekBN = bnToInteger
 
 newBN = integerToBN
 
+foreign import ccall unsafe "BN_bn2mpi"
+        _bn2mpi :: BigNum -> Ptr CChar -> IO CInt
+
+foreign import ccall unsafe "BN_mpi2bn"
+        _mpi2bn :: Ptr CChar -> CInt -> BigNum -> IO BigNum
+
 #endif
+
+-- | Convert a BigNum to an MPI: a serialisation of large ints which has a
+--   4-byte, big endian length followed by the bytes of the number in
+--   most-significant-first order.
+bnToMPI :: BigNum -> IO BS.ByteString
+bnToMPI bn = do
+  bytes <- _bn2mpi bn nullPtr
+  allocaBytes (fromIntegral bytes) (\buffer -> do
+    _bn2mpi bn buffer
+    BS.copyCStringLen (buffer, fromIntegral bytes))
+
+-- | Convert an MPI into a BigNum. See bnToMPI for details of the format
+mpiToBN :: BS.ByteString -> IO BigNum
+mpiToBN mpi = do
+  BS.useAsCStringLen mpi (\(ptr, len) -> do
+    _mpi2bn ptr (fromIntegral len) nullPtr)
+
+-- | Convert an Integer to an MPI. SEe bnToMPI for the format
+integerToMPI :: Integer -> IO BS.ByteString
+integerToMPI v = bracket (integerToBN v) _free bnToMPI
+
+-- | Convert an MPI to an Integer. SEe bnToMPI for the format
+mpiToInteger :: BS.ByteString -> IO Integer
+mpiToInteger mpi = do
+  bn <- mpiToBN mpi
+  v <- bnToInteger bn
+  _free bn
+  return v
+
+foreign import ccall unsafe "BN_mod_exp"
+        _mod_exp :: BigNum -> BigNum -> BigNum -> BigNum -> BNCtx -> IO BigNum
+
+type BNCtx = Ptr BNCTX
+data BNCTX = BNCTX
+
+foreign import ccall unsafe "BN_CTX_new"
+        _BN_ctx_new :: IO BNCtx
+
+foreign import ccall unsafe "BN_CTX_free"
+        _BN_ctx_free :: BNCtx -> IO ()
+
+withBNCtx :: (BNCtx -> IO a) -> IO a
+withBNCtx f = bracket _BN_ctx_new _BN_ctx_free f
+
+modexp :: Integer -> Integer -> Integer -> Integer
+modexp a p m = unsafePerformIO (do
+  withBN a (\bnA -> (do
+    withBN p (\bnP -> (do
+      withBN m (\bnM -> (do
+        withBNCtx (\ctx -> (do
+          r <- newBN 0
+          _mod_exp r bnA bnP bnM ctx
+          bnToInteger r >>= return)))))))))
+
+{- Random Integer generation ------------------------------------------------ -}
+
+foreign import ccall unsafe "BN_rand_range"
+        _BN_rand_range :: BigNum -> BigNum -> IO CInt
+
+foreign import ccall unsafe "BN_pseudo_rand_range"
+        _BN_pseudo_rand_range :: BigNum -> BigNum -> IO CInt
+
+-- | Return a strongly random number in the range 0 <= x < n where the given
+--   filter function returns true.
+randIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
+                                 -> Integer  -- ^ one plus the upper limit
+                                 -> IO Integer
+randIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
+  r <- newBN 0
+  let try = do
+        _BN_rand_range r bnRange >>= failIf (/= 1)
+        i <- bnToInteger r
+        if f i
+           then return i
+           else try
+  try))
+
+-- | Return a random number in the range 0 <= x < n where the given
+--   filter function returns true.
+prandIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
+                                  -> Integer  -- ^ one plus the upper limit
+                                  -> IO Integer
+prandIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
+  r <- newBN 0
+  let try = do
+        _BN_rand_range r bnRange >>= failIf (/= 1)
+        i <- bnToInteger r
+        if f i
+           then return i
+           else try
+  try))
+
+-- | Return a strongly random number in the range 0 <= x < n
+randIntegerZeroToNMinusOne :: Integer -> IO Integer
+randIntegerZeroToNMinusOne = randIntegerUptoNMinusOneSuchThat (const True)
+-- | Return a strongly random number in the range 0 < x < n
+randIntegerOneToNMinusOne :: Integer -> IO Integer
+randIntegerOneToNMinusOne = randIntegerUptoNMinusOneSuchThat (/= 0)
+
+-- | Return a random number in the range 0 <= x < n
+prandIntegerZeroToNMinusOne :: Integer -> IO Integer
+prandIntegerZeroToNMinusOne = prandIntegerUptoNMinusOneSuchThat (const True)
+-- | Return a random number in the range 0 < x < n
+prandIntegerOneToNMinusOne :: Integer -> IO Integer
+prandIntegerOneToNMinusOne = prandIntegerUptoNMinusOneSuchThat (/= 0)

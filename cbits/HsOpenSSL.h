@@ -5,6 +5,8 @@
 #include <openssl/bn.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
 #include <openssl/pem.h>

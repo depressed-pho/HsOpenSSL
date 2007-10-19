@@ -18,6 +18,7 @@ Build-Depends:
         base, time >= 1.1.1
 Exposed-Modules:
         OpenSSL
+        OpenSSL.BN
         OpenSSL.EVP.Base64
         OpenSSL.EVP.Cipher
         OpenSSL.EVP.Digest
@@ -37,7 +38,6 @@ Exposed-Modules:
 Other-Modules:
         OpenSSL.ASN1
         OpenSSL.BIO
-        OpenSSL.BN
         OpenSSL.ERR
         OpenSSL.Objects
         OpenSSL.SSL
