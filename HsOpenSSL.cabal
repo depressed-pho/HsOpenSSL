@@ -29,6 +29,7 @@ Exposed-Modules:
         OpenSSL.EVP.Verify
         OpenSSL.PEM
         OpenSSL.PKCS7
+        OpenSSL.Random
         OpenSSL.DSA
         OpenSSL.RSA
         OpenSSL.X509
