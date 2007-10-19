@@ -150,6 +150,20 @@ bnToInteger bn = do
 -- | This is a GHC specific, fast conversion between Integers and OpenSSL
 --   bignums. It returns a malloced BigNum.
 integerToBN :: Integer -> IO BigNum
+integerToBN 0 = do
+  bnptr <- mallocBytes (#size BIGNUM)
+  (#poke BIGNUM, d) bnptr nullPtr
+  -- This is needed to give GHC enough type information
+  let one :: Word32
+      one = 1
+      zero :: Word32
+      zero = 0
+  (#poke BIGNUM, flags) bnptr one
+  (#poke BIGNUM, top) bnptr zero
+  (#poke BIGNUM, dmax) bnptr zero
+  (#poke BIGNUM, neg) bnptr zero
+  return bnptr
+
 integerToBN (S## v) = do
   bnptr <- mallocBytes (#size BIGNUM)
   limbs <- malloc :: IO (Ptr Word32)
