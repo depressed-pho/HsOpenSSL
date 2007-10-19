@@ -24,11 +24,14 @@ module OpenSSL.EVP.Digest
     , digest
     , digestBS
     , digestLBS
+
+    , hmacBS
     )
     where
 
 import           Control.Monad
 import           Data.ByteString.Base
+import           Data.ByteString (copyCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -173,3 +176,24 @@ digestLBS md input
     = unsafePerformIO $
       do ctx <- digestLazily md input
          digestFinal ctx
+
+{- HMAC ---------------------------------------------------------------------- -}
+
+foreign import ccall unsafe "HMAC"
+        _HMAC :: Ptr EVP_MD -> Ptr CChar -> CInt -> Ptr CChar -> CInt
+              -> Ptr CChar -> Ptr CUInt -> IO ()
+
+-- | Perform a private key signing using the HMAC template with a given hash
+hmacBS :: Digest  -- ^ the hash function to use in the HMAC calculation
+       -> ByteString  -- ^ the HMAC key
+       -> ByteString  -- ^ the data to be signed
+       -> ByteString  -- ^ resulting HMAC
+hmacBS (Digest md) key input =
+  unsafePerformIO $
+  allocaArray (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
+  alloca $ \bufLenPtr ->
+  unsafeUseAsCStringLen key $ \(keydata, keylen) ->
+  unsafeUseAsCStringLen input $ \(inputdata, inputlen) ->
+  do _HMAC md keydata (fromIntegral keylen) inputdata (fromIntegral inputlen) bufPtr bufLenPtr
+     bufLen <- liftM fromIntegral $ peek bufLenPtr
+     copyCStringLen (bufPtr, bufLen)
