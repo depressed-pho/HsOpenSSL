@@ -31,7 +31,8 @@ test_signVerifySpeed = do
 
   let test = do
         (a, b) <- signDigestedData dsa testMessage
-        verifyDigestedData dsa testMessage (a, b)
+        True <- verifyDigestedData dsa testMessage (a, b)
+        return ()
 
   starttime <- getClockTime
   sequence_ $ take 2000 $ repeat test
