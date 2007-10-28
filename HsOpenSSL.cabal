@@ -27,6 +27,7 @@ Exposed-Modules:
         OpenSSL.EVP.Seal
         OpenSSL.EVP.Sign
         OpenSSL.EVP.Verify
+        OpenSSL.Cipher
         OpenSSL.PEM
         OpenSSL.PKCS7
         OpenSSL.Random
