@@ -59,7 +59,7 @@ data CTRTest = CTRTest BS.ByteString  -- ^ key
 
 -- Test vectors from draft-ietf-ipsec-ciph-aes-ctr-05 section 6
 ctrTests = [
-  CTRTest (hexToBS "AE6852F8121067CC4BF7A5765577F39E"),
+  CTRTest (hexToBS "AE6852F8121067CC4BF7A5765577F39E")
           (hexToBS "00000030000000000000000000000001")
           (hexToBS "53696E676C6520626C6F636B206D7367")
           (hexToBS "E4095D4FB7A7B3792D6175A3261311B8"),

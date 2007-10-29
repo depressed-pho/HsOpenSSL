@@ -11,9 +11,9 @@
 --   [/TLS\/SSL network connection/] ssl(3) functionalities are
 --   totally uncovered. They should be covered someday.
 --
---   [/Low-level API to symmetric ciphers/] Only high-level APIs (EVP
---   and BIO) are available. But I believe no one will be lost without
---   functions like @DES_set_odd_parity@.
+--   [/Complete coverage of Low-level API to symmetric ciphers/] Only
+--   high-level APIs (EVP and BIO) are fully available. But I believe
+--   no one will be lost without functions like @DES_set_odd_parity@.
 --
 --   [/Low-level API to asymmetric ciphers/] Only a high-level API
 --   (EVP) is available. But I believe no one will complain about the
@@ -25,13 +25,8 @@
 --   [/X.509 v3 extension handling/] It should be supported in the
 --   future.
 --
---   [/HMAC message authentication/] 
---
---   [/Low-level API to message digest functions/] Just use EVP or BIO
+--   [/Low-level API to message digest functions/] Just use EVP
 --   instead of something like @MD5_Update@.
---
---   [/pseudo-random number generator/] rand(3) functionalities are
---   uncovered, but OpenSSL works very well by default.
 --
 --   [/API to PKCS\#12 functionality/] It should be covered someday.
 --

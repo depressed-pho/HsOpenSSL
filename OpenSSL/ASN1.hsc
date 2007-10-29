@@ -76,16 +76,16 @@ foreign import ccall unsafe "HsOpenSSL_M_ASN1_INTEGER_free"
         _ASN1_INTEGER_free :: Ptr ASN1_INTEGER -> IO ()
 
 foreign import ccall unsafe "ASN1_INTEGER_to_BN"
-        _ASN1_INTEGER_to_BN :: Ptr ASN1_INTEGER -> BigNum -> IO BigNum
+        _ASN1_INTEGER_to_BN :: Ptr ASN1_INTEGER -> Ptr BIGNUM -> IO (Ptr BIGNUM)
 
 foreign import ccall unsafe "BN_to_ASN1_INTEGER"
-        _BN_to_ASN1_INTEGER :: BigNum -> Ptr ASN1_INTEGER -> IO (Ptr ASN1_INTEGER)
+        _BN_to_ASN1_INTEGER :: Ptr BIGNUM -> Ptr ASN1_INTEGER -> IO (Ptr ASN1_INTEGER)
 
 
 peekASN1Integer :: Ptr ASN1_INTEGER -> IO Integer
 peekASN1Integer intPtr
     = allocaBN $ \ bn ->
-      do _ASN1_INTEGER_to_BN intPtr bn
+      do _ASN1_INTEGER_to_BN intPtr (unwrapBN bn)
               >>= failIfNull
          peekBN bn
 
@@ -99,7 +99,7 @@ withASN1Integer :: Integer -> (Ptr ASN1_INTEGER -> IO a) -> IO a
 withASN1Integer int m
     = withBN int $ \ bn ->
       allocaASN1Integer $ \ intPtr ->
-      do _BN_to_ASN1_INTEGER bn intPtr
+      do _BN_to_ASN1_INTEGER (unwrapBN bn) intPtr
               >>= failIfNull
          m intPtr
 

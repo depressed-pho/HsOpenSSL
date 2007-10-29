@@ -106,7 +106,7 @@ peekRSAPublic peeker rsa
     = withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
-         peekBN bn
+         peekBN (wrapBN bn)
 
 
 peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
@@ -116,7 +116,7 @@ peekRSAPrivate peeker rsa
          if bn == nullPtr then
              return Nothing
            else
-             peekBN bn >>= return . Just
+             peekBN (wrapBN bn) >>= return . Just
 
 -- |@'rsaN' pubKey@ returns the public modulus of the key.
 rsaN :: RSA -> IO Integer

@@ -34,10 +34,10 @@ modeToInt Decrypt = 0
 
 data AES_KEY
 data AESCtx = AESCtx
-                (ForeignPtr AES_KEY)  -- ^ the key schedule
-                (ForeignPtr CUChar)   -- ^ the IV / counter
-                (ForeignPtr CUChar)   -- ^ the encrypted counter (CTR mode)
-                (IORef CUInt)         -- ^ the number of bytes of the encrypted counter used
+                (ForeignPtr AES_KEY)  -- the key schedule
+                (ForeignPtr CUChar)   -- the IV / counter
+                (ForeignPtr CUChar)   -- the encrypted counter (CTR mode)
+                (IORef CUInt)         -- the number of bytes of the encrypted counter used
                 Mode
 
 foreign import ccall unsafe "memcpy"

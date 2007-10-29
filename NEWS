@@ -1,10 +1,11 @@
 Changes from 0.2 to [the next release]
 --------------------------------------
-* Applied a patch by Adam Langley:
+* Applied patches by Adam Langley:
   - tests/DSA.hs: Add a DSA test: this just adds a binary which tests
     a few simple DSA cases (and runs a timing test) and prints "PASS"
     as the last line of stdout in the case that everything looks good.
     It doesn't include any hooks nor framework for running these.
+  - Bug fix for fast Integer<->BN functions
 
 
 Changes from 0.1.1. to 0.2

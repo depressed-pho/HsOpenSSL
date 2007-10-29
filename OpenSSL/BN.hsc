@@ -1,20 +1,32 @@
 #include "HsOpenSSL.h"
 
+-- #prune
+
+-- |BN - multiprecision integer arithmetics
+
 module OpenSSL.BN
-    ( BigNum
+    ( -- * Type
+      BigNum
     , BIGNUM
 
+      -- * Allocation
     , allocaBN
     , withBN
-    , peekBN
-    , newBN
 
+    , newBN
+    , wrapBN -- private
+    , unwrapBN -- private
+
+      -- * Conversion from\/to Integer
+    , peekBN
 #ifdef __GLASGOW_HASKELL__
     , integerToBN
     , bnToInteger
 #endif
     , integerToMPI
     , mpiToInteger
+
+      -- * Computation
     , modexp
 
       -- * Random number generation
@@ -44,20 +56,30 @@ import           GHC.Prim
 import           GHC.IOBase (IO(..))
 #endif
 
-type BigNum = Ptr BIGNUM
-data BIGNUM = BIGNUM
+-- |'BigNum' is an opaque object representing a big number.
+newtype BigNum = BigNum (Ptr BIGNUM)
+data BIGNUM
 
 
 foreign import ccall unsafe "BN_new"
-        _new :: IO BigNum
+        _new :: IO (Ptr BIGNUM)
 
 foreign import ccall unsafe "BN_free"
-        _free :: BigNum -> IO ()
+        _free :: Ptr BIGNUM -> IO ()
 
-
+-- |@'allocaBN' f@ allocates a 'BigNum' and computes @f@. Then it
+-- frees the 'BigNum'.
 allocaBN :: (BigNum -> IO a) -> IO a
 allocaBN m
-    = bracket _new _free m
+    = bracket _new _free (m . wrapBN)
+
+
+unwrapBN :: BigNum -> Ptr BIGNUM
+unwrapBN (BigNum p) = p
+
+
+wrapBN :: Ptr BIGNUM -> BigNum
+wrapBN = BigNum
 
 
 #ifndef __GLASGOW_HASKELL__
@@ -65,14 +87,16 @@ allocaBN m
 {- slow, safe functions ----------------------------------------------------- -}
 
 foreign import ccall unsafe "BN_bn2dec"
-        _bn2dec :: BigNum -> IO CString
+        _bn2dec :: Ptr BIGNUM -> IO CString
 
 foreign import ccall unsafe "BN_dec2bn"
-        _dec2bn :: Ptr BigNum -> CString -> IO Int
+        _dec2bn :: Ptr (Ptr BIGNUM) -> CString -> IO Int
 
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()
 
+-- |@'withBN' n f@ converts n to a 'BigNum' and computes @f@. Then it
+-- frees the 'BigNum'.
 withBN :: Integer -> (BigNum -> IO a) -> IO a
 withBN dec m
     = withCString (show dec) $ \ strPtr ->
@@ -82,7 +106,7 @@ withBN dec m
               >>= failIf (== 0)
          bracket (peek bnPtr) _free m
 
-
+-- |@'peekBN' bn@ converts a 'BigNum' to an 'Prelude.Integer'.
 peekBN :: BigNum -> IO Integer
 peekBN bn
     = do strPtr <- _bn2dec bn
@@ -138,11 +162,11 @@ freezeByteArray arr = IO $ \s ->
 -- | Convert a BIGNUM to an Integer
 bnToInteger :: BigNum -> IO Integer
 bnToInteger bn = do
-  nlimbs <- (#peek BIGNUM, top) bn :: IO CSize
+  nlimbs <- (#peek BIGNUM, top) (unwrapBN bn) :: IO CSize
   case nlimbs of
     0 -> return 0
-    1 -> do (I## i) <- (#peek BIGNUM, d) bn >>= peek
-            negative <- (#peek BIGNUM, neg) bn :: IO Word32
+    1 -> do (I## i) <- (#peek BIGNUM, d) (unwrapBN bn) >>= peek
+            negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO Word32
             if negative == 0
                then return $ S## i
                else return $ 0 - (S## i)
@@ -151,9 +175,9 @@ bnToInteger bn = do
           (I## limbsize) = (#size unsigned long)
       (MBA arr) <- newByteArray (nlimbsi *## limbsize)
       (BA ba) <- freezeByteArray arr
-      limbs <- (#peek BIGNUM, d) bn
+      limbs <- (#peek BIGNUM, d) (unwrapBN bn)
       _copy_in ba limbs $ fromIntegral $ nlimbs * (#size unsigned long)
-      negative <- (#peek BIGNUM, neg) bn :: IO Word32
+      negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO Word32
       if negative == 0
          then return $ J## nlimbsi ba
          else return $ 0 - (J## nlimbsi ba)
@@ -173,7 +197,7 @@ integerToBN 0 = do
   (#poke BIGNUM, top) bnptr zero
   (#poke BIGNUM, dmax) bnptr zero
   (#poke BIGNUM, neg) bnptr zero
-  return bnptr
+  return (wrapBN bnptr)
 
 integerToBN (S## v) = do
   bnptr <- mallocBytes (#size BIGNUM)
@@ -188,7 +212,7 @@ integerToBN (S## v) = do
   (#poke BIGNUM, top) bnptr one
   (#poke BIGNUM, dmax) bnptr one
   (#poke BIGNUM, neg) bnptr (if (I## v) < 0 then one else 0)
-  return bnptr
+  return (wrapBN bnptr)
 
 integerToBN v@(J## nlimbs_ bytearray)
   | v >= 0 = do
@@ -201,9 +225,9 @@ integerToBN v@(J## nlimbs_ bytearray)
       (#poke BIGNUM, top) bnptr ((fromIntegral nlimbs) :: Word32)
       (#poke BIGNUM, dmax) bnptr ((fromIntegral nlimbs) :: Word32)
       (#poke BIGNUM, neg) bnptr (0 :: Word32)
-      return bnptr
+      return (wrapBN bnptr)
   | otherwise = do bnptr <- integerToBN (0-v)
-                   (#poke BIGNUM, neg) bnptr (1 :: Word32)
+                   (#poke BIGNUM, neg) (unwrapBN bnptr) (1 :: Word32)
                    return bnptr
 
 -- TODO: we could make a function which doesn't even allocate BN data if we
@@ -211,19 +235,24 @@ integerToBN v@(J## nlimbs_ bytearray)
 -- Integer's data. However, I'm not sure about the semantics of the GC; which
 -- might move the Integer data around.
 
+-- |@'withBN' n f@ converts n to a 'BigNum' and computes @f@. Then it
+-- frees the 'BigNum'.
 withBN :: Integer -> (BigNum -> IO a) -> IO a
-withBN dec m = bracket (integerToBN dec) _free m
+withBN dec m = bracket (integerToBN dec) (_free . unwrapBN) m
 
+-- |This is an alias to 'bnToInteger'.
 peekBN :: BigNum -> IO Integer
 peekBN = bnToInteger
 
+-- |This is an alias to 'integerToBN'.
+newBN :: Integer -> IO BigNum
 newBN = integerToBN
 
 foreign import ccall unsafe "BN_bn2mpi"
-        _bn2mpi :: BigNum -> Ptr CChar -> IO CInt
+        _bn2mpi :: Ptr BIGNUM -> Ptr CChar -> IO CInt
 
 foreign import ccall unsafe "BN_mpi2bn"
-        _mpi2bn :: Ptr CChar -> CInt -> BigNum -> IO BigNum
+        _mpi2bn :: Ptr CChar -> CInt -> Ptr BIGNUM -> IO (Ptr BIGNUM)
 
 #endif
 
@@ -232,31 +261,31 @@ foreign import ccall unsafe "BN_mpi2bn"
 --   most-significant-first order.
 bnToMPI :: BigNum -> IO BS.ByteString
 bnToMPI bn = do
-  bytes <- _bn2mpi bn nullPtr
+  bytes <- _bn2mpi (unwrapBN bn) nullPtr
   allocaBytes (fromIntegral bytes) (\buffer -> do
-    _bn2mpi bn buffer
+    _bn2mpi (unwrapBN bn) buffer
     BS.copyCStringLen (buffer, fromIntegral bytes))
 
 -- | Convert an MPI into a BigNum. See bnToMPI for details of the format
 mpiToBN :: BS.ByteString -> IO BigNum
 mpiToBN mpi = do
   BS.useAsCStringLen mpi (\(ptr, len) -> do
-    _mpi2bn ptr (fromIntegral len) nullPtr)
+    _mpi2bn ptr (fromIntegral len) nullPtr) >>= return . wrapBN
 
 -- | Convert an Integer to an MPI. SEe bnToMPI for the format
 integerToMPI :: Integer -> IO BS.ByteString
-integerToMPI v = bracket (integerToBN v) _free bnToMPI
+integerToMPI v = bracket (integerToBN v) (_free . unwrapBN) bnToMPI
 
 -- | Convert an MPI to an Integer. SEe bnToMPI for the format
 mpiToInteger :: BS.ByteString -> IO Integer
 mpiToInteger mpi = do
   bn <- mpiToBN mpi
   v <- bnToInteger bn
-  _free bn
+  _free (unwrapBN bn)
   return v
 
 foreign import ccall unsafe "BN_mod_exp"
-        _mod_exp :: BigNum -> BigNum -> BigNum -> BigNum -> BNCtx -> IO BigNum
+        _mod_exp :: Ptr BIGNUM -> Ptr BIGNUM -> Ptr BIGNUM -> Ptr BIGNUM -> BNCtx -> IO (Ptr BIGNUM)
 
 type BNCtx = Ptr BNCTX
 data BNCTX = BNCTX
@@ -270,6 +299,7 @@ foreign import ccall unsafe "BN_CTX_free"
 withBNCtx :: (BNCtx -> IO a) -> IO a
 withBNCtx f = bracket _BN_ctx_new _BN_ctx_free f
 
+-- |@'modexp' a p m@ computes @a@ to the @p@-th power modulo @m@.
 modexp :: Integer -> Integer -> Integer -> Integer
 modexp a p m = unsafePerformIO (do
   withBN a (\bnA -> (do
@@ -277,16 +307,16 @@ modexp a p m = unsafePerformIO (do
       withBN m (\bnM -> (do
         withBNCtx (\ctx -> (do
           r <- newBN 0
-          _mod_exp r bnA bnP bnM ctx
+          _mod_exp (unwrapBN r) (unwrapBN bnA) (unwrapBN bnP) (unwrapBN bnM) ctx
           bnToInteger r >>= return)))))))))
 
 {- Random Integer generation ------------------------------------------------ -}
 
 foreign import ccall unsafe "BN_rand_range"
-        _BN_rand_range :: BigNum -> BigNum -> IO CInt
+        _BN_rand_range :: Ptr BIGNUM -> Ptr BIGNUM -> IO CInt
 
 foreign import ccall unsafe "BN_pseudo_rand_range"
-        _BN_pseudo_rand_range :: BigNum -> BigNum -> IO CInt
+        _BN_pseudo_rand_range :: Ptr BIGNUM -> Ptr BIGNUM -> IO CInt
 
 -- | Return a strongly random number in the range 0 <= x < n where the given
 --   filter function returns true.
@@ -296,7 +326,7 @@ randIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
 randIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
   r <- newBN 0
   let try = do
-        _BN_rand_range r bnRange >>= failIf (/= 1)
+        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf (/= 1)
         i <- bnToInteger r
         if f i
            then return i
@@ -311,7 +341,7 @@ prandIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
 prandIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
   r <- newBN 0
   let try = do
-        _BN_rand_range r bnRange >>= failIf (/= 1)
+        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf (/= 1)
         i <- bnToInteger r
         if f i
            then return i

@@ -2,7 +2,7 @@
 
 -- | PRNG services
 --   See <http://www.openssl.org/docs/crypto/rand.html>
---   For random Integer generation, see OpenSSL.BN
+--   For random Integer generation, see "OpenSSL.BN"
 
 #include "HsOpenSSL.h"
 

@@ -29,7 +29,7 @@ doc: .setup-config Setup
 	./Setup haddock
 
 install: build
-	./Setup install
+	sudo ./Setup install
 
 sdist: Setup
 	./Setup sdist

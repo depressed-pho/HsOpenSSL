@@ -1,5 +1,7 @@
 {- -*- haskell -*- -}
 
+-- #prune
+
 -- | The Digital Signature Algorithm (FIPS 186-2).
 --   See <http://www.openssl.org/docs/crypto/dsa.html>
 
@@ -8,6 +10,8 @@
 module OpenSSL.DSA
     ( -- * Type
       DSA
+    , DSA_ -- private
+    , withDSAPtr -- private
 
       -- * Key and parameter generation
     , generateParameters
@@ -48,7 +52,7 @@ foreign import ccall unsafe "DSA_free"
         dsa_free :: Ptr DSA_ -> IO ()
 
 foreign import ccall unsafe "BN_free"
-        _bn_free :: BigNum -> IO ()
+        _bn_free :: Ptr BIGNUM -> IO ()
 
 foreign import ccall unsafe "DSA_new"
         _dsa_new :: IO (Ptr DSA_)
@@ -57,10 +61,10 @@ foreign import ccall unsafe "DSA_generate_key"
         _dsa_generate_key :: Ptr DSA_ -> IO ()
 
 foreign import ccall unsafe "HsOpenSSL_dsa_sign"
-        _dsa_sign :: Ptr DSA_ -> CString -> Int -> Ptr BigNum -> Ptr BigNum -> IO Int
+        _dsa_sign :: Ptr DSA_ -> CString -> Int -> Ptr (Ptr BIGNUM) -> Ptr (Ptr BIGNUM) -> IO Int
 
 foreign import ccall unsafe "HsOpenSSL_dsa_verify"
-        _dsa_verify :: Ptr DSA_ -> CString -> Int -> BigNum -> BigNum -> IO Int
+        _dsa_verify :: Ptr DSA_ -> CString -> Int -> Ptr BIGNUM -> Ptr BIGNUM -> IO Int
 
 withDSAPtr :: DSA -> (Ptr DSA_ -> IO a) -> IO a
 withDSAPtr (DSA ptr) = withForeignPtr ptr
@@ -68,13 +72,13 @@ withDSAPtr (DSA ptr) = withForeignPtr ptr
 foreign import ccall safe "DSA_generate_parameters"
         _generate_params :: Int -> Ptr CChar -> Int -> Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> IO (Ptr DSA_)
 
-peekDSA :: (Ptr DSA_ -> IO BigNum) -> DSA -> IO (Maybe Integer)
+peekDSA :: (Ptr DSA_ -> IO (Ptr BIGNUM)) -> DSA -> IO (Maybe Integer)
 peekDSA peeker (DSA dsa) = do
   withForeignPtr dsa (\ptr -> do
     bn <- peeker ptr
     if bn == nullPtr
        then return Nothing
-       else peekBN bn >>= return . Just)
+       else peekBN (wrapBN bn) >>= return . Just)
 
 -- | Generate DSA parameters (*not* a key, but required for a key). This is a
 --   compute intensive operation. See FIPS 186-2, app 2. This agrees with the
@@ -93,9 +97,9 @@ generateParameters nbits mseed = do
         failIfNull ptr
         itcount <- peek i1
         gencount <- peek i2
-        p <- (#peek DSA, p) ptr >>= peekBN
-        q <- (#peek DSA, q) ptr >>= peekBN
-        g <- (#peek DSA, g) ptr >>= peekBN
+        p <- (#peek DSA, p) ptr >>= peekBN . wrapBN
+        q <- (#peek DSA, q) ptr >>= peekBN . wrapBN
+        g <- (#peek DSA, g) ptr >>= peekBN . wrapBN
         dsa_free ptr
         return (fromIntegral itcount, fromIntegral gencount, p, q, g))))
 
@@ -126,24 +130,29 @@ generateKey :: Integer  -- ^ p
             -> IO DSA
 generateKey p q g = do
   ptr <- _dsa_new
-  newBN p >>= (#poke DSA, p) ptr
-  newBN q >>= (#poke DSA, q) ptr
-  newBN g >>= (#poke DSA, g) ptr
+  newBN p >>= return . unwrapBN >>= (#poke DSA, p) ptr
+  newBN q >>= return . unwrapBN >>= (#poke DSA, q) ptr
+  newBN g >>= return . unwrapBN >>= (#poke DSA, g) ptr
   _dsa_generate_key ptr
   newForeignPtr _free ptr >>= return . DSA
 
+-- |Return the public prime number of the key.
 dsaP :: DSA -> IO (Maybe Integer)
 dsaP = peekDSA (#peek DSA, p)
 
+-- |Return the public 160-bit subprime, @q | p-1@ of the key.
 dsaQ :: DSA -> IO (Maybe Integer)
 dsaQ = peekDSA (#peek DSA, q)
 
+-- |Return the public generator of subgroup of the key.
 dsaG :: DSA -> IO (Maybe Integer)
 dsaG = peekDSA (#peek DSA, g)
 
+-- |Return the public key @y = g^x@.
 dsaPublic :: DSA -> IO (Maybe Integer)
 dsaPublic = peekDSA (#peek DSA, pub_key)
 
+-- |Return the private key @x@.
 dsaPrivate :: DSA -> IO (Maybe Integer)
 dsaPrivate = peekDSA (#peek DSA, priv_key)
 
@@ -164,12 +173,12 @@ dsaToTuple dsa = do
 tupleToDSA :: (Integer, Integer, Integer, Integer, Maybe Integer) -> IO DSA
 tupleToDSA (p, q, g, pub, mpriv) = do
   ptr <- _dsa_new
-  newBN p >>= (#poke DSA, p) ptr
-  newBN q >>= (#poke DSA, q) ptr
-  newBN g >>= (#poke DSA, g) ptr
-  newBN pub >>= (#poke DSA, pub_key) ptr
+  newBN p >>= return . unwrapBN >>= (#poke DSA, p) ptr
+  newBN q >>= return . unwrapBN >>= (#poke DSA, q) ptr
+  newBN g >>= return . unwrapBN >>= (#poke DSA, g) ptr
+  newBN pub >>= return . unwrapBN >>= (#poke DSA, pub_key) ptr
   case mpriv of
-       Just priv -> newBN priv >>= (#poke DSA, priv_key) ptr
+       Just priv -> newBN priv >>= return . unwrapBN >>= (#poke DSA, priv_key) ptr
        Nothing -> (#poke DSA, priv_key) ptr nullPtr
   newForeignPtr _free ptr >>= return . DSA
 
@@ -197,9 +206,9 @@ signDigestedData dsa bytes = do
       alloca (\sptr -> do
         withDSAPtr dsa (\dsaptr -> do
           _dsa_sign dsaptr ptr len rptr sptr >>= failIf (== 0)
-          r <- peek rptr >>= peekBN
+          r <- peek rptr >>= peekBN . wrapBN
           peek rptr >>= _bn_free
-          s <- peek sptr >>= peekBN
+          s <- peek sptr >>= peekBN . wrapBN
           peek sptr >>= _bn_free
           return (r, s)))))
 
@@ -210,4 +219,4 @@ verifyDigestedData dsa bytes (r, s) = do
     withBN r (\bnR -> do
       withBN s (\bnS -> do
         withDSAPtr dsa (\dsaptr -> do
-          _dsa_verify dsaptr ptr len bnR bnS >>= return . (== 1)))))
+          _dsa_verify dsaptr ptr len (unwrapBN bnR) (unwrapBN bnS) >>= return . (== 1)))))

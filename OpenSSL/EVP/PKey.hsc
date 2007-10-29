@@ -21,10 +21,14 @@ module OpenSSL.EVP.PKey
 #ifndef OPENSSL_NO_RSA
     , newPKeyRSA
 #endif
+#ifndef OPENSSL_NO_DSA
+    , newPKeyDSA
+#endif
     )
     where
 
 import           Foreign
+import           OpenSSL.DSA
 import           OpenSSL.EVP.Digest
 import           OpenSSL.RSA
 import           OpenSSL.Utils
@@ -91,12 +95,27 @@ pkeyDefaultMD pkey
 foreign import ccall unsafe "EVP_PKEY_set1_RSA"
         _set1_RSA :: Ptr EVP_PKEY -> Ptr RSA_ -> IO Int
 
--- |@'newPKeyRSA' rsa@ encapsulates an 'RSA' key into 'PKey'.
+-- |@'newPKeyRSA' rsa@ encapsulates an RSA key into 'PKey'.
 newPKeyRSA :: RSA -> PKey
 newPKeyRSA rsa
     = unsafePerformIO $
       withRSAPtr rsa $ \ rsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
          _set1_RSA pkeyPtr rsaPtr >>= failIf (/= 1)
+         wrapPKeyPtr pkeyPtr
+#endif
+
+
+#ifndef OPENSSL_NO_DSA
+foreign import ccall unsafe "EVP_PKEY_set1_DSA"
+        _set1_DSA :: Ptr EVP_PKEY -> Ptr DSA_ -> IO Int
+
+-- |@'newPKeyDSA' dsa@ encapsulates an 'DSA' key into 'PKey'.
+newPKeyDSA :: DSA -> PKey
+newPKeyDSA dsa
+    = unsafePerformIO $
+      withDSAPtr dsa $ \ dsaPtr ->
+      do pkeyPtr <- _pkey_new >>= failIfNull
+         _set1_DSA pkeyPtr dsaPtr >>= failIf (/= 1)
          wrapPKeyPtr pkeyPtr
 #endif
