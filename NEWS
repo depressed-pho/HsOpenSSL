@@ -1,4 +1,4 @@
-Changes from 0.2 to [the next release]
+Changes from 0.2 to 0.3
 --------------------------------------
 * Applied patches by Adam Langley:
   - tests/DSA.hs: Add a DSA test: this just adds a binary which tests
@@ -6,6 +6,10 @@ Changes from 0.2 to [the next release]
     as the last line of stdout in the case that everything looks good.
     It doesn't include any hooks nor framework for running these.
   - Bug fix for fast Integer<->BN functions
+  - OpenSSL.Cipher: Add non-EVP cipher support
+  - OpenSSL.EVP.Digest: Add HMAC support in EVP
+  - OpenSSL.Random: Add OpenSSL.Random
+  - OpenSSL.BN: Additional utility functions in BN and exposing BN
 
 
 Changes from 0.1.1. to 0.2

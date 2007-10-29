@@ -60,6 +60,7 @@ _stub\.(c|h)$
 ^OpenSSL/ASN1\.hs$
 ^OpenSSL/BIO\.hs$
 ^OpenSSL/BN\.hs$
+^OpenSSL/Cipher\.hs$
 ^OpenSSL/DSA\.hs$
 ^OpenSSL/ERR\.hs$
 ^OpenSSL/EVP/Base64\.hs$
@@ -74,6 +75,7 @@ _stub\.(c|h)$
 ^OpenSSL/PEM\.hs$
 ^OpenSSL/PKCS7\.hs$
 ^OpenSSL/RSA\.hs$
+^OpenSSL/Random\.hs$
 ^OpenSSL/SSL\.hs$
 ^OpenSSL/Stack\.hs$
 ^OpenSSL/X509\.hs$
@@ -89,4 +91,5 @@ _stub\.(c|h)$
 ^examples/HelloWorld$
 ^examples/GenRSAKey$
 ^examples/PKCS7$
+^tests/Cipher$
 ^tests/DSA$
