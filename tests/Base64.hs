@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings  #-}
 
--- | Unittest for Base64 [en|de]coding. Note that the test currently
---   fails because of additional NULs at the end of decoded strings.
---   I've not figured out if this is an OpenSSL issue or a problem
---   with the bindings yet.
+-- | Unittest for Base64 [en|de]coding.
 module Main where
 
 import           Data.Char (ord)
