@@ -51,6 +51,7 @@ toHex = reverse . map hexByte . unfoldr step where
   hexByte 13 = 'd'
   hexByte 14 = 'e'
   hexByte 15 = 'f'
+  hexByte _  = undefined
 
 -- | Convert a hex string to an integer
 fromHex :: (Bits i) => String -> i
@@ -79,3 +80,4 @@ fromHex = foldl step 0 where
   byteHex 'D' = 13
   byteHex 'E' = 14
   byteHex 'F' = 15
+  byteHex _   = undefined

@@ -1,15 +1,15 @@
 CABAL_FILE = HsOpenSSL.cabal
 GHC = ghc
 
-build: .setup-config Setup
+build: dist/setup-config Setup
 	./Setup build
 
 run: build
 	@echo ".:.:. Let's go .:.:."
 	$(MAKE) -C examples run
 
-.setup-config: $(CABAL_FILE) configure Setup
-	./Setup configure -p
+dist/setup-config: $(CABAL_FILE) configure Setup
+	./Setup configure -p -O --enable-split-objs
 
 configure: aclocal.m4 configure.ac
 	autoconf
@@ -26,7 +26,7 @@ clean:
 	$(MAKE) -C examples clean
 
 doc: .setup-config Setup
-	./Setup haddock
+	./Setup haddock --hyperlink-source --hscolour-css=../hscolour/hscolour.css
 
 install: build
 	sudo ./Setup install

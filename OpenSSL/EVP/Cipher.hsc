@@ -62,7 +62,7 @@ foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_iv_length"
 
 
 withCipherPtr :: Cipher -> (Ptr EVP_CIPHER -> IO a) -> IO a
-withCipherPtr (Cipher cipher) f = f cipher
+withCipherPtr (Cipher cipherPtr) f = f cipherPtr
 
 -- |@'getCipherByName' name@ returns a symmetric cipher algorithm
 -- whose name is @name@. If no algorithms are found, the result is
@@ -83,7 +83,7 @@ getCipherNames = getObjNames CipherMethodType True
 
 
 cipherIvLength :: Cipher -> Int
-cipherIvLength (Cipher cipher) = _iv_length cipher
+cipherIvLength (Cipher cipherPtr) = _iv_length cipherPtr
 
 
 {- EVP_CIPHER_CTX ------------------------------------------------------------ -}

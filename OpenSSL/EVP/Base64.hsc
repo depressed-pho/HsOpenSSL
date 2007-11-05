@@ -15,7 +15,7 @@ module OpenSSL.EVP.Base64
     )
     where
 
-import           Control.Exception
+import           Control.Exception hiding (block)
 import           Data.ByteString.Internal (createAndTrim)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Lazy.Internal as L8Internal
@@ -32,12 +32,13 @@ import           Foreign.C
 --
 -- デコード時: 分割のアルゴリズムは同じだが最低バイト数が 4。
 nextBlock :: Int -> ([B8.ByteString], L8.ByteString) -> ([B8.ByteString], L8.ByteString)
-nextBlock _      (xs, L8Internal.Empty ) = (xs, L8Internal.Empty)
-nextBlock minLen (xs, src) = if foldl' (+) 0 (map B8.length xs) >= minLen then
-                                  (xs, src)
-                              else
-                                  case src of
-                                    L8Internal.Chunk y ys -> nextBlock minLen (xs ++ [y], ys)
+nextBlock minLen (xs, src)
+    = if foldl' (+) 0 (map B8.length xs) >= minLen then
+          (xs, src)
+      else
+          case src of
+            L8Internal.Empty      -> (xs, src)
+            L8Internal.Chunk y ys -> nextBlock minLen (xs ++ [y], ys)
 
 
 {- encode -------------------------------------------------------------------- -}

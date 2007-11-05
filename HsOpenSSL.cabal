@@ -37,6 +37,10 @@ Library
   else
     build-depends: base < 3, time >= 1.1.1
 
+  --PkgConfig-Depends: openssl >= 0.9.7l
+  -- We really should use this instead of the configure script but
+  -- Cabal 1.2.2.0 can't handle the weird version scheme of OpenSSL.
+
   Exposed-Modules:
           OpenSSL
           OpenSSL.BN
@@ -70,7 +74,7 @@ Library
   Extensions:
           ForeignFunctionInterface, EmptyDataDecls, MagicHash
   ghc-options:
-          -O2 -fwarn-unused-imports -fglasgow-exts
+          -Wall -fglasgow-exts
   C-Sources:
           cbits/HsOpenSSL.c
   Include-Dirs:

@@ -33,7 +33,7 @@ import           Data.Typeable
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BIO
-import           OpenSSL.EVP.Cipher
+import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Stack
 import           OpenSSL.Utils

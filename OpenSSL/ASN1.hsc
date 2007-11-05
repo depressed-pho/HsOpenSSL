@@ -157,6 +157,6 @@ allocaASN1Time m
 withASN1Time :: UTCTime -> (Ptr ASN1_TIME -> IO a) -> IO a
 withASN1Time utc m
     = allocaASN1Time $ \ time ->
-      do _ASN1_TIME_set time (fromIntegral $ round $ utcTimeToPOSIXSeconds utc)
+      do _ASN1_TIME_set time (fromIntegral $ (round $ utcTimeToPOSIXSeconds utc :: Integer))
               >>= failIfNull
          m time

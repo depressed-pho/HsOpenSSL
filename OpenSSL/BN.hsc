@@ -41,7 +41,7 @@ module OpenSSL.BN
     )
     where
 
-import           Control.Exception
+import           Control.Exception hiding (try)
 import           Foreign
 import qualified Data.ByteString as BS
 import           OpenSSL.Utils
@@ -172,7 +172,7 @@ bnToInteger bn = do
             if negative == 0
                then return $ S## i
                else return $ 0 - (S## i)
-    otherwise -> do
+    _ -> do
       let (I## nlimbsi) = fromIntegral nlimbs
           (I## limbsize) = (#size unsigned long)
       (MBA arr) <- newByteArray (nlimbsi *## limbsize)
@@ -290,7 +290,7 @@ foreign import ccall unsafe "BN_mod_exp"
         _mod_exp :: Ptr BIGNUM -> Ptr BIGNUM -> Ptr BIGNUM -> Ptr BIGNUM -> BNCtx -> IO (Ptr BIGNUM)
 
 type BNCtx = Ptr BNCTX
-data BNCTX = BNCTX
+data BNCTX
 
 foreign import ccall unsafe "BN_CTX_new"
         _BN_ctx_new :: IO BNCtx

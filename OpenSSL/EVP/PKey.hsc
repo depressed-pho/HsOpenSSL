@@ -29,7 +29,7 @@ module OpenSSL.EVP.PKey
 
 import           Foreign
 import           OpenSSL.DSA
-import           OpenSSL.EVP.Digest
+import           OpenSSL.EVP.Digest hiding (digest)
 import           OpenSSL.RSA
 import           OpenSSL.Utils
 

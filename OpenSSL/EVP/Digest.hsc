@@ -30,7 +30,6 @@ module OpenSSL.EVP.Digest
     where
 
 import           Control.Monad
-import           Data.ByteString (packCStringLen)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -50,9 +49,6 @@ data    EVP_MD
 
 foreign import ccall unsafe "EVP_get_digestbyname"
         _get_digestbyname :: CString -> IO (Ptr EVP_MD)
-
-foreign import ccall unsafe "HsOpenSSL_EVP_MD_size"
-        mdSize :: Ptr EVP_MD -> Int
 
 
 withMDPtr :: Digest -> (Ptr EVP_MD -> IO a) -> IO a
@@ -128,11 +124,6 @@ digestUpdateBS ctx bs
       _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
 
 
-digestUpdateLBS :: DigestCtx -> L8.ByteString -> IO ()
-digestUpdateLBS ctx lbs
-    = mapM_ (digestUpdateBS ctx) $ L8.toChunks lbs
-
-
 digestFinal :: DigestCtx -> IO String
 digestFinal ctx
     = withDigestCtxPtr ctx $ \ ctxPtr ->
@@ -196,4 +187,4 @@ hmacBS (Digest md) key input =
   unsafeUseAsCStringLen input $ \(inputdata, inputlen) ->
   do _HMAC md keydata (fromIntegral keylen) inputdata (fromIntegral inputlen) bufPtr bufLenPtr
      bufLen <- liftM fromIntegral $ peek bufLenPtr
-     packCStringLen (bufPtr, bufLen)
+     B8.packCStringLen (bufPtr, bufLen)

@@ -37,7 +37,7 @@ import           Control.Monad
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BIO
-import           OpenSSL.EVP.Digest
+import           OpenSSL.EVP.Digest hiding (digest)
 import           OpenSSL.EVP.PKey
 import           OpenSSL.EVP.Verify
 import           OpenSSL.Utils

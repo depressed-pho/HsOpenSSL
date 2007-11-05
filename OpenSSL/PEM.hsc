@@ -35,12 +35,12 @@ module OpenSSL.PEM
     )
     where
 
-import           Control.Exception
+import           Control.Exception hiding (try)
 import           Control.Monad
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BIO
-import           OpenSSL.EVP.Cipher
+import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
 import           OpenSSL.PKCS7
 import           OpenSSL.Utils
@@ -92,6 +92,7 @@ foreign import ccall "wrapper"
 rwflagToState :: Int -> PemPasswordRWState
 rwflagToState 0 = PwRead
 rwflagToState 1 = PwWrite
+rwflagToState _ = undefined
 
 
 callPasswordCB :: PemPasswordCallback -> PemPasswordCallback'
