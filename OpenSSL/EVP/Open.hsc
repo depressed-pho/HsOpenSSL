@@ -15,7 +15,7 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
 import           Foreign.C
-import           OpenSSL.EVP.Cipher
+import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
 import           OpenSSL.Utils
 

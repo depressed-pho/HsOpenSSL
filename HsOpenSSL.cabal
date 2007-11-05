@@ -27,6 +27,10 @@ Extra-Source-Files:
 	examples/GenRSAKey.hs
 	examples/HelloWorld.hs
 	examples/PKCS7.hs
+    tests/Base64.hs
+    tests/Cipher.hs
+    tests/DSA.hs
+    tests/Makefile
 
 flag splitBase
   description: Choose the new smaller, split-up base package.
