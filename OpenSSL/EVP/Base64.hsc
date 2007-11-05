@@ -106,6 +106,10 @@ decodeBlock inBS
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (B8.length inBS) $ \ outBuf ->
       _DecodeBlock (castPtr outBuf) inBuf inLen
+           >>= \ outLen -> return (outLen - paddingLen)
+    where
+      paddingLen :: Int
+      paddingLen = B8.count '=' inBS
 
 -- |@'decodeBase64' str@ lazilly decodes a stream of data from
 -- Base64. The string doesn't have to be finite.
