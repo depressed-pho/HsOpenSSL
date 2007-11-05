@@ -1,5 +1,13 @@
+Changes from 0.3 to 0.3.1
+-------------------------
+* OpenSSL.EVP.Base64: Fix a bug in an internal function `decodeBlock':
+  decodeBase64* didn't drop the padding NUL.
+* Applied patches by Adam Langley:
+  - Updates for 6.8.1 (also *requires* 6.8.1 now)
+  - tests/Base64.hs: Test for Base64
+
 Changes from 0.2 to 0.3
---------------------------------------
+-----------------------
 * Applied patches by Adam Langley:
   - tests/DSA.hs: Add a DSA test: this just adds a binary which tests
     a few simple DSA cases (and runs a timing test) and prints "PASS"
