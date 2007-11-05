@@ -1,3 +1,5 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 #include "HsOpenSSL.h"
 
 -- #prune
@@ -264,7 +266,7 @@ bnToMPI bn = do
   bytes <- _bn2mpi (unwrapBN bn) nullPtr
   allocaBytes (fromIntegral bytes) (\buffer -> do
     _bn2mpi (unwrapBN bn) buffer
-    BS.copyCStringLen (buffer, fromIntegral bytes))
+    BS.packCStringLen (buffer, fromIntegral bytes))
 
 -- | Convert an MPI into a BigNum. See bnToMPI for details of the format
 mpiToBN :: BS.ByteString -> IO BigNum

@@ -12,7 +12,6 @@ module OpenSSL.EVP.Verify
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.Typeable
@@ -59,7 +58,7 @@ verify md sig pkey input
 verifyBS :: Digest          -- ^ message digest algorithm to use
          -> String          -- ^ message signature
          -> PKey            -- ^ public key to verify the signature
-         -> ByteString      -- ^ input string to verify
+         -> B8.ByteString      -- ^ input string to verify
          -> IO VerifyStatus -- ^ the result of verification
 verifyBS md sig pkey input
     = do ctx <- digestStrictly md input
@@ -69,7 +68,7 @@ verifyBS md sig pkey input
 verifyLBS :: Digest          -- ^ message digest algorithm to use
           -> String          -- ^ message signature
           -> PKey            -- ^ public key to verify the signature
-          -> LazyByteString  -- ^ input string to verify
+          -> L8.ByteString  -- ^ input string to verify
           -> IO VerifyStatus -- ^ the result of verification
 verifyLBS md sig pkey input
     = do ctx <- digestLazily md input

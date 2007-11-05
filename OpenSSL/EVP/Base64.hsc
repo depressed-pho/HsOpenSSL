@@ -16,7 +16,9 @@ module OpenSSL.EVP.Base64
     where
 
 import           Control.Exception
-import           Data.ByteString.Base
+import           Data.ByteString.Internal (createAndTrim)
+import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
+import qualified Data.ByteString.Lazy.Internal as L8Internal
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.List
@@ -29,13 +31,13 @@ import           Foreign.C
 -- な最大の 3 の倍數の位置で分割し、殘りは次のブロックの一部と見做す。
 --
 -- デコード時: 分割のアルゴリズムは同じだが最低バイト数が 4。
-nextBlock :: Int -> ([ByteString], LazyByteString) -> ([ByteString], LazyByteString)
-nextBlock _      (xs, LPS [] ) = (xs, LPS [])
-nextBlock minLen (xs, LPS src) = if foldl' (+) 0 (map B8.length xs) >= minLen then
-                                     (xs, LPS src)
-                                 else
-                                     case src of
-                                       (y:ys) -> nextBlock minLen (xs ++ [y], LPS ys)
+nextBlock :: Int -> ([B8.ByteString], L8.ByteString) -> ([B8.ByteString], L8.ByteString)
+nextBlock _      (xs, L8Internal.Empty ) = (xs, L8Internal.Empty)
+nextBlock minLen (xs, src) = if foldl' (+) 0 (map B8.length xs) >= minLen then
+                                  (xs, src)
+                              else
+                                  case src of
+                                    L8Internal.Chunk y ys -> nextBlock minLen (xs ++ [y], ys)
 
 
 {- encode -------------------------------------------------------------------- -}
@@ -44,7 +46,7 @@ foreign import ccall unsafe "EVP_EncodeBlock"
         _EncodeBlock :: Ptr CChar -> Ptr CChar -> Int -> IO Int
 
 
-encodeBlock :: ByteString -> ByteString
+encodeBlock :: B8.ByteString -> B8.ByteString
 encodeBlock inBS
     = unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
@@ -63,12 +65,12 @@ encodeBase64 :: String -> String
 encodeBase64 = L8.unpack . encodeBase64LBS . L8.pack
 
 -- |@'encodeBase64BS' bs@ strictly encodes a chunk of data to Base64.
-encodeBase64BS :: ByteString -> ByteString
+encodeBase64BS :: B8.ByteString -> B8.ByteString
 encodeBase64BS = encodeBlock
 
 -- |@'encodeBase64LBS' lbs@ lazilly encodes a stream of data to
 -- Base64. The string doesn't have to be finite.
-encodeBase64LBS :: LazyByteString -> LazyByteString
+encodeBase64LBS :: L8.ByteString -> L8.ByteString
 encodeBase64LBS inLBS
     | L8.null inLBS = L8.empty
     | otherwise
@@ -83,12 +85,11 @@ encodeBase64LBS inLBS
               remain                  = if B8.null leftover then
                                             remain'
                                         else
-                                            case remain' of
-                                              LPS xs -> LPS (leftover:xs)
+					    L8.fromChunks [leftover] `L8.append` remain'
               encodedBlock             = encodeBlock block
-              LPS encodedRemain        = encodeBase64LBS remain
+              encodedRemain            = encodeBase64LBS remain
           in
-            LPS ([encodedBlock] ++ encodedRemain)
+            L8.fromChunks [encodedBlock] `L8.append` encodedRemain
 
 
 {- decode -------------------------------------------------------------------- -}
@@ -97,7 +98,7 @@ foreign import ccall unsafe "EVP_DecodeBlock"
         _DecodeBlock :: Ptr CChar -> Ptr CChar -> Int -> IO Int
 
 
-decodeBlock :: ByteString -> ByteString
+decodeBlock :: B8.ByteString -> B8.ByteString
 decodeBlock inBS
     = assert (B8.length inBS `mod` 4 == 0) $
       unsafePerformIO $
@@ -112,12 +113,12 @@ decodeBase64 = L8.unpack . decodeBase64LBS . L8.pack
 
 -- |@'decodeBase64BS' bs@ strictly decodes a chunk of data from
 -- Base64.
-decodeBase64BS :: ByteString -> ByteString
+decodeBase64BS :: B8.ByteString -> B8.ByteString
 decodeBase64BS = decodeBlock
 
 -- |@'decodeBase64LBS' lbs@ lazilly decodes a stream of data from
 -- Base64. The string doesn't have to be finite.
-decodeBase64LBS :: LazyByteString -> LazyByteString
+decodeBase64LBS :: L8.ByteString -> L8.ByteString
 decodeBase64LBS inLBS
     | L8.null inLBS = L8.empty
     | otherwise
@@ -129,9 +130,8 @@ decodeBase64LBS inLBS
               remain                  = if B8.null leftover then
                                             remain'
                                         else
-                                            case remain' of
-                                              LPS xs -> LPS (leftover:xs)
+					    L8.fromChunks [leftover] `L8.append` remain'
               decodedBlock            = decodeBlock block
-              LPS decodedRemain       = decodeBase64LBS remain
+              decodedRemain           = decodeBase64LBS remain
           in
-            LPS ([decodedBlock] ++ decodedRemain)
+            L8.fromChunks [decodedBlock] `L8.append` decodedRemain

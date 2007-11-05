@@ -11,7 +11,6 @@ module OpenSSL.EVP.Seal
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -108,8 +107,8 @@ seal cipher pubKeys input
 sealBS :: Cipher     -- ^ symmetric cipher algorithm to use
        -> [PKey]     -- ^ list of public keys to encrypt a symmetric
                      --   key
-       -> ByteString -- ^ input string to encrypt
-       -> IO (ByteString, [String], String) -- ^ (encrypted string,
+       -> B8.ByteString -- ^ input string to encrypt
+       -> IO (B8.ByteString, [String], String) -- ^ (encrypted string,
                                             --   list of encrypted
                                             --   asymmetric keys, IV)
 sealBS cipher pubKeys input
@@ -122,8 +121,8 @@ sealBS cipher pubKeys input
 sealLBS :: Cipher         -- ^ symmetric cipher algorithm to use
         -> [PKey]         -- ^ list of public keys to encrypt a
                           --   symmetric key
-        -> LazyByteString -- ^ input string to encrypt
-        -> IO (LazyByteString, [String], String) -- ^ (encrypted
+        -> L8.ByteString -- ^ input string to encrypt
+        -> IO (L8.ByteString, [String], String) -- ^ (encrypted
                                                  --   string, list of
                                                  --   encrypted
                                                  --   asymmetric keys,

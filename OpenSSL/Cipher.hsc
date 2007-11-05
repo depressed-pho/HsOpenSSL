@@ -24,7 +24,7 @@ import           Data.IORef
 import           Foreign
 import           Foreign.C.Types
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base as BSB
+import qualified Data.ByteString.Internal as BSI
 import           OpenSSL.Utils
 
 data Mode = Encrypt | Decrypt deriving (Eq, Show)
@@ -94,7 +94,7 @@ aesCBC (AESCtx ctx iv _ _ mode) input = do
   withForeignPtr ctx $ \ctxPtr ->
     withForeignPtr iv $ \ivPtr ->
     BS.useAsCStringLen input $ \(ptr, len) ->
-    BSB.create (BS.length input) $ \out ->
+    BSI.create (BS.length input) $ \out ->
     _AES_cbc_encrypt ptr out (fromIntegral len) ctxPtr ivPtr $ modeToInt mode
 
 -- | Encrypt some number of bytes using CTR mode. This is an IO function
@@ -107,7 +107,7 @@ aesCTR (AESCtx ctx iv ecounter nref Encrypt) input = do
     withForeignPtr iv $ \ivPtr ->
     withForeignPtr ecounter $ \ecptr ->
     BS.useAsCStringLen input $ \(ptr, len) ->
-    BSB.create (BS.length input) $ \out ->
+    BSI.create (BS.length input) $ \out ->
     alloca $ \nptr -> do
       n <- readIORef nref
       poke nptr n

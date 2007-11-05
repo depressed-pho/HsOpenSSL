@@ -34,7 +34,7 @@ randBytes :: Int  -- ^ the number of bytes requested
 randBytes n =
   allocaArray n $ \bufPtr ->
   do _RAND_bytes bufPtr (fromIntegral n) >>= failIf (/= 1)
-     BS.copyCStringLen (bufPtr, n)
+     BS.packCStringLen (bufPtr, n)
 
 -- | Return a bytestring consisting of the given number of pseudo random
 --   bytes
@@ -43,7 +43,7 @@ prandBytes :: Int  -- ^ the number of bytes requested
 prandBytes n =
   allocaArray n $ \bufPtr ->
   do _RAND_pseudo_bytes bufPtr (fromIntegral n)
-     BS.copyCStringLen (bufPtr, n)
+     BS.packCStringLen (bufPtr, n)
 
 -- | Add data to the entropy pool. It's safe to add sensitive information
 --   (e.g. user passwords etc) to the pool. Also, adding data with an entropy

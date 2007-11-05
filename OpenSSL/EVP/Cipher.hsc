@@ -33,9 +33,11 @@ module OpenSSL.EVP.Cipher
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
+import           Data.ByteString.Internal (createAndTrim)
+import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.ByteString.Lazy.Internal as L8Internal
 import           Foreign
 import           Foreign.C
 import           OpenSSL.Objects
@@ -144,7 +146,7 @@ cipherInit (Cipher c) key iv mode
          return ctx
 
 
-cipherUpdateBS :: CipherCtx -> ByteString -> IO ByteString
+cipherUpdateBS :: CipherCtx -> B8.ByteString -> IO B8.ByteString
 cipherUpdateBS ctx inBS
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
@@ -155,7 +157,7 @@ cipherUpdateBS ctx inBS
            >>  peek outLenPtr
 
 
-cipherFinalBS :: CipherCtx -> IO ByteString
+cipherFinalBS :: CipherCtx -> IO B8.ByteString
 cipherFinalBS ctx
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       createAndTrim (_ctx_block_size ctxPtr) $ \ outBuf ->
@@ -183,8 +185,8 @@ cipherBS :: Cipher        -- ^ algorithm to use
          -> String        -- ^ symmetric key
          -> String        -- ^ IV
          -> CryptoMode    -- ^ operation
-         -> ByteString    -- ^ input string to encrypt\/decrypt
-         -> IO ByteString -- ^ the result string
+         -> B8.ByteString    -- ^ input string to encrypt\/decrypt
+         -> IO B8.ByteString -- ^ the result string
 cipherBS c key iv mode input
     = do ctx <- cipherInit c key iv mode
          cipherStrictly ctx input
@@ -195,27 +197,27 @@ cipherLBS :: Cipher            -- ^ algorithm to use
           -> String            -- ^ symmetric key
           -> String            -- ^ IV
           -> CryptoMode        -- ^ operation
-          -> LazyByteString    -- ^ input string to encrypt\/decrypt
-          -> IO LazyByteString -- ^ the result string
+          -> L8.ByteString    -- ^ input string to encrypt\/decrypt
+          -> IO L8.ByteString -- ^ the result string
 cipherLBS c key iv mode input
     = do ctx <- cipherInit c key iv mode
          cipherLazily ctx input
 
 
-cipherStrictly :: CipherCtx -> ByteString -> IO ByteString
+cipherStrictly :: CipherCtx -> B8.ByteString -> IO B8.ByteString
 cipherStrictly ctx input
     = do output'  <- cipherUpdateBS ctx input
          output'' <- cipherFinalBS ctx
          return $ B8.append output' output''
 
 
-cipherLazily :: CipherCtx -> LazyByteString -> IO LazyByteString
+cipherLazily :: CipherCtx -> L8.ByteString -> IO L8.ByteString
 
-cipherLazily ctx (LPS [])
-    = cipherFinalBS ctx >>= \ bs -> (return . LPS) [bs]
+cipherLazily ctx (L8Internal.Empty) =
+  cipherFinalBS ctx >>= \ bs -> (return . L8.fromChunks) [bs]
 
-cipherLazily ctx (LPS (x:xs))
-    = do y      <- cipherUpdateBS ctx x
-         LPS ys <- unsafeInterleaveIO $
-                   cipherLazily ctx (LPS xs)
-         return $ LPS (y:ys)
+cipherLazily ctx (L8Internal.Chunk x xs) = do
+  y  <- cipherUpdateBS ctx x
+  ys <- unsafeInterleaveIO $
+        cipherLazily ctx xs
+  return $ L8Internal.Chunk y ys

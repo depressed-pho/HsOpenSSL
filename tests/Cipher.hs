@@ -88,4 +88,4 @@ runCtrTests = mapM runCtrTest ctrTests >>= return . all ((==) True)
 main = do
   r <- runCtrTests
   when (r == False) $ fail "CTR tests failed"
-  print "PASS"
+  putStrLn "PASS"

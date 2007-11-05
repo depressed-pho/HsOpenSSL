@@ -30,8 +30,8 @@ module OpenSSL.EVP.Digest
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
-import           Data.ByteString (copyCStringLen)
+import           Data.ByteString (packCStringLen)
+import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -121,16 +121,16 @@ digestInit (Digest md)
          return ctx   
 
 
-digestUpdateBS :: DigestCtx -> ByteString -> IO ()
+digestUpdateBS :: DigestCtx -> B8.ByteString -> IO ()
 digestUpdateBS ctx bs
     = withDigestCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
       _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
 
 
-digestUpdateLBS :: DigestCtx -> LazyByteString -> IO ()
-digestUpdateLBS ctx (LPS chunks)
-    = mapM_ (digestUpdateBS ctx) chunks
+digestUpdateLBS :: DigestCtx -> L8.ByteString -> IO ()
+digestUpdateLBS ctx lbs
+    = mapM_ (digestUpdateBS ctx) $ L8.toChunks lbs
 
 
 digestFinal :: DigestCtx -> IO String
@@ -143,17 +143,17 @@ digestFinal ctx
          peekCStringLen (bufPtr, bufLen)
 
 
-digestStrictly :: Digest -> ByteString -> IO DigestCtx
+digestStrictly :: Digest -> B8.ByteString -> IO DigestCtx
 digestStrictly md input
     = do ctx <- digestInit md
          digestUpdateBS ctx input
          return ctx
 
 
-digestLazily :: Digest -> LazyByteString -> IO DigestCtx
-digestLazily md (LPS input)
+digestLazily :: Digest -> L8.ByteString -> IO DigestCtx
+digestLazily md lbs
     = do ctx <- digestInit md
-         mapM_ (digestUpdateBS ctx) input
+         mapM_ (digestUpdateBS ctx) $ L8.toChunks lbs
          return ctx
 
 -- |@'digest'@ digests a stream of data. The string must
@@ -164,14 +164,14 @@ digest md input
     = digestLBS md $ L8.pack input
 
 -- |@'digestBS'@ digests a chunk of data.
-digestBS :: Digest -> ByteString -> String
+digestBS :: Digest -> B8.ByteString -> String
 digestBS md input
     = unsafePerformIO $
       do ctx <- digestStrictly md input
          digestFinal ctx
 
 -- |@'digestLBS'@ digests a stream of data.
-digestLBS :: Digest -> LazyByteString -> String
+digestLBS :: Digest -> L8.ByteString -> String
 digestLBS md input
     = unsafePerformIO $
       do ctx <- digestLazily md input
@@ -185,9 +185,9 @@ foreign import ccall unsafe "HMAC"
 
 -- | Perform a private key signing using the HMAC template with a given hash
 hmacBS :: Digest  -- ^ the hash function to use in the HMAC calculation
-       -> ByteString  -- ^ the HMAC key
-       -> ByteString  -- ^ the data to be signed
-       -> ByteString  -- ^ resulting HMAC
+       -> B8.ByteString  -- ^ the HMAC key
+       -> B8.ByteString  -- ^ the data to be signed
+       -> B8.ByteString  -- ^ resulting HMAC
 hmacBS (Digest md) key input =
   unsafePerformIO $
   allocaArray (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
@@ -196,4 +196,4 @@ hmacBS (Digest md) key input =
   unsafeUseAsCStringLen input $ \(inputdata, inputlen) ->
   do _HMAC md keydata (fromIntegral keylen) inputdata (fromIntegral inputlen) bufPtr bufLenPtr
      bufLen <- liftM fromIntegral $ peek bufLenPtr
-     copyCStringLen (bufPtr, bufLen)
+     packCStringLen (bufPtr, bufLen)

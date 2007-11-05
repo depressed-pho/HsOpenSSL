@@ -11,7 +11,6 @@ module OpenSSL.EVP.Sign
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -51,7 +50,7 @@ sign md pkey input
 -- |@'signBS'@ generates a signature from a chunk of data.
 signBS :: Digest     -- ^ message digest algorithm to use
        -> PKey       -- ^ private key to sign the message digest
-       -> ByteString -- ^ input string
+       -> B8.ByteString -- ^ input string
        -> IO String  -- ^ the result signature
 signBS md pkey input
     = do ctx <- digestStrictly md input
@@ -60,7 +59,7 @@ signBS md pkey input
 -- |@'signLBS'@ generates a signature from a stream of data.
 signLBS :: Digest         -- ^ message digest algorithm to use
         -> PKey           -- ^ private key to sign the message digest
-        -> LazyByteString -- ^ input string
+        -> L8.ByteString -- ^ input string
         -> IO String      -- ^ the result signature
 signLBS md pkey input
     = do ctx <- digestLazily md input

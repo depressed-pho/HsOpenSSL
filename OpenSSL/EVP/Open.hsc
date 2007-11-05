@@ -11,7 +11,6 @@ module OpenSSL.EVP.Open
     where
 
 import           Control.Monad
-import           Data.ByteString.Base
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -58,8 +57,8 @@ openBS :: Cipher     -- ^ symmetric cipher algorithm to use
        -> String     -- ^ encrypted symmetric key to decrypt the input string
        -> String     -- ^ IV
        -> PKey       -- ^ private key to decrypt the symmetric key
-       -> ByteString -- ^ input string to decrypt
-       -> ByteString -- ^ decrypted string
+       -> B8.ByteString -- ^ input string to decrypt
+       -> B8.ByteString -- ^ decrypted string
 openBS cipher encKey iv pkey input
     = unsafePerformIO $
       do ctx <- openInit cipher encKey iv pkey
@@ -71,8 +70,8 @@ openLBS :: Cipher         -- ^ symmetric cipher algorithm to use
         -> String         -- ^ encrypted symmetric key to decrypt the input string
         -> String         -- ^ IV
         -> PKey           -- ^ private key to decrypt the symmetric key
-        -> LazyByteString -- ^ input string to decrypt
-        -> LazyByteString -- ^ decrypted string
+        -> L8.ByteString -- ^ input string to decrypt
+        -> L8.ByteString -- ^ decrypted string
 openLBS cipher encKey iv pkey input
     = unsafePerformIO $
       do ctx <- openInit cipher encKey iv pkey
