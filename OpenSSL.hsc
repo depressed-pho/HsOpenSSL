@@ -70,5 +70,6 @@ withOpenSSL :: IO a -> IO a
 withOpenSSL act
     = do loadErrorStrings
          addAllAlgorithms
+         libraryInit
          setupMutex
          act

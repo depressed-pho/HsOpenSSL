@@ -37,7 +37,7 @@ flag splitBase
 
 Library
   if flag(splitBase)
-    build-depends: base >= 3, bytestring, time >= 1.1.1, old-locale
+    build-depends: base >= 3, bytestring, time >= 1.1.1, old-locale, network>=2.1.0.0
   else
     build-depends: base < 3, time >= 1.1.1
 
@@ -66,6 +66,8 @@ Library
           OpenSSL.X509.Revocation
           OpenSSL.X509.Request
           OpenSSL.X509.Store
+          OpenSSL.SocketBIO
+          OpenSSL.Session
   Other-Modules:
           OpenSSL.ASN1
           OpenSSL.BIO
