@@ -25,7 +25,7 @@ clean:
 	find . -name '*~' -exec rm -f {} \;
 	$(MAKE) -C examples clean
 
-doc: .setup-config Setup
+doc: dist/setup-config Setup
 	./Setup haddock --hyperlink-source --hscolour-css=../hscolour/hscolour.css
 
 install: build

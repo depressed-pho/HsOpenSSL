@@ -1,3 +1,10 @@
+Changes from 0.3.1 to 0.4
+-------------------------
+* Applied patches by Adam Langley:
+  - Add the beginnings of session support
+  - Add an example SSL server
+
+
 Changes from 0.3 to 0.3.1
 -------------------------
 * OpenSSL.EVP.Base64: Fix a bug in an internal function `decodeBlock':
@@ -5,6 +12,7 @@ Changes from 0.3 to 0.3.1
 * Applied patches by Adam Langley:
   - Updates for 6.8.1 (also *requires* 6.8.1 now)
   - tests/Base64.hs: Test for Base64
+
 
 Changes from 0.2 to 0.3
 -----------------------

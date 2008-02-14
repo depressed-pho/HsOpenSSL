@@ -8,8 +8,8 @@
 --
 -- Features that aren't (yet) supported:
 --
---   [/TLS\/SSL network connection/] ssl(3) functionalities are
---   totally uncovered. They should be covered someday.
+--   [/TLS\/SSL network connection/] ssl(3) functionalities aren't
+--   fully covered yet.
 --
 --   [/Complete coverage of Low-level API to symmetric ciphers/] Only
 --   high-level APIs (EVP and BIO) are fully available. But I believe

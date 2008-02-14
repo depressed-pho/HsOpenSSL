@@ -5,7 +5,7 @@ Description:
         generate RSA and DSA keys, read and write PEM files, generate
         message digests, sign and verify messages, encrypt and decrypt
         messages.
-Version: 0.3.1
+Version: 0.4
 License: PublicDomain
 License-File: COPYING
 Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
