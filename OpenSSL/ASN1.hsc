@@ -61,8 +61,8 @@ data ASN1_STRING
 peekASN1String :: Ptr ASN1_STRING -> IO String
 peekASN1String strPtr
     = do buf <- (#peek ASN1_STRING, data  ) strPtr
-         len <- (#peek ASN1_STRING, length) strPtr
-         peekCStringLen (buf, len)
+         len <- (#peek ASN1_STRING, length) strPtr :: IO CInt
+         peekCStringLen (buf, fromIntegral len)
 
 
 {- ASN1_INTEGER -------------------------------------------------------------- -}
