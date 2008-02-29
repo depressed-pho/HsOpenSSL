@@ -51,7 +51,6 @@ import           Control.Monad
 import           Foreign.C
 #else
 import           Foreign.C.Types
-import           Data.Word (Word32)
 import           GHC.Base
 import           GHC.Num
 import           GHC.Prim
@@ -164,11 +163,11 @@ freezeByteArray arr = IO $ \s ->
 -- | Convert a BIGNUM to an Integer
 bnToInteger :: BigNum -> IO Integer
 bnToInteger bn = do
-  nlimbs <- (#peek BIGNUM, top) (unwrapBN bn) :: IO CSize
+  nlimbs <- (#peek BIGNUM, top) (unwrapBN bn) :: IO CInt
   case nlimbs of
     0 -> return 0
     1 -> do (I## i) <- (#peek BIGNUM, d) (unwrapBN bn) >>= peek
-            negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO Word32
+            negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO CInt
             if negative == 0
                then return $ S## i
                else return $ 0 - (S## i)
@@ -179,7 +178,7 @@ bnToInteger bn = do
       (BA ba) <- freezeByteArray arr
       limbs <- (#peek BIGNUM, d) (unwrapBN bn)
       _copy_in ba limbs $ fromIntegral $ nlimbs * (#size unsigned long)
-      negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO Word32
+      negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO CInt
       if negative == 0
          then return $ J## nlimbsi ba
          else return $ 0 - (J## nlimbsi ba)
@@ -191,9 +190,9 @@ integerToBN 0 = do
   bnptr <- mallocBytes (#size BIGNUM)
   (#poke BIGNUM, d) bnptr nullPtr
   -- This is needed to give GHC enough type information
-  let one :: Word32
+  let one :: CInt
       one = 1
-      zero :: Word32
+      zero :: CInt
       zero = 0
   (#poke BIGNUM, flags) bnptr one
   (#poke BIGNUM, top) bnptr zero
@@ -203,12 +202,12 @@ integerToBN 0 = do
 
 integerToBN (S## v) = do
   bnptr <- mallocBytes (#size BIGNUM)
-  limbs <- malloc :: IO (Ptr Word32)
+  limbs <- malloc :: IO (Ptr CULong)
   poke limbs $ fromIntegral $ abs $ I## v
   (#poke BIGNUM, d) bnptr limbs
   -- This is needed to give GHC enough type information since #poke just
   -- uses an offset
-  let one :: Word32
+  let one :: CInt
       one = 1
   (#poke BIGNUM, flags) bnptr one
   (#poke BIGNUM, top) bnptr one
@@ -220,16 +219,16 @@ integerToBN v@(J## nlimbs_ bytearray)
   | v >= 0 = do
       let nlimbs = (I## nlimbs_)
       bnptr <- mallocBytes (#size BIGNUM)
-      limbs <- mallocBytes ((#size unsigned) * nlimbs)
+      limbs <- mallocBytes ((#size unsigned long) * nlimbs)
       (#poke BIGNUM, d) bnptr limbs
-      (#poke BIGNUM, flags) bnptr (1 :: Word32)
-      _copy_out limbs bytearray (fromIntegral $ (#size unsigned) * nlimbs)
-      (#poke BIGNUM, top) bnptr ((fromIntegral nlimbs) :: Word32)
-      (#poke BIGNUM, dmax) bnptr ((fromIntegral nlimbs) :: Word32)
-      (#poke BIGNUM, neg) bnptr (0 :: Word32)
+      (#poke BIGNUM, flags) bnptr (1 :: CInt)
+      _copy_out limbs bytearray (fromIntegral $ (#size unsigned long) * nlimbs)
+      (#poke BIGNUM, top) bnptr ((fromIntegral nlimbs) :: CInt)
+      (#poke BIGNUM, dmax) bnptr ((fromIntegral nlimbs) :: CInt)
+      (#poke BIGNUM, neg) bnptr (0 :: CInt)
       return (wrapBN bnptr)
   | otherwise = do bnptr <- integerToBN (0-v)
-                   (#poke BIGNUM, neg) (unwrapBN bnptr) (1 :: Word32)
+                   (#poke BIGNUM, neg) (unwrapBN bnptr) (1 :: CInt)
                    return bnptr
 
 -- TODO: we could make a function which doesn't even allocate BN data if we
