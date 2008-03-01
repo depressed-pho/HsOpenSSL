@@ -1,3 +1,10 @@
+Changes from 0.4 to ???
+-----------------------
+* Applied patches by Adam Langley:
+  - Fix BN<->Integer conversions on 64-bit systems
+  - Another 64-bit fix (OpenSSL.ASN1.peekASN1String)
+
+
 Changes from 0.3.1 to 0.4
 -------------------------
 * Applied patches by Adam Langley:
