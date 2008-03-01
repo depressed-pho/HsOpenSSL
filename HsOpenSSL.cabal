@@ -8,8 +8,8 @@ Description:
 Version: 0.4
 License: PublicDomain
 License-File: COPYING
-Author: PHO <phonohawk at ps dot sakura dot ne dot jp>
-Maintainer: PHO <phonohawk at ps dot sakura dot ne dot jp>
+Author: PHO <pho at cielonegro.org>
+Maintainer: PHO <pho at cielonegro.org>
 Stability: experimental
 Homepage: http://ccm.sherry.jp/HsOpenSSL/
 Category: Cryptography
