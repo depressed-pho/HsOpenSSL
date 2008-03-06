@@ -23,6 +23,7 @@ module OpenSSL.EVP.Digest
 
     , digest
     , digestBS
+    , digestBS'
     , digestLBS
 
     , hmacBS
@@ -30,6 +31,7 @@ module OpenSSL.EVP.Digest
     where
 
 import           Control.Monad
+import           Data.ByteString.Internal (createAndTrim)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -133,6 +135,14 @@ digestFinal ctx
          bufLen <- liftM fromIntegral $ peek bufLenPtr
          peekCStringLen (bufPtr, bufLen)
 
+digestFinalBS :: DigestCtx -> IO B8.ByteString
+digestFinalBS ctx =
+  withDigestCtxPtr ctx $ \ctxPtr ->
+  createAndTrim (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
+  alloca $ \bufLenPtr ->
+  do _DigestFinal ctxPtr (castPtr bufPtr) bufLenPtr >>= failIf (/= 1)
+     liftM fromIntegral $ peek bufLenPtr
+
 
 digestStrictly :: Digest -> B8.ByteString -> IO DigestCtx
 digestStrictly md input
@@ -160,6 +170,12 @@ digestBS md input
     = unsafePerformIO $
       do ctx <- digestStrictly md input
          digestFinal ctx
+
+digestBS' :: Digest -> B8.ByteString -> B8.ByteString
+digestBS' md input
+    = unsafePerformIO $
+      do ctx <- digestStrictly md input
+         digestFinalBS ctx
 
 -- |@'digestLBS'@ digests a stream of data.
 digestLBS :: Digest -> L8.ByteString -> String
