@@ -121,16 +121,16 @@ data CryptoMode = Encrypt | Decrypt
 
 
 foreign import ccall unsafe "EVP_CipherInit"
-        _CipherInit :: Ptr EVP_CIPHER_CTX -> Ptr EVP_CIPHER -> CString -> CString -> Int -> IO Int
+        _CipherInit :: Ptr EVP_CIPHER_CTX -> Ptr EVP_CIPHER -> CString -> CString -> CInt -> IO CInt
 
 foreign import ccall unsafe "EVP_CipherUpdate"
-        _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr Int -> Ptr CChar -> Int -> IO Int
+        _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr CInt -> Ptr CChar -> CInt -> IO CInt
 
 foreign import ccall unsafe "EVP_CipherFinal"
-        _CipherFinal :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr Int -> IO Int
+        _CipherFinal :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr CInt -> IO CInt
 
 
-cryptoModeToInt :: CryptoMode -> Int
+cryptoModeToInt :: CryptoMode -> CInt
 cryptoModeToInt Encrypt = 1
 cryptoModeToInt Decrypt = 0
 
@@ -152,9 +152,9 @@ cipherUpdateBS ctx inBS
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (inLen + _ctx_block_size ctxPtr - 1) $ \ outBuf ->
       alloca $ \ outLenPtr ->
-      _CipherUpdate ctxPtr (castPtr outBuf) outLenPtr inBuf inLen
+      _CipherUpdate ctxPtr (castPtr outBuf) outLenPtr inBuf (fromIntegral inLen)
            >>= failIf (/= 1)
-           >>  peek outLenPtr
+           >>  liftM fromIntegral (peek outLenPtr)
 
 
 cipherFinalBS :: CipherCtx -> IO B8.ByteString
@@ -164,7 +164,7 @@ cipherFinalBS ctx
       alloca $ \ outLenPtr ->
       _CipherFinal ctxPtr (castPtr outBuf) outLenPtr
            >>= failIf (/= 1)
-           >>  peek outLenPtr
+           >>  liftM fromIntegral (peek outLenPtr)
 
 -- |@'cipher'@ lazilly encrypts or decrypts a stream of data. The
 -- input string doesn't necessarily have to be finite.
