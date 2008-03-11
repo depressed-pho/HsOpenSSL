@@ -187,7 +187,7 @@ digestLBS md input
 {- HMAC ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "HMAC"
-        _HMAC :: Ptr EVP_MD -> Ptr CChar -> CInt -> Ptr CChar -> CInt
+        _HMAC :: Ptr EVP_MD -> Ptr CChar -> CInt -> Ptr CChar -> CSize
               -> Ptr CChar -> Ptr CUInt -> IO ()
 
 -- | Perform a private key signing using the HMAC template with a given hash
