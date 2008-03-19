@@ -64,7 +64,7 @@ withX509Name name m
 peekX509Name :: Ptr X509_NAME -> Bool -> IO [(String, String)]
 peekX509Name namePtr wantLongName
     = do count <- _entry_count namePtr >>= failIf (< 0)
-         mapM peekEntry $ take count [0..]
+         mapM peekEntry [0..count - 1]
     where
       peekEntry :: Int -> IO (String, String)
       peekEntry n
