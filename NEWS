@@ -1,8 +1,13 @@
-Changes from 0.4 to ???
------------------------
+Changes from 0.4 to 0.4.1
+-------------------------
 * Applied patches by Adam Langley:
   - Fix BN<->Integer conversions on 64-bit systems
   - Another 64-bit fix (OpenSSL.ASN1.peekASN1String)
+  - Add ByteString version of digestBS
+  - Fix the foreign types of the cipher functions to use CInt, not Int
+  - 64-bit fix for HMAC
+  - Turn the Session IO inside out
+  - Silly cosmetic change
 
 
 Changes from 0.3.1 to 0.4
