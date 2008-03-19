@@ -69,8 +69,4 @@ int HsOpenSSL_dsa_sign(DSA *dsa, const unsigned char *ddata, int len,
 int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int len,
                          BIGNUM *r, BIGNUM *s);
 
-/* Socket BIO *****************************************************************/
-
-BIO *socket_BIO_wrapper(int fd);
-
 #endif

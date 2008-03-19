@@ -66,7 +66,6 @@ Library
           OpenSSL.X509.Revocation
           OpenSSL.X509.Request
           OpenSSL.X509.Store
-          OpenSSL.SocketBIO
           OpenSSL.Session
   Other-Modules:
           OpenSSL.ASN1
