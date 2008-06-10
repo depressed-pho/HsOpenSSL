@@ -1,3 +1,10 @@
+Changes from 0.4.1 to 0.4.2
+---------------------------
+* No .hs files which are generated from .hsc files should be in the
+  tarball. If any .hs files are outdated, Cabal seems to compile the
+  outdated files instead of newer .hsc files.
+
+
 Changes from 0.4 to 0.4.1
 -------------------------
 * Applied patches by Adam Langley:
