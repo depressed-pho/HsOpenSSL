@@ -27,11 +27,12 @@ module OpenSSL.EVP.Digest
     , digestLBS
 
     , hmacBS
+    , pkcs5_pbkdf2_hmac_sha1
     )
     where
 
 import           Control.Monad
-import           Data.ByteString.Internal (createAndTrim)
+import           Data.ByteString.Internal (createAndTrim, create)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
@@ -204,3 +205,21 @@ hmacBS (Digest md) key input =
   do _HMAC md keydata (fromIntegral keylen) inputdata (fromIntegral inputlen) bufPtr bufLenPtr
      bufLen <- liftM fromIntegral $ peek bufLenPtr
      B8.packCStringLen (bufPtr, bufLen)
+
+pkcs5_pbkdf2_hmac_sha1 :: B8.ByteString -- ^ password
+                       -> B8.ByteString -- ^ salt
+                       -> Int           -- ^ iterations
+                       -> Int           -- ^ destination key length
+                       -> B8.ByteString -- ^ destination key
+pkcs5_pbkdf2_hmac_sha1 pass salt iter dkeylen =
+  unsafePerformIO $
+  unsafeUseAsCStringLen pass $ \(passdata, passlen) ->
+  unsafeUseAsCStringLen salt $ \(saltdata, saltlen) ->
+  create dkeylen $ \dkeydata ->
+  do _PKCS5_PBKDF2_HMAC_SHA1 passdata (fromIntegral passlen) saltdata (fromIntegral saltlen) (fromIntegral iter) (fromIntegral dkeylen) (castPtr dkeydata)
+     return ()
+
+foreign import ccall unsafe "PKCS5_PBKDF2_HMAC_SHA1" _PKCS5_PBKDF2_HMAC_SHA1 :: Ptr CChar -> CInt
+                                                                             -> Ptr CChar -> CInt
+                                                                             -> CInt -> CInt -> Ptr CChar
+                                                                             -> IO CInt
