@@ -1,3 +1,9 @@
+Changes from 0.4.2 to ?????
+___________________________
+* Applied a patch by Taru Karttunen:
+  -  Add pkcs5_pbkdf2_hmac_sha1 to OpenSSL.EVP.Digest
+
+
 Changes from 0.4.1 to 0.4.2
 ---------------------------
 * No .hs files which are generated from .hsc files should be in the

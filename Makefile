@@ -9,7 +9,7 @@ run: build
 	$(MAKE) -C examples run
 
 dist/setup-config: $(CABAL_FILE) configure Setup
-	./Setup configure -p -O --enable-split-objs
+	./Setup configure -O
 
 configure: aclocal.m4 configure.ac
 	autoconf
