@@ -53,12 +53,14 @@ import           System.IO
 
 -- |@'PemPasswordCallback'@ represents a callback function to supply a
 -- password.
-type PemPasswordCallback
-    =  Int                -- ^ maximum length of the password to be
-                          --   accepted
-    -> PemPasswordRWState -- ^ context
-    -> IO String          -- ^ the result password
-
+--
+--   [@Int@] The maximum length of the password to be accepted.
+--
+--   [@PemPasswordRWState@] The context.
+--
+--   [@IO String@] The resulting password.
+--
+type PemPasswordCallback  = Int -> PemPasswordRWState -> IO String
 type PemPasswordCallback' = Ptr CChar -> Int -> Int -> Ptr () -> IO Int
 
 

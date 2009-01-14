@@ -26,7 +26,7 @@ clean:
 	$(MAKE) -C examples clean
 
 doc: dist/setup-config Setup
-	./Setup haddock --hyperlink-source --hscolour-css=../hscolour/hscolour.css
+	./Setup haddock
 
 install: build
 	sudo ./Setup install

@@ -137,8 +137,10 @@ contextCheckPrivateKey context =
 
 -- | See <http://www.openssl.org/docs/ssl/SSL_CTX_set_verify.html>
 data VerificationMode = VerifyNone
-                      | VerifyPeer Bool  -- ^ is a certificate required
-                                   Bool  -- ^ only request once per connection
+                      | VerifyPeer {
+                          vpFailIfNoPeerCert :: Bool  -- ^ is a certificate required
+                        , vpClientOnce       :: Bool  -- ^ only request once per connection
+                        }
 
 foreign import ccall unsafe "SSL_CTX_set_verify"
    _ssl_set_verify_mode :: Ptr SSLContext_ -> CInt -> Ptr () -> IO ()
