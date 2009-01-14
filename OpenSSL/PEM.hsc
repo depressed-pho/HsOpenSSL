@@ -108,7 +108,7 @@ callPasswordCB cb buf bufLen rwflag _
                     return passLen
       in
         try `catch` \ exc ->
-            do hPutStrLn stderr $ show exc
+            do hPutStrLn stderr (show (exc :: SomeException))
                return 0 -- zero indicates an error
     where
       failForTooLongPassword :: Int -> IO a

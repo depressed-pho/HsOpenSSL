@@ -54,6 +54,7 @@ import           Foreign.C.Types
 import           GHC.Base
 import           GHC.Num
 import           GHC.Prim
+import           GHC.Integer.Internals
 import           GHC.IOBase (IO(..))
 #endif
 

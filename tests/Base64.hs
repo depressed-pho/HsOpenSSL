@@ -9,6 +9,24 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import           OpenSSL.EVP.Base64
 
+{-
+  Comment by PHO:
+
+  These instance declarations now seem to be part of
+  Data.ByteString. What should we do then?
+
+  Base64.hs:12:9:
+      Duplicate instance declarations:
+        instance IsString BS.ByteString -- Defined at Base64.hs:12:9-30
+        instance IsString BS.ByteString -- Defined in Data.ByteString.Char8
+
+  Base64.hs:17:9:
+      Duplicate instance declarations:
+        instance IsString BSL.ByteString -- Defined at Base64.hs:17:9-31
+        instance IsString BSL.ByteString
+          -- Defined in Data.ByteString.Lazy.Char8
+-}
+{-
 instance IsString BS.ByteString where
   fromString = BS.pack . map (fromIntegral . ord)
 
@@ -16,6 +34,7 @@ instance IsString BS.ByteString where
 -- This is to stress the lazy code - not because it's a good idea generally
 instance IsString BSL.ByteString where
   fromString = BSL.fromChunks . map (BS.singleton . fromIntegral . ord)
+-}
 
 encodeTests :: [(BS.ByteString, BS.ByteString)]
 encodeTests =

@@ -5,15 +5,15 @@ Description:
         generate RSA and DSA keys, read and write PEM files, generate
         message digests, sign and verify messages, encrypt and decrypt
         messages.
-Version: 0.4.2
+Version: 0.5
 License: PublicDomain
 License-File: COPYING
 Author: Adam Langley <agl at imperialviolet.org>, PHO <pho at cielonegro.org>
 Maintainer: PHO <pho at cielonegro.org>
 Stability: experimental
-Homepage: http://ccm.sherry.jp/HsOpenSSL/
+Homepage: http://cielonegro.org/HsOpenSSL/
 Category: Cryptography
-Tested-With: GHC == 6.8.1
+Tested-With: GHC == 6.10.1
 Cabal-Version: >= 1.2
 Build-Type: Configure
 
@@ -38,13 +38,13 @@ flag splitBase
 
 Library
   if flag(splitBase)
-    build-depends: base >= 3, bytestring, time >= 1.1.1, old-locale, network>=2.1.0.0
+    build-depends: base >= 3, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
   else
     build-depends: base < 3, time >= 1.1.1
 
   --PkgConfig-Depends: openssl >= 0.9.7l
   -- We really should use this instead of the configure script but
-  -- Cabal 1.2.2.0 can't handle the weird version scheme of OpenSSL.
+  -- Cabal 1.6.0.1 can't handle this weird version scheme of OpenSSL.
 
   Exposed-Modules:
           OpenSSL
