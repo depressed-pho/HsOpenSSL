@@ -78,9 +78,10 @@ Library
           OpenSSL.Utils
           OpenSSL.X509.Name
   Extensions:
-          ForeignFunctionInterface, EmptyDataDecls, MagicHash
+          ForeignFunctionInterface, EmptyDataDecls, MagicHash,
+          UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable
   ghc-options:
-          -Wall -fglasgow-exts
+          -Wall
   C-Sources:
           cbits/HsOpenSSL.c
   Include-Dirs:
