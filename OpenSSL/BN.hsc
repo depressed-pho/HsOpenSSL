@@ -2,7 +2,7 @@
 
 #include "HsOpenSSL.h"
 
--- #prune
+{-# OPTIONS_HADDOCK prune #-}
 
 -- |BN - multiprecision integer arithmetics
 

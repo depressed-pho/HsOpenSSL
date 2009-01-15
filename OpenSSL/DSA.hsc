@@ -1,6 +1,6 @@
 {- -*- haskell -*- -}
 
--- #prune
+{-# OPTIONS_HADDOCK prune #-}
 
 -- | The Digital Signature Algorithm (FIPS 186-2).
 --   See <http://www.openssl.org/docs/crypto/dsa.html>

@@ -1,6 +1,6 @@
 {- -*- haskell -*- -}
 
--- #prune
+{-# OPTIONS_HADDOCK prune #-}
 
 -- |An interface to symmetric cipher algorithms.
 

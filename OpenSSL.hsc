@@ -8,8 +8,8 @@
 --
 -- Features that aren't (yet) supported:
 --
---   [/TLS\/SSL network connection/] ssl(3) functionalities aren't
---   fully covered yet.
+--   [/SSL network connection/] ssl(3) functionalities aren't fully
+--   covered yet. See "OpenSSL.Session".
 --
 --   [/Complete coverage of Low-level API to symmetric ciphers/] Only
 --   high-level APIs (EVP and BIO) are fully available. But I believe
@@ -28,7 +28,7 @@
 --   [/Low-level API to message digest functions/] Just use EVP
 --   instead of something like @MD5_Update@.
 --
---   [/API to PKCS\#12 functionality/] It should be covered someday.
+--   [/API to PKCS#12 functionality/] It should be covered someday.
 --
 --   [/BIO/] BIO isn't needed because we are Haskell hackers. Though
 --   HsOpenSSL itself uses BIO internally.
