@@ -11,7 +11,7 @@ License-File: COPYING
 Author: Adam Langley <agl at imperialviolet.org>, PHO <pho at cielonegro.org>
 Maintainer: PHO <pho at cielonegro.org>
 Stability: experimental
-Homepage: http://cielonegro.org/HsOpenSSL/
+Homepage: http://cielonegro.org/HsOpenSSL.html
 Category: Cryptography
 Tested-With: GHC == 6.10.1
 Cabal-Version: >= 1.2.3

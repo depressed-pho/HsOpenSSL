@@ -43,4 +43,4 @@ main = withOpenSSL $
 
           let pkey = newPKeyRSA rsa
           writePKCS8PrivateKey pkey Nothing >>= putStr
-          -- writePublicKey pkey >>= putStr
+          writePublicKey pkey >>= putStr

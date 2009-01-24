@@ -416,7 +416,7 @@ foreign import ccall unsafe "BIO_new_mem_buf"
 --
 -- Memory BIOs support 'bioGets'.
 --
--- Calling 'bioReset' on a erad write memory BIO clears any data in
+-- Calling 'bioReset' on a read write memory BIO clears any data in
 -- it. On a read only BIO it restores the BIO to its original state
 -- and the read only data can be read again.
 --
