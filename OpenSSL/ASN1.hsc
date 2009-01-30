@@ -37,20 +37,20 @@ import           System.Locale
 data ASN1_OBJECT
 
 foreign import ccall unsafe "OBJ_obj2nid"
-        obj2nid :: Ptr ASN1_OBJECT -> IO Int
+        obj2nid :: Ptr ASN1_OBJECT -> IO CInt
 
 foreign import ccall unsafe "OBJ_nid2sn"
-        _nid2sn :: Int -> IO CString
+        _nid2sn :: CInt -> IO CString
 
 foreign import ccall unsafe "OBJ_nid2ln"
-        _nid2ln :: Int -> IO CString
+        _nid2ln :: CInt -> IO CString
 
 
-nid2sn :: Int -> IO String
+nid2sn :: CInt -> IO String
 nid2sn nid = _nid2sn nid >>= peekCString
 
 
-nid2ln :: Int -> IO String
+nid2ln :: CInt -> IO String
 nid2ln nid = _nid2ln nid >>= peekCString
 
 
@@ -118,7 +118,7 @@ foreign import ccall unsafe "ASN1_TIME_set"
         _ASN1_TIME_set :: Ptr ASN1_TIME -> CTime -> IO (Ptr ASN1_TIME)
 
 foreign import ccall unsafe "ASN1_TIME_print"
-        _ASN1_TIME_print :: Ptr BIO_ -> Ptr ASN1_TIME -> IO Int
+        _ASN1_TIME_print :: Ptr BIO_ -> Ptr ASN1_TIME -> IO CInt
 
 
 peekASN1Time :: Ptr ASN1_TIME -> IO UTCTime -- asn1/t_x509.c

@@ -58,7 +58,7 @@ foreign import ccall unsafe "EVP_get_cipherbyname"
 
 
 foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_iv_length"
-        _iv_length :: Ptr EVP_CIPHER -> Int
+        _iv_length :: Ptr EVP_CIPHER -> CInt
 
 
 withCipherPtr :: Cipher -> (Ptr EVP_CIPHER -> IO a) -> IO a
@@ -83,7 +83,7 @@ getCipherNames = getObjNames CipherMethodType True
 
 
 cipherIvLength :: Cipher -> Int
-cipherIvLength (Cipher cipherPtr) = _iv_length cipherPtr
+cipherIvLength (Cipher cipherPtr) = fromIntegral $ _iv_length cipherPtr
 
 
 {- EVP_CIPHER_CTX ------------------------------------------------------------ -}
@@ -99,7 +99,7 @@ foreign import ccall unsafe "&EVP_CIPHER_CTX_cleanup"
         _ctx_cleanup :: FunPtr (Ptr EVP_CIPHER_CTX -> IO ())
 
 foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_CTX_block_size"
-        _ctx_block_size :: Ptr EVP_CIPHER_CTX -> Int
+        _ctx_block_size :: Ptr EVP_CIPHER_CTX -> CInt
 
 
 newCtx :: IO CipherCtx
@@ -150,7 +150,7 @@ cipherUpdateBS :: CipherCtx -> B8.ByteString -> IO B8.ByteString
 cipherUpdateBS ctx inBS
     = withCipherCtxPtr ctx $ \ ctxPtr ->
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
-      createAndTrim (inLen + _ctx_block_size ctxPtr - 1) $ \ outBuf ->
+      createAndTrim (inLen + fromIntegral (_ctx_block_size ctxPtr) - 1) $ \ outBuf ->
       alloca $ \ outLenPtr ->
       _CipherUpdate ctxPtr (castPtr outBuf) outLenPtr inBuf (fromIntegral inLen)
            >>= failIf (/= 1)
@@ -160,7 +160,7 @@ cipherUpdateBS ctx inBS
 cipherFinalBS :: CipherCtx -> IO B8.ByteString
 cipherFinalBS ctx
     = withCipherCtxPtr ctx $ \ ctxPtr ->
-      createAndTrim (_ctx_block_size ctxPtr) $ \ outBuf ->
+      createAndTrim (fromIntegral $ _ctx_block_size ctxPtr) $ \ outBuf ->
       alloca $ \ outLenPtr ->
       _CipherFinal ctxPtr (castPtr outBuf) outLenPtr
            >>= failIf (/= 1)

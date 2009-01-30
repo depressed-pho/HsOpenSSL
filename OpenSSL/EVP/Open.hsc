@@ -24,10 +24,10 @@ foreign import ccall unsafe "EVP_OpenInit"
         _OpenInit :: Ptr EVP_CIPHER_CTX
                   -> Cipher
                   -> Ptr CChar
-                  -> Int
+                  -> CInt
                   -> CString
                   -> Ptr EVP_PKEY
-                  -> IO Int
+                  -> IO CInt
 
 
 openInit :: Cipher -> String -> String -> PKey -> IO CipherCtx
@@ -37,7 +37,7 @@ openInit cipher encKey iv pkey
              withCStringLen encKey $ \ (encKeyPtr, encKeyLen) ->
                  withCString iv $ \ ivPtr ->
                      withPKeyPtr pkey $ \ pkeyPtr ->
-                         _OpenInit ctxPtr cipher encKeyPtr encKeyLen ivPtr pkeyPtr
+                         _OpenInit ctxPtr cipher encKeyPtr (fromIntegral encKeyLen) ivPtr pkeyPtr
                               >>= failIf (== 0)
          return ctx
 

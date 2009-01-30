@@ -18,10 +18,10 @@ type DoAllCallback = ObjName -> Ptr () -> IO ()
 
 
 foreign import ccall safe "OBJ_NAME_do_all"
-        _NAME_do_all :: Int -> FunPtr DoAllCallback -> Ptr () -> IO ()
+        _NAME_do_all :: CInt -> FunPtr DoAllCallback -> Ptr () -> IO ()
 
 foreign import ccall safe "OBJ_NAME_do_all_sorted"
-        _NAME_do_all_sorted :: Int -> FunPtr DoAllCallback -> Ptr () -> IO ()
+        _NAME_do_all_sorted :: CInt -> FunPtr DoAllCallback -> Ptr () -> IO ()
 
 foreign import ccall "wrapper"
         mkDoAllCallback :: DoAllCallback -> IO (FunPtr DoAllCallback)
@@ -32,7 +32,7 @@ data ObjNameType = MDMethodType
                  | PKeyMethodType
                  | CompMethodType
 
-objNameTypeToInt :: ObjNameType -> Int
+objNameTypeToInt :: ObjNameType -> CInt
 objNameTypeToInt MDMethodType     = #const OBJ_NAME_TYPE_MD_METH
 objNameTypeToInt CipherMethodType = #const OBJ_NAME_TYPE_CIPHER_METH
 objNameTypeToInt PKeyMethodType   = #const OBJ_NAME_TYPE_PKEY_METH

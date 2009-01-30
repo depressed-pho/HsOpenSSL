@@ -44,7 +44,7 @@ nextBlock minLen (xs, src)
 {- encode -------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "EVP_EncodeBlock"
-        _EncodeBlock :: Ptr CChar -> Ptr CChar -> Int -> IO Int
+        _EncodeBlock :: Ptr CChar -> Ptr CChar -> CInt -> IO CInt
 
 
 encodeBlock :: B8.ByteString -> B8.ByteString
@@ -52,7 +52,7 @@ encodeBlock inBS
     = unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim maxOutLen $ \ outBuf ->
-      _EncodeBlock (castPtr outBuf) inBuf inLen
+      _EncodeBlock (castPtr outBuf) inBuf (fromIntegral inLen) >>= return . fromIntegral
     where
       maxOutLen = (inputLen `div` 3 + 1) * 4 + 1 -- +1: '\0'
       inputLen  = B8.length inBS
@@ -96,7 +96,7 @@ encodeBase64LBS inLBS
 {- decode -------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "EVP_DecodeBlock"
-        _DecodeBlock :: Ptr CChar -> Ptr CChar -> Int -> IO Int
+        _DecodeBlock :: Ptr CChar -> Ptr CChar -> CInt -> IO CInt
 
 
 decodeBlock :: B8.ByteString -> B8.ByteString
@@ -105,8 +105,8 @@ decodeBlock inBS
       unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim (B8.length inBS) $ \ outBuf ->
-      _DecodeBlock (castPtr outBuf) inBuf inLen
-           >>= \ outLen -> return (outLen - paddingLen)
+      _DecodeBlock (castPtr outBuf) inBuf (fromIntegral inLen)
+           >>= \ outLen -> return (fromIntegral outLen - paddingLen)
     where
       paddingLen :: Int
       paddingLen = B8.count '=' inBS

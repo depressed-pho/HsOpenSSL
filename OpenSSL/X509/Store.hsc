@@ -17,6 +17,7 @@ module OpenSSL.X509.Store
     where
 
 import           Foreign
+import           Foreign.C
 import           OpenSSL.X509
 import           OpenSSL.X509.Revocation
 import           OpenSSL.Utils
@@ -35,10 +36,10 @@ foreign import ccall unsafe "&X509_STORE_free"
         _free :: FunPtr (Ptr X509_STORE -> IO ())
 
 foreign import ccall unsafe "X509_STORE_add_cert"
-        _add_cert :: Ptr X509_STORE -> Ptr X509_ -> IO Int
+        _add_cert :: Ptr X509_STORE -> Ptr X509_ -> IO CInt
 
 foreign import ccall unsafe "X509_STORE_add_crl"
-        _add_crl :: Ptr X509_STORE -> Ptr X509_CRL -> IO Int
+        _add_crl :: Ptr X509_STORE -> Ptr X509_CRL -> IO CInt
 
 -- |@'newX509Store'@ creates an empty X.509 certificate store.
 newX509Store :: IO X509Store

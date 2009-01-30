@@ -26,13 +26,13 @@ foreign import ccall unsafe "X509_NAME_free"
         _free :: Ptr X509_NAME -> IO ()
 
 foreign import ccall unsafe "X509_NAME_add_entry_by_txt"
-        _add_entry_by_txt :: Ptr X509_NAME -> CString -> Int -> Ptr CChar -> Int -> Int -> Int -> IO Int
+        _add_entry_by_txt :: Ptr X509_NAME -> CString -> CInt -> Ptr CChar -> CInt -> CInt -> CInt -> IO CInt
 
 foreign import ccall unsafe "X509_NAME_entry_count"
-        _entry_count :: Ptr X509_NAME -> IO Int
+        _entry_count :: Ptr X509_NAME -> IO CInt
 
 foreign import ccall unsafe "X509_NAME_get_entry"
-        _get_entry :: Ptr X509_NAME -> Int -> IO (Ptr X509_NAME_ENTRY)
+        _get_entry :: Ptr X509_NAME -> CInt -> IO (Ptr X509_NAME_ENTRY)
 
 foreign import ccall unsafe "X509_NAME_ENTRY_get_object"
         _ENTRY_get_object :: Ptr X509_NAME_ENTRY -> IO (Ptr ASN1_OBJECT)
@@ -56,19 +56,19 @@ withX509Name name m
       addEntry namePtr (key, val)
           = withCString    key $ \ keyPtr ->
             withCStringLen val $ \ (valPtr, valLen) ->
-            _add_entry_by_txt namePtr keyPtr (#const MBSTRING_UTF8) valPtr valLen (-1) 0
+            _add_entry_by_txt namePtr keyPtr (#const MBSTRING_UTF8) valPtr (fromIntegral valLen) (-1) 0
                  >>= failIf (/= 1)
                  >>  return ()
 
 
 peekX509Name :: Ptr X509_NAME -> Bool -> IO [(String, String)]
 peekX509Name namePtr wantLongName
-    = do count <- _entry_count namePtr >>= failIf (< 0)
+    = do count <- return . fromIntegral =<< failIf (< 0) =<< _entry_count namePtr
          mapM peekEntry [0..count - 1]
     where
       peekEntry :: Int -> IO (String, String)
       peekEntry n
-          = do ent <- _get_entry namePtr n  >>= failIfNull
+          = do ent <- _get_entry namePtr (fromIntegral n) >>= failIfNull
                obj <- _ENTRY_get_object ent >>= failIfNull
                dat <- _ENTRY_get_data   ent >>= failIfNull
 

@@ -75,52 +75,52 @@ foreign import ccall unsafe "&X509_free"
         _free :: FunPtr (Ptr X509_ -> IO ())
 
 foreign import ccall unsafe "X509_print"
-        _print :: Ptr BIO_ -> Ptr X509_ -> IO Int
+        _print :: Ptr BIO_ -> Ptr X509_ -> IO CInt
 
 foreign import ccall unsafe "X509_cmp"
-        _cmp :: Ptr X509_ -> Ptr X509_ -> IO Int
+        _cmp :: Ptr X509_ -> Ptr X509_ -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_get_version"
         _get_version :: Ptr X509_ -> IO CLong
 
 foreign import ccall unsafe "X509_set_version"
-        _set_version :: Ptr X509_ -> CLong -> IO Int
+        _set_version :: Ptr X509_ -> CLong -> IO CInt
 
 foreign import ccall unsafe "X509_get_serialNumber"
         _get_serialNumber :: Ptr X509_ -> IO (Ptr ASN1_INTEGER)
 
 foreign import ccall unsafe "X509_set_serialNumber"
-        _set_serialNumber :: Ptr X509_ -> Ptr ASN1_INTEGER -> IO Int
+        _set_serialNumber :: Ptr X509_ -> Ptr ASN1_INTEGER -> IO CInt
 
 foreign import ccall unsafe "X509_get_issuer_name"
         _get_issuer_name :: Ptr X509_ -> IO (Ptr X509_NAME)
 
 foreign import ccall unsafe "X509_set_issuer_name"
-        _set_issuer_name :: Ptr X509_ -> Ptr X509_NAME -> IO Int
+        _set_issuer_name :: Ptr X509_ -> Ptr X509_NAME -> IO CInt
 
 foreign import ccall unsafe "X509_get_subject_name"
         _get_subject_name :: Ptr X509_ -> IO (Ptr X509_NAME)
 
 foreign import ccall unsafe "X509_set_subject_name"
-        _set_subject_name :: Ptr X509_ -> Ptr X509_NAME -> IO Int
+        _set_subject_name :: Ptr X509_ -> Ptr X509_NAME -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_get_notBefore"
         _get_notBefore :: Ptr X509_ -> IO (Ptr ASN1_TIME)
 
 foreign import ccall unsafe "X509_set_notBefore"
-        _set_notBefore :: Ptr X509_ -> Ptr ASN1_TIME -> IO Int
+        _set_notBefore :: Ptr X509_ -> Ptr ASN1_TIME -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_get_notAfter"
         _get_notAfter :: Ptr X509_ -> IO (Ptr ASN1_TIME)
 
 foreign import ccall unsafe "X509_set_notAfter"
-        _set_notAfter :: Ptr X509_ -> Ptr ASN1_TIME -> IO Int
+        _set_notAfter :: Ptr X509_ -> Ptr ASN1_TIME -> IO CInt
 
 foreign import ccall unsafe "X509_get_pubkey"
         _get_pubkey :: Ptr X509_ -> IO (Ptr EVP_PKEY)
 
 foreign import ccall unsafe "X509_set_pubkey"
-        _set_pubkey :: Ptr X509_ -> Ptr EVP_PKEY -> IO Int
+        _set_pubkey :: Ptr X509_ -> Ptr EVP_PKEY -> IO CInt
 
 foreign import ccall unsafe "X509_get1_email"
         _get1_email :: Ptr X509_ -> IO (Ptr STACK)
@@ -129,10 +129,10 @@ foreign import ccall unsafe "X509_email_free"
         _email_free :: Ptr STACK -> IO ()
 
 foreign import ccall unsafe "X509_sign"
-        _sign :: Ptr X509_ -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO Int
+        _sign :: Ptr X509_ -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO CInt
 
 foreign import ccall unsafe "X509_verify"
-        _verify :: Ptr X509_ -> Ptr EVP_PKEY -> IO Int
+        _verify :: Ptr X509_ -> Ptr EVP_PKEY -> IO CInt
 
 -- |@'newX509'@ creates an empty certificate. You must set the
 -- following properties to and sign it (see 'signX509') to actually
@@ -180,7 +180,7 @@ compareX509 cert1 cert2
       withX509Ptr cert2 $ \ cert2Ptr ->
       _cmp cert1Ptr cert2Ptr >>= return . interpret
     where
-      interpret :: Int -> Ordering
+      interpret :: CInt -> Ordering
       interpret n
           | n > 0     = GT
           | n < 0     = LT
@@ -215,7 +215,7 @@ verifyX509 x509 pkey
       _verify x509Ptr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO VerifyStatus
+      interpret :: CInt -> IO VerifyStatus
       interpret 1 = return VerifySuccess
       interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError

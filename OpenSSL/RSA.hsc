@@ -30,6 +30,7 @@ module OpenSSL.RSA
 
 import           Control.Monad
 import           Foreign
+import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
 
@@ -74,7 +75,7 @@ foreign import ccall "wrapper"
         mkGenKeyCallback :: RSAGenKeyCallback' -> IO (FunPtr RSAGenKeyCallback')
 
 foreign import ccall safe "RSA_generate_key"
-        _generate_key :: Int -> Int -> FunPtr RSAGenKeyCallback' -> Ptr a -> IO (Ptr RSA_)
+        _generate_key :: CInt -> CInt -> FunPtr RSAGenKeyCallback' -> Ptr a -> IO (Ptr RSA_)
 
 -- |@'generateKey'@ generates an RSA keypair.
 generateKey :: Int    -- ^ The number of bits of the public modulus
@@ -86,14 +87,14 @@ generateKey :: Int    -- ^ The number of bits of the public modulus
             -> IO RSA -- ^ The generated keypair.
 
 generateKey nbits e Nothing
-    = do ptr <- _generate_key nbits e nullFunPtr nullPtr
+    = do ptr <- _generate_key (fromIntegral nbits) (fromIntegral e) nullFunPtr nullPtr
          failIfNull ptr
          newForeignPtr _free ptr >>= return . RSA
 
 generateKey nbits e (Just cb)
     = do cbPtr <- mkGenKeyCallback
                   $ \ arg1 arg2 _ -> cb arg1 arg2
-         ptr   <- _generate_key nbits e cbPtr nullPtr
+         ptr   <- _generate_key (fromIntegral nbits) (fromIntegral e) cbPtr nullPtr
          freeHaskellFunPtr cbPtr
          failIfNull ptr
          newForeignPtr _free ptr >>= return . RSA

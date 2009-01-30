@@ -80,7 +80,7 @@ withContext (SSLContext (sem, ctxfp)) action = do
   waitQSem sem
   finally (withForeignPtr ctxfp action) $ signalQSem sem
 
-contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO Int)
+contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO CInt)
                 -> SSLContext -> String -> IO ()
 contextLoadFile f context path =
   withContext context $ \ctx ->
@@ -91,9 +91,9 @@ contextLoadFile f context path =
          else f ctx cpath (#const SSL_FILETYPE_ASN1) >>= failIf (/= 1) >> return ()
 
 foreign import ccall unsafe "SSL_CTX_use_PrivateKey_file"
-   _ssl_ctx_use_privatekey_file :: Ptr SSLContext_ -> CString -> CInt -> IO Int
+   _ssl_ctx_use_privatekey_file :: Ptr SSLContext_ -> CString -> CInt -> IO CInt
 foreign import ccall unsafe "SSL_CTX_use_certificate_file"
-   _ssl_ctx_use_certificate_file :: Ptr SSLContext_ -> CString -> CInt -> IO Int
+   _ssl_ctx_use_certificate_file :: Ptr SSLContext_ -> CString -> CInt -> IO CInt
 
 -- | Install a private key file in a context. The key is given as a path to the
 --   file which contains the key. The file is parsed first as PEM and, if that
@@ -108,7 +108,7 @@ contextSetCertificateFile :: SSLContext -> FilePath -> IO ()
 contextSetCertificateFile = contextLoadFile _ssl_ctx_use_certificate_file
 
 foreign import ccall unsafe "SSL_CTX_set_cipher_list"
-   _ssl_ctx_set_cipher_list :: Ptr SSLContext_ -> CString -> IO Int
+   _ssl_ctx_set_cipher_list :: Ptr SSLContext_ -> CString -> IO CInt
 
 -- | Set the ciphers to be used by the given context. The string argument is a
 --   list of ciphers, comma separated, as given at
@@ -126,7 +126,7 @@ contextSetDefaultCiphers :: SSLContext -> IO ()
 contextSetDefaultCiphers = flip contextSetCiphers "DEFAULT"
 
 foreign import ccall unsafe "SSL_CTX_check_private_key"
-   _ssl_ctx_check_private_key :: Ptr SSLContext_ -> IO Int
+   _ssl_ctx_check_private_key :: Ptr SSLContext_ -> IO CInt
 
 -- | Return true iff the private key installed in the given context matches the
 --   certificate also installed.

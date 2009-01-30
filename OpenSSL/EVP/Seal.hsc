@@ -24,11 +24,11 @@ foreign import ccall unsafe "EVP_SealInit"
         _SealInit :: Ptr EVP_CIPHER_CTX
                   -> Cipher
                   -> Ptr (Ptr CChar)
-                  -> Ptr Int
+                  -> Ptr CInt
                   -> CString
                   -> Ptr (Ptr EVP_PKEY)
-                  -> Int
-                  -> IO Int
+                  -> CInt
+                  -> IO CInt
 
 
 sealInit :: Cipher -> [PKey] -> IO (CipherCtx, [String], String)
@@ -67,13 +67,13 @@ sealInit cipher pubKeys
 
          -- いよいよ EVP_SealInit を呼ぶ。
          ret <- withCipherCtxPtr ctx $ \ ctxPtr ->
-                _SealInit ctxPtr cipher encKeyBufsPtr encKeyBufsLenPtr ivPtr pubKeysPtr nKeys
+                _SealInit ctxPtr cipher encKeyBufsPtr encKeyBufsLenPtr ivPtr pubKeysPtr (fromIntegral nKeys)
 
          if ret == 0 then
              cleanup >> raiseOpenSSLError
            else
              do encKeysLen <- peekArray nKeys encKeyBufsLenPtr
-                encKeys    <- mapM peekCStringLen $ zip encKeyBufs encKeysLen
+                encKeys    <- mapM peekCStringCLen $ zip encKeyBufs encKeysLen
                 iv         <- peekCString ivPtr
                 cleanup
                 return (ctx, encKeys, iv)

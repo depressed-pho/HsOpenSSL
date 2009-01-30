@@ -21,7 +21,7 @@ import           OpenSSL.Utils
 
 
 foreign import ccall unsafe "EVP_SignFinal"
-        _SignFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO Int
+        _SignFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO CInt
 
 
 signFinal :: DigestCtx -> PKey -> IO String

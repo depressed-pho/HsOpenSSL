@@ -28,6 +28,7 @@ module OpenSSL.EVP.PKey
     where
 
 import           Foreign
+import           Foreign.C
 import           OpenSSL.DSA
 import           OpenSSL.EVP.Digest hiding (digest)
 import           OpenSSL.RSA
@@ -47,7 +48,7 @@ foreign import ccall unsafe "&EVP_PKEY_free"
         _pkey_free :: FunPtr (Ptr EVP_PKEY -> IO ())
 
 foreign import ccall unsafe "EVP_PKEY_size"
-        _pkey_size :: Ptr EVP_PKEY -> IO Int
+        _pkey_size :: Ptr EVP_PKEY -> IO CInt
 
 
 wrapPKeyPtr :: Ptr EVP_PKEY -> IO PKey
@@ -70,13 +71,13 @@ touchPKey (PKey pkey) = touchForeignPtr pkey
 pkeySize :: PKey -> IO Int
 pkeySize pkey
     = withPKeyPtr pkey $ \ pkeyPtr ->
-      _pkey_size pkeyPtr
+      _pkey_size pkeyPtr >>= return . fromIntegral
 
 
 pkeyDefaultMD :: PKey -> IO Digest
 pkeyDefaultMD pkey
     = withPKeyPtr pkey $ \ pkeyPtr ->
-      do pkeyType   <- (#peek EVP_PKEY, type) pkeyPtr :: IO Int
+      do pkeyType   <- (#peek EVP_PKEY, type) pkeyPtr :: IO CInt
          digestName <- case pkeyType of
 #ifndef OPENSSL_NO_RSA
                          (#const EVP_PKEY_RSA) -> return "sha1"
@@ -93,7 +94,7 @@ pkeyDefaultMD pkey
 
 #ifndef OPENSSL_NO_RSA
 foreign import ccall unsafe "EVP_PKEY_set1_RSA"
-        _set1_RSA :: Ptr EVP_PKEY -> Ptr RSA_ -> IO Int
+        _set1_RSA :: Ptr EVP_PKEY -> Ptr RSA_ -> IO CInt
 
 -- |@'newPKeyRSA' rsa@ encapsulates an RSA key into 'PKey'.
 newPKeyRSA :: RSA -> PKey
@@ -108,7 +109,7 @@ newPKeyRSA rsa
 
 #ifndef OPENSSL_NO_DSA
 foreign import ccall unsafe "EVP_PKEY_set1_DSA"
-        _set1_DSA :: Ptr EVP_PKEY -> Ptr DSA_ -> IO Int
+        _set1_DSA :: Ptr EVP_PKEY -> Ptr DSA_ -> IO CInt
 
 -- |@'newPKeyDSA' dsa@ encapsulates an 'DSA' key into 'PKey'.
 newPKeyDSA :: DSA -> PKey

@@ -58,31 +58,31 @@ foreign import ccall unsafe "&X509_REQ_free"
         _free :: FunPtr (Ptr X509_REQ -> IO ())
 
 foreign import ccall unsafe "X509_REQ_sign"
-        _sign :: Ptr X509_REQ -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO Int
+        _sign :: Ptr X509_REQ -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO CInt
 
 foreign import ccall unsafe "X509_REQ_verify"
-        _verify :: Ptr X509_REQ -> Ptr EVP_PKEY -> IO Int
+        _verify :: Ptr X509_REQ -> Ptr EVP_PKEY -> IO CInt
 
 foreign import ccall unsafe "X509_REQ_print"
-        _print :: Ptr BIO_ -> Ptr X509_REQ -> IO Int
+        _print :: Ptr BIO_ -> Ptr X509_REQ -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_REQ_get_version"
         _get_version :: Ptr X509_REQ -> IO CLong
 
 foreign import ccall unsafe "X509_REQ_set_version"
-        _set_version :: Ptr X509_REQ -> CLong -> IO Int
+        _set_version :: Ptr X509_REQ -> CLong -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_REQ_get_subject_name"
         _get_subject_name :: Ptr X509_REQ -> IO (Ptr X509_NAME)
 
 foreign import ccall unsafe "X509_REQ_set_subject_name"
-        _set_subject_name :: Ptr X509_REQ -> Ptr X509_NAME -> IO Int
+        _set_subject_name :: Ptr X509_REQ -> Ptr X509_NAME -> IO CInt
 
 foreign import ccall unsafe "X509_REQ_get_pubkey"
         _get_pubkey :: Ptr X509_REQ -> IO (Ptr EVP_PKEY)
 
 foreign import ccall unsafe "X509_REQ_set_pubkey"
-        _set_pubkey :: Ptr X509_REQ -> Ptr EVP_PKEY -> IO Int
+        _set_pubkey :: Ptr X509_REQ -> Ptr EVP_PKEY -> IO CInt
 
 -- |@'newX509Req'@ creates an empty certificate request. You must set
 -- the following properties to and sign it (see 'signX509Req') to
@@ -135,7 +135,7 @@ verifyX509Req req pkey
       _verify reqPtr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO VerifyStatus
+      interpret :: CInt -> IO VerifyStatus
       interpret 1 = return VerifySuccess
       interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError

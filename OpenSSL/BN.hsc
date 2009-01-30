@@ -92,7 +92,7 @@ foreign import ccall unsafe "BN_bn2dec"
         _bn2dec :: Ptr BIGNUM -> IO CString
 
 foreign import ccall unsafe "BN_dec2bn"
-        _dec2bn :: Ptr (Ptr BIGNUM) -> CString -> IO Int
+        _dec2bn :: Ptr (Ptr BIGNUM) -> CString -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()

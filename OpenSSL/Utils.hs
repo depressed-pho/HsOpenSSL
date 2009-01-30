@@ -4,10 +4,12 @@ module OpenSSL.Utils
     , raiseOpenSSLError
     , toHex
     , fromHex
+    , peekCStringCLen
     )
     where
 
 import           Foreign
+import           Foreign.C
 import           OpenSSL.ERR
 import           Data.Bits ((.&.), (.|.), shiftR, shiftL)
 import           Data.List (unfoldr)
@@ -81,3 +83,8 @@ fromHex = foldl step 0 where
   byteHex 'E' = 14
   byteHex 'F' = 15
   byteHex _   = undefined
+
+
+peekCStringCLen :: (Ptr CChar, CInt) -> IO String
+peekCStringCLen (p, n)
+    = peekCStringLen (p, fromIntegral n)

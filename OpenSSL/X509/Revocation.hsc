@@ -81,46 +81,46 @@ foreign import ccall unsafe "&X509_CRL_free"
         _free :: FunPtr (Ptr X509_CRL -> IO ())
 
 foreign import ccall unsafe "X509_CRL_sign"
-        _sign :: Ptr X509_CRL -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO Int
+        _sign :: Ptr X509_CRL -> Ptr EVP_PKEY -> Ptr EVP_MD -> IO CInt
 
 foreign import ccall unsafe "X509_CRL_verify"
-        _verify :: Ptr X509_CRL -> Ptr EVP_PKEY -> IO Int
+        _verify :: Ptr X509_CRL -> Ptr EVP_PKEY -> IO CInt
 
 foreign import ccall unsafe "X509_CRL_print"
-        _print :: Ptr BIO_ -> Ptr X509_CRL -> IO Int
+        _print :: Ptr BIO_ -> Ptr X509_CRL -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_version"
         _get_version :: Ptr X509_CRL -> IO CLong
 
 foreign import ccall unsafe "X509_CRL_set_version"
-        _set_version :: Ptr X509_CRL -> CLong -> IO Int
+        _set_version :: Ptr X509_CRL -> CLong -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_lastUpdate"
         _get_lastUpdate :: Ptr X509_CRL -> IO (Ptr ASN1_TIME)
 
 foreign import ccall unsafe "X509_CRL_set_lastUpdate"
-        _set_lastUpdate :: Ptr X509_CRL -> Ptr ASN1_TIME -> IO Int
+        _set_lastUpdate :: Ptr X509_CRL -> Ptr ASN1_TIME -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_nextUpdate"
         _get_nextUpdate :: Ptr X509_CRL -> IO (Ptr ASN1_TIME)
 
 foreign import ccall unsafe "X509_CRL_set_nextUpdate"
-        _set_nextUpdate :: Ptr X509_CRL -> Ptr ASN1_TIME -> IO Int
+        _set_nextUpdate :: Ptr X509_CRL -> Ptr ASN1_TIME -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_issuer"
         _get_issuer_name :: Ptr X509_CRL -> IO (Ptr X509_NAME)
 
 foreign import ccall unsafe "X509_CRL_set_issuer_name"
-        _set_issuer_name :: Ptr X509_CRL -> Ptr X509_NAME -> IO Int
+        _set_issuer_name :: Ptr X509_CRL -> Ptr X509_NAME -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_REVOKED"
         _get_REVOKED :: Ptr X509_CRL -> IO (Ptr STACK)
 
 foreign import ccall unsafe "X509_CRL_add0_revoked"
-        _add0_revoked :: Ptr X509_CRL -> Ptr X509_REVOKED -> IO Int
+        _add0_revoked :: Ptr X509_CRL -> Ptr X509_REVOKED -> IO CInt
 
 foreign import ccall unsafe "X509_CRL_sort"
-        _sort :: Ptr X509_CRL -> IO Int
+        _sort :: Ptr X509_CRL -> IO CInt
 
 
 
@@ -131,10 +131,10 @@ foreign import ccall unsafe "X509_REVOKED_free"
         freeRevoked :: Ptr X509_REVOKED -> IO ()
 
 foreign import ccall unsafe "X509_REVOKED_set_serialNumber"
-        _set_serialNumber :: Ptr X509_REVOKED -> Ptr ASN1_INTEGER -> IO Int
+        _set_serialNumber :: Ptr X509_REVOKED -> Ptr ASN1_INTEGER -> IO CInt
 
 foreign import ccall unsafe "X509_REVOKED_set_revocationDate"
-        _set_revocationDate :: Ptr X509_REVOKED -> Ptr ASN1_TIME -> IO Int
+        _set_revocationDate :: Ptr X509_REVOKED -> Ptr ASN1_TIME -> IO CInt
 
 -- |@'newCRL'@ creates an empty revocation list. You must set the
 -- following properties to and sign it (see 'signCRL') to actually use
@@ -187,7 +187,7 @@ verifyCRL crl pkey
       _verify crlPtr pkeyPtr
            >>= interpret
     where
-      interpret :: Int -> IO VerifyStatus
+      interpret :: CInt -> IO VerifyStatus
       interpret 1 = return VerifySuccess
       interpret 0 = return VerifyFailure
       interpret _ = raiseOpenSSLError

@@ -66,7 +66,7 @@ data Pkcs7Flag = Pkcs7Text
                | Pkcs7CRLFEOL
                  deriving (Show, Eq, Typeable)
 
-flagToInt :: Pkcs7Flag -> Int
+flagToInt :: Pkcs7Flag -> CInt
 flagToInt Pkcs7Text          = #const PKCS7_TEXT
 flagToInt Pkcs7NoCerts       = #const PKCS7_NOCERTS
 flagToInt Pkcs7NoSigs        = #const PKCS7_NOSIGS
@@ -91,7 +91,7 @@ data Pkcs7VerifyStatus
       deriving (Show, Eq, Typeable)
 
 
-flagListToInt :: [Pkcs7Flag] -> Int
+flagListToInt :: [Pkcs7Flag] -> CInt
 flagListToInt = foldl' (.|.) 0 . map flagToInt
 
 
@@ -102,16 +102,16 @@ foreign import ccall "HsOpenSSL_PKCS7_is_detached"
         _is_detached :: Ptr PKCS7 -> IO CLong
 
 foreign import ccall "PKCS7_sign"
-        _sign :: Ptr X509_ -> Ptr EVP_PKEY -> Ptr STACK -> Ptr BIO_ -> Int -> IO (Ptr PKCS7)
+        _sign :: Ptr X509_ -> Ptr EVP_PKEY -> Ptr STACK -> Ptr BIO_ -> CInt -> IO (Ptr PKCS7)
 
 foreign import ccall "PKCS7_verify"
-        _verify :: Ptr PKCS7 -> Ptr STACK -> Ptr X509_STORE -> Ptr BIO_ -> Ptr BIO_ -> Int -> IO Int
+        _verify :: Ptr PKCS7 -> Ptr STACK -> Ptr X509_STORE -> Ptr BIO_ -> Ptr BIO_ -> CInt -> IO CInt
 
 foreign import ccall "PKCS7_encrypt"
-        _encrypt :: Ptr STACK -> Ptr BIO_ -> Ptr EVP_CIPHER -> Int -> IO (Ptr PKCS7)
+        _encrypt :: Ptr STACK -> Ptr BIO_ -> Ptr EVP_CIPHER -> CInt -> IO (Ptr PKCS7)
 
 foreign import ccall "PKCS7_decrypt"
-        _decrypt :: Ptr PKCS7 -> Ptr EVP_PKEY -> Ptr X509_ -> Ptr BIO_ -> Int -> IO Int
+        _decrypt :: Ptr PKCS7 -> Ptr EVP_PKEY -> Ptr X509_ -> Ptr BIO_ -> CInt -> IO CInt
 
 
 wrapPkcs7Ptr :: Ptr PKCS7 -> IO Pkcs7
@@ -217,7 +217,7 @@ pkcs7Verify' pkcs7 certs store inData flagList
              _verify pkcs7Ptr certStack storePtr inDataPtr outDataPtr (flagListToInt flagList)
                   >>= interpret outData
     where
-      interpret :: Maybe BIO -> Int -> IO (Maybe BIO, Bool)
+      interpret :: Maybe BIO -> CInt -> IO (Maybe BIO, Bool)
       interpret bio 1 = return (bio    , True )
       interpret _   _ = return (Nothing, False)
 
@@ -346,7 +346,7 @@ pkcs7Decrypt pkcs7 pkey cert flagList
 {- S/MIME -------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "SMIME_write_PKCS7"
-        _SMIME_write_PKCS7 :: Ptr BIO_ -> Ptr PKCS7 -> Ptr BIO_ -> Int -> IO Int
+        _SMIME_write_PKCS7 :: Ptr BIO_ -> Ptr PKCS7 -> Ptr BIO_ -> CInt -> IO CInt
 
 foreign import ccall unsafe "SMIME_read_PKCS7"
         _SMIME_read_PKCS7 :: Ptr BIO_ -> Ptr (Ptr BIO_) -> IO (Ptr PKCS7)

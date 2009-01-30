@@ -61,16 +61,16 @@ foreign import ccall unsafe "DSA_generate_key"
         _dsa_generate_key :: Ptr DSA_ -> IO ()
 
 foreign import ccall unsafe "HsOpenSSL_dsa_sign"
-        _dsa_sign :: Ptr DSA_ -> CString -> Int -> Ptr (Ptr BIGNUM) -> Ptr (Ptr BIGNUM) -> IO Int
+        _dsa_sign :: Ptr DSA_ -> CString -> CInt -> Ptr (Ptr BIGNUM) -> Ptr (Ptr BIGNUM) -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_dsa_verify"
-        _dsa_verify :: Ptr DSA_ -> CString -> Int -> Ptr BIGNUM -> Ptr BIGNUM -> IO Int
+        _dsa_verify :: Ptr DSA_ -> CString -> CInt -> Ptr BIGNUM -> Ptr BIGNUM -> IO CInt
 
 withDSAPtr :: DSA -> (Ptr DSA_ -> IO a) -> IO a
 withDSAPtr (DSA ptr) = withForeignPtr ptr
 
 foreign import ccall safe "DSA_generate_parameters"
-        _generate_params :: Int -> Ptr CChar -> Int -> Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> IO (Ptr DSA_)
+        _generate_params :: CInt -> Ptr CChar -> CInt -> Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> IO (Ptr DSA_)
 
 peekDSA :: (Ptr DSA_ -> IO (Ptr BIGNUM)) -> DSA -> IO (Maybe Integer)
 peekDSA peeker (DSA dsa) = do
@@ -93,7 +93,7 @@ generateParameters nbits mseed = do
       (\x -> case mseed of
                   Nothing -> x (nullPtr, 0)
                   Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
-        ptr <- _generate_params nbits seedptr seedlen i1 i2 nullPtr nullPtr
+        ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) i1 i2 nullPtr nullPtr
         failIfNull ptr
         itcount <- peek i1
         gencount <- peek i2
@@ -191,7 +191,7 @@ generateParametersAndKey nbits mseed = do
   (\x -> case mseed of
               Nothing -> x (nullPtr, 0)
               Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
-    ptr <- _generate_params nbits seedptr seedlen nullPtr nullPtr nullPtr nullPtr
+    ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) nullPtr nullPtr nullPtr nullPtr
     failIfNull ptr
     _dsa_generate_key ptr
     newForeignPtr _free ptr >>= return . DSA)
@@ -205,7 +205,7 @@ signDigestedData dsa bytes = do
     alloca (\rptr -> do
       alloca (\sptr -> do
         withDSAPtr dsa (\dsaptr -> do
-          _dsa_sign dsaptr ptr len rptr sptr >>= failIf (== 0)
+          _dsa_sign dsaptr ptr (fromIntegral len) rptr sptr >>= failIf (== 0)
           r <- peek rptr >>= peekBN . wrapBN
           peek rptr >>= _bn_free
           s <- peek sptr >>= peekBN . wrapBN
@@ -219,4 +219,4 @@ verifyDigestedData dsa bytes (r, s) = do
     withBN r (\bnR -> do
       withBN s (\bnS -> do
         withDSAPtr dsa (\dsaptr -> do
-          _dsa_verify dsaptr ptr len (unwrapBN bnR) (unwrapBN bnS) >>= return . (== 1)))))
+          _dsa_verify dsaptr ptr (fromIntegral len) (unwrapBN bnR) (unwrapBN bnS) >>= return . (== 1)))))

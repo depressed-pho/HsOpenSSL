@@ -8,6 +8,7 @@ module OpenSSL.Stack
 
 import           Control.Exception
 import           Foreign
+import           Foreign.C
 
 
 data STACK
@@ -23,17 +24,17 @@ foreign import ccall unsafe "sk_push"
         skPush :: Ptr STACK -> Ptr () -> IO ()
 
 foreign import ccall unsafe "sk_num"
-        skNum :: Ptr STACK -> IO Int
+        skNum :: Ptr STACK -> IO CInt
 
 foreign import ccall unsafe "sk_value"
-        skValue :: Ptr STACK -> Int -> IO (Ptr ())
+        skValue :: Ptr STACK -> CInt -> IO (Ptr ())
 
 
 mapStack :: (Ptr a -> IO b) -> Ptr STACK -> IO [b]
 mapStack m st
     = do num <- skNum st
          mapM (\ i -> skValue st i >>= return . castPtr >>= m)
-                  $ take num [0..]
+                  $ take (fromIntegral num) [0..]
 
 
 newStack :: [Ptr a] -> IO (Ptr STACK)

@@ -103,13 +103,13 @@ withDigestCtxPtr (DigestCtx ctx) = withForeignPtr ctx
 {- digest -------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "EVP_DigestInit"
-        _DigestInit :: Ptr EVP_MD_CTX -> Ptr EVP_MD -> IO Int
+        _DigestInit :: Ptr EVP_MD_CTX -> Ptr EVP_MD -> IO CInt
 
 foreign import ccall unsafe "EVP_DigestUpdate"
-        _DigestUpdate :: Ptr EVP_MD_CTX -> Ptr CChar -> CSize -> IO Int
+        _DigestUpdate :: Ptr EVP_MD_CTX -> Ptr CChar -> CSize -> IO CInt
 
 foreign import ccall unsafe "EVP_DigestFinal"
-        _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO Int
+        _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO CInt
 
 
 digestInit :: Digest -> IO DigestCtx

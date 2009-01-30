@@ -100,10 +100,10 @@ foreign import ccall unsafe "BIO_push"
         _push :: Ptr BIO_ -> Ptr BIO_ -> IO (Ptr BIO_)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_flags"
-        _set_flags :: Ptr BIO_ -> Int -> IO ()
+        _set_flags :: Ptr BIO_ -> CInt -> IO ()
 
 foreign import ccall unsafe "HsOpenSSL_BIO_should_retry"
-        _should_retry :: Ptr BIO_ -> IO Int
+        _should_retry :: Ptr BIO_ -> IO CInt
 
 
 new :: Ptr BIO_METHOD -> IO BIO
@@ -170,7 +170,7 @@ bioJoin (_:[])   = return ()
 bioJoin (a:b:xs) = bioPush a b >> bioJoin (b:xs)
 
 
-setFlags :: BIO -> Int -> IO ()
+setFlags :: BIO -> CInt -> IO ()
 setFlags bio flags
     = withBioPtr bio $ \ bioPtr ->
       _set_flags bioPtr flags
@@ -184,13 +184,13 @@ bioShouldRetry bio
 {- ctrl --------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "HsOpenSSL_BIO_flush"
-        _flush :: Ptr BIO_ -> IO Int
+        _flush :: Ptr BIO_ -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_BIO_reset"
-        _reset :: Ptr BIO_ -> IO Int
+        _reset :: Ptr BIO_ -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_BIO_eof"
-        _eof :: Ptr BIO_ -> IO Int
+        _eof :: Ptr BIO_ -> IO CInt
 
 -- |@'bioFlush' bio@ normally writes out any internally buffered data,
 -- in some cases it is used to signal EOF and that no more data will
@@ -218,13 +218,13 @@ bioEOF bio
 {- I/O ---------------------------------------------------------------------- -}
 
 foreign import ccall unsafe "BIO_read"
-        _read :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
+        _read :: Ptr BIO_ -> Ptr CChar -> CInt -> IO CInt
 
 foreign import ccall unsafe "BIO_gets"
-        _gets :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
+        _gets :: Ptr BIO_ -> Ptr CChar -> CInt -> IO CInt
 
 foreign import ccall unsafe "BIO_write"
-        _write :: Ptr BIO_ -> Ptr CChar -> Int -> IO Int
+        _write :: Ptr BIO_ -> Ptr CChar -> CInt -> IO CInt
 
 -- |@'bioRead' bio@ lazily reads all data in @bio@.
 bioRead :: BIO -> IO String
@@ -238,14 +238,14 @@ bioReadBS :: BIO -> Int -> IO B8.ByteString
 bioReadBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
-      _read bioPtr (castPtr bufPtr) maxLen >>= interpret
+      _read bioPtr (castPtr bufPtr) (fromIntegral maxLen) >>= interpret
     where
-      interpret :: Int -> IO Int
+      interpret :: CInt -> IO Int
       interpret n
           | n ==  0   = return 0
           | n == -1   = return 0
           | n <  -1   = raiseOpenSSLError
-          | otherwise = return n
+          | otherwise = return (fromIntegral n)
 
 -- |@'bioReadLBS' bio@ lazily reads all data in @bio@, then return a
 -- LazyByteString.
@@ -284,14 +284,14 @@ bioGetsBS :: BIO -> Int -> IO B8.ByteString
 bioGetsBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
-      _gets bioPtr (castPtr bufPtr) maxLen >>= interpret
+      _gets bioPtr (castPtr bufPtr) (fromIntegral maxLen) >>= interpret
     where
-      interpret :: Int -> IO Int
+      interpret :: CInt -> IO Int
       interpret n
           | n ==  0   = return 0
           | n == -1   = return 0
           | n <  -1   = raiseOpenSSLError
-          | otherwise = return n
+          | otherwise = return (fromIntegral n)
 
 -- |'bioGetsLBS' does the same as 'bioGets' but returns
 -- LazyByteString.
@@ -310,14 +310,15 @@ bioWriteBS :: BIO -> B8.ByteString -> IO ()
 bioWriteBS bio bs
     = withBioPtr bio           $ \ bioPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
-      _write bioPtr buf len >>= interpret
+      _write bioPtr buf (fromIntegral len) >>= interpret
     where
-      interpret :: Int -> IO ()
+      interpret :: CInt -> IO ()
       interpret n
-          | n == B8.length bs = return ()
-          | n == -1           = bioWriteBS bio bs -- full retry
-          | n <  -1           = raiseOpenSSLError
-          | otherwise         = bioWriteBS bio (B8.drop n bs) -- partial retry
+          | n == fromIntegral (B8.length bs)
+                      = return ()
+          | n == -1   = bioWriteBS bio bs -- full retry
+          | n <  -1   = raiseOpenSSLError
+          | otherwise = bioWriteBS bio (B8.drop (fromIntegral n) bs) -- partial retry
 
 -- |@'bioWriteLBS' bio lbs@ lazily writes entire @lbs@ to @bio@. The
 -- string doesn't necessarily have to be finite.
@@ -332,7 +333,7 @@ foreign import ccall unsafe "BIO_f_base64"
         f_base64 :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_FLAGS_BASE64_NO_NL"
-        _FLAGS_BASE64_NO_NL :: Int
+        _FLAGS_BASE64_NO_NL :: CInt
 
 -- |@'newBase64' noNL@ creates a Base64 BIO filter. This is a filter
 -- bio that base64 encodes any data written through it and decodes any
@@ -359,7 +360,7 @@ foreign import ccall unsafe "BIO_f_buffer"
         f_buffer :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "HsOpenSSL_BIO_set_buffer_size"
-        _set_buffer_size :: Ptr BIO_ -> Int -> IO Int
+        _set_buffer_size :: Ptr BIO_ -> CInt -> IO CInt
 
 
 -- |@'newBuffer' mBufSize@ creates a buffering BIO filter. Data
@@ -395,7 +396,7 @@ newBuffer bufSize
     = do bio <- new =<< f_buffer
          case bufSize of
            Just n  -> withBioPtr bio $ \ bioPtr ->
-                      _set_buffer_size bioPtr n
+                      _set_buffer_size bioPtr (fromIntegral n)
                            >>= failIf (/= 1) >> return ()
            Nothing -> return ()
          return bio
@@ -407,7 +408,7 @@ foreign import ccall unsafe "BIO_s_mem"
         s_mem :: IO (Ptr BIO_METHOD)
 
 foreign import ccall unsafe "BIO_new_mem_buf"
-        _new_mem_buf :: Ptr CChar -> Int -> IO (Ptr BIO_)
+        _new_mem_buf :: Ptr CChar -> CInt -> IO (Ptr BIO_)
 
 
 -- |@'newMem'@ creates a memory BIO sink\/source. Any data written to
@@ -443,7 +444,7 @@ newConstMemBS bs
       in
         -- ByteString への參照を BIO の finalizer に持たせる。
         withForeignPtr foreignBuf $ \ buf ->
-        do bioPtr <- _new_mem_buf (castPtr $ buf `plusPtr` off) len
+        do bioPtr <- _new_mem_buf (castPtr $ buf `plusPtr` off) (fromIntegral len)
                      >>= failIfNull
 
            bio <- newForeignPtr _free bioPtr

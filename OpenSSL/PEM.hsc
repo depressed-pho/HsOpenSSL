@@ -126,10 +126,10 @@ foreign import ccall safe "PEM_write_bio_PKCS8PrivateKey"
                                    -> Ptr EVP_PKEY
                                    -> Ptr EVP_CIPHER
                                    -> Ptr CChar
-                                   -> Int
+                                   -> CInt
                                    -> FunPtr PemPasswordCallback'
                                    -> Ptr a
-                                   -> IO Int
+                                   -> IO CInt
 
 writePKCS8PrivateKey' :: BIO
                       -> PKey
@@ -148,7 +148,7 @@ writePKCS8PrivateKey' bio pkey encryption
                   Just (cipher, PwStr passStr)
                       -> withCStringLen passStr $ \ (passPtr, passLen) ->
                          withCipherPtr cipher   $ \ cipherPtr          ->
-                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr passPtr passLen nullFunPtr nullPtr
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr passPtr (fromIntegral passLen) nullFunPtr nullPtr
 
                   Just (cipher, PwCallback cb)
                       -> withCipherPtr cipher $ \ cipherPtr ->
@@ -222,7 +222,7 @@ readPrivateKey pemStr supply
 {- Public Key ---------------------------------------------------------------- -}
 
 foreign import ccall unsafe "PEM_write_bio_PUBKEY"
-        _write_bio_PUBKEY :: Ptr BIO_ -> Ptr EVP_PKEY -> IO Int
+        _write_bio_PUBKEY :: Ptr BIO_ -> Ptr EVP_PKEY -> IO CInt
 
 foreign import ccall unsafe "PEM_read_bio_PUBKEY"
         _read_bio_PUBKEY :: Ptr BIO_
@@ -266,7 +266,7 @@ readPublicKey pemStr
 foreign import ccall unsafe "PEM_write_bio_X509_AUX"
         _write_bio_X509_AUX :: Ptr BIO_
                             -> Ptr X509_
-                            -> IO Int
+                            -> IO CInt
 
 foreign import ccall safe "PEM_read_bio_X509_AUX"
         _read_bio_X509_AUX :: Ptr BIO_
@@ -311,12 +311,12 @@ readX509 pemStr
 foreign import ccall unsafe "PEM_write_bio_X509_REQ"
         _write_bio_X509_REQ :: Ptr BIO_
                             -> Ptr X509_REQ
-                            -> IO Int
+                            -> IO CInt
 
 foreign import ccall unsafe "PEM_write_bio_X509_REQ_NEW"
         _write_bio_X509_REQ_NEW :: Ptr BIO_
                                 -> Ptr X509_REQ
-                                -> IO Int
+                                -> IO CInt
 
 foreign import ccall safe "PEM_read_bio_X509_REQ"
         _read_bio_X509_REQ :: Ptr BIO_
@@ -376,7 +376,7 @@ readX509Req pemStr
 foreign import ccall unsafe "PEM_write_bio_X509_CRL"
         _write_bio_X509_CRL :: Ptr BIO_
                             -> Ptr X509_CRL
-                            -> IO Int
+                            -> IO CInt
 
 foreign import ccall safe "PEM_read_bio_X509_CRL"
         _read_bio_X509_CRL :: Ptr BIO_
@@ -422,7 +422,7 @@ readCRL pemStr
 foreign import ccall unsafe "PEM_write_bio_PKCS7"
         _write_bio_PKCS7 :: Ptr BIO_
                          -> Ptr PKCS7
-                         -> IO Int
+                         -> IO CInt
 
 foreign import ccall safe "PEM_read_bio_PKCS7"
         _read_bio_PKCS7 :: Ptr BIO_
