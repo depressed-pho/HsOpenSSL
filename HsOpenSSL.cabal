@@ -38,7 +38,7 @@ flag splitBase
 
 Library
   if flag(splitBase)
-    build-depends: base >= 3, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
+    build-depends: base >= 4, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
   else
     build-depends: base < 3, time >= 1.1.1
 
