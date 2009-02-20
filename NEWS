@@ -1,5 +1,10 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.5.1 to 0.5.2
+---------------------------
+* Fixed incorrect dependency declaration in HsOpenSSL.cabal. No
+  semantical changes to the code.
+
 Changes from 0.5 to 0.5.1
 -------------------------
 * Fixed breakage on 64-bit architectures.
