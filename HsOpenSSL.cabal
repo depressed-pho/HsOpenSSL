@@ -33,6 +33,10 @@ Extra-Source-Files:
     tests/DSA.hs
     tests/Makefile
 
+Source-Repository head
+    Type: darcs
+    Location: http://darcs.cielonegro.org/HsOpenSSL/
+
 Library
   Build-Depends: base >= 4, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
 
