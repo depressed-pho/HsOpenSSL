@@ -33,14 +33,8 @@ Extra-Source-Files:
     tests/DSA.hs
     tests/Makefile
 
-flag splitBase
-  description: Choose the new smaller, split-up base package.
-
 Library
-  if flag(splitBase)
-    build-depends: base >= 4, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
-  else
-    build-depends: base < 3, time >= 1.1.1
+  Build-Depends: base >= 4, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
 
   --PkgConfig-Depends: openssl >= 0.9.7l
   -- We really should use this instead of the configure script but
