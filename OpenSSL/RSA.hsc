@@ -33,6 +33,7 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
+import           System.IO.Unsafe
 
 -- |@'RSA'@ is an opaque object that represents either RSA public key
 -- or public\/private keypair.
@@ -102,17 +103,19 @@ generateKey nbits e (Just cb)
 
 {- exploration -------------------------------------------------------------- -}
 
-peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO Integer
+peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> Integer
 peekRSAPublic peeker rsa
-    = withRSAPtr rsa $ \ rsaPtr ->
+    = unsafePerformIO $
+      withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
          peekBN (wrapBN bn)
 
 
-peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> IO (Maybe Integer)
+peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> (Maybe Integer)
 peekRSAPrivate peeker rsa
-    = withRSAPtr rsa $ \ rsaPtr ->
+    = unsafePerformIO $
+      withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
          if bn == nullPtr then
              return Nothing
@@ -120,34 +123,59 @@ peekRSAPrivate peeker rsa
              peekBN (wrapBN bn) >>= return . Just
 
 -- |@'rsaN' pubKey@ returns the public modulus of the key.
-rsaN :: RSA -> IO Integer
+rsaN :: RSA -> Integer
 rsaN = peekRSAPublic (#peek RSA, n)
 
 -- |@'rsaE' pubKey@ returns the public exponent of the key.
-rsaE :: RSA -> IO Integer
+rsaE :: RSA -> Integer
 rsaE = peekRSAPublic (#peek RSA, e)
 
 -- |@'rsaD' privKey@ returns the private exponent of the key. If
 -- @privKey@ is not really a private key, the result is @Nothing@.
-rsaD :: RSA -> IO (Maybe Integer)
+rsaD :: RSA -> Maybe Integer
 rsaD = peekRSAPrivate (#peek RSA, d)
 
 -- |@'rsaP' privkey@ returns the secret prime factor @p@ of the key.
-rsaP :: RSA -> IO (Maybe Integer)
+rsaP :: RSA -> Maybe Integer
 rsaP = peekRSAPrivate (#peek RSA, p)
 
 -- |@'rsaQ' privkey@ returns the secret prime factor @q@ of the key.
-rsaQ :: RSA -> IO (Maybe Integer)
+rsaQ :: RSA -> Maybe Integer
 rsaQ = peekRSAPrivate (#peek RSA, q)
 
 -- |@'rsaDMP1' privkey@ returns @d mod (p-1)@ of the key.
-rsaDMP1 :: RSA -> IO (Maybe Integer)
+rsaDMP1 :: RSA -> Maybe Integer
 rsaDMP1 = peekRSAPrivate (#peek RSA, dmp1)
 
 -- |@'rsaDMQ1' privkey@ returns @d mod (q-1)@ of the key.
-rsaDMQ1 :: RSA -> IO (Maybe Integer)
+rsaDMQ1 :: RSA -> Maybe Integer
 rsaDMQ1 = peekRSAPrivate (#peek RSA, dmq1)
 
 -- |@'rsaIQMP' privkey@ returns @q^-1 mod p@ of the key.
-rsaIQMP :: RSA -> IO (Maybe Integer)
+rsaIQMP :: RSA -> Maybe Integer
 rsaIQMP = peekRSAPrivate (#peek RSA, iqmp)
+
+
+{- instances ---------------------------------------------------------------- -}
+
+instance Eq RSA where
+    a == b
+        = rsaN a == rsaN b &&
+          rsaE a == rsaE b &&
+          rsaD a == rsaD b &&
+          rsaP a == rsaP b &&
+          rsaQ a == rsaQ b
+
+instance Ord RSA where
+    a `compare` b
+        | rsaN a < rsaN b = LT
+        | rsaN a > rsaN b = GT
+        | rsaE a < rsaE b = LT
+        | rsaE a > rsaE b = GT
+        | rsaD a < rsaD b = LT
+        | rsaD a > rsaD b = GT
+        | rsaP a < rsaP b = LT
+        | rsaP a > rsaP b = GT
+        | rsaQ a < rsaQ b = LT
+        | rsaQ a > rsaQ b = GT
+        | otherwise       = EQ

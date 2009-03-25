@@ -23,14 +23,14 @@ main = withOpenSSL $
 
           printf "Done.\n"
           
-          n    <- rsaN rsa
-          e    <- rsaE rsa
-          d    <- rsaD rsa
-          p    <- rsaP rsa
-          q    <- rsaQ rsa
-          dmp1 <- rsaDMP1 rsa
-          dmq1 <- rsaDMQ1 rsa
-          iqmp <- rsaIQMP rsa
+          let n    = rsaN rsa
+              e    = rsaE rsa
+              d    = rsaD rsa
+              p    = rsaP rsa
+              q    = rsaQ rsa
+              dmp1 = rsaDMP1 rsa
+              dmq1 = rsaDMQ1 rsa
+              iqmp = rsaIQMP rsa
 
           printf "n (public modulus) = %s\n" (show n)
           printf "e (public exponent) = %s\n" (show e)

@@ -16,7 +16,6 @@ Category: Cryptography
 Tested-With: GHC == 6.10.1
 Cabal-Version: >= 1.6
 Build-Type: Configure
-
 Extra-Source-Files:
 	AUTHORS
 	HsOpenSSL.buildinfo.in
