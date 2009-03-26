@@ -30,33 +30,35 @@ foreign import ccall unsafe "EVP_OpenInit"
                   -> IO CInt
 
 
-openInit :: Cipher -> String -> String -> PKey -> IO CipherCtx
+openInit :: KeyPair key => Cipher -> String -> String -> key -> IO CipherCtx
 openInit cipher encKey iv pkey
     = do ctx <- newCtx
          withCipherCtxPtr ctx $ \ ctxPtr ->
              withCStringLen encKey $ \ (encKeyPtr, encKeyLen) ->
                  withCString iv $ \ ivPtr ->
-                     withPKeyPtr pkey $ \ pkeyPtr ->
+                     withPKeyPtr' pkey $ \ pkeyPtr ->
                          _OpenInit ctxPtr cipher encKeyPtr (fromIntegral encKeyLen) ivPtr pkeyPtr
                               >>= failIf (== 0)
          return ctx
 
 -- |@'open'@ lazilly decrypts a stream of data. The input string
 -- doesn't necessarily have to be finite.
-open :: Cipher -- ^ symmetric cipher algorithm to use
+open :: KeyPair key =>
+        Cipher -- ^ symmetric cipher algorithm to use
      -> String -- ^ encrypted symmetric key to decrypt the input string
      -> String -- ^ IV
-     -> PKey   -- ^ private key to decrypt the symmetric key
+     -> key    -- ^ private key to decrypt the symmetric key
      -> String -- ^ input string to decrypt
      -> String -- ^ decrypted string
 open cipher encKey iv pkey input
     = L8.unpack $ openLBS cipher encKey iv pkey $ L8.pack input
 
 -- |@'openBS'@ decrypts a chunk of data.
-openBS :: Cipher     -- ^ symmetric cipher algorithm to use
+openBS :: KeyPair key =>
+          Cipher     -- ^ symmetric cipher algorithm to use
        -> String     -- ^ encrypted symmetric key to decrypt the input string
        -> String     -- ^ IV
-       -> PKey       -- ^ private key to decrypt the symmetric key
+       -> key        -- ^ private key to decrypt the symmetric key
        -> B8.ByteString -- ^ input string to decrypt
        -> B8.ByteString -- ^ decrypted string
 openBS cipher encKey iv pkey input
@@ -66,10 +68,11 @@ openBS cipher encKey iv pkey input
 
 -- |@'openLBS'@ lazilly decrypts a stream of data. The input string
 -- doesn't necessarily have to be finite.
-openLBS :: Cipher         -- ^ symmetric cipher algorithm to use
+openLBS :: KeyPair key =>
+           Cipher         -- ^ symmetric cipher algorithm to use
         -> String         -- ^ encrypted symmetric key to decrypt the input string
         -> String         -- ^ IV
-        -> PKey           -- ^ private key to decrypt the symmetric key
+        -> key            -- ^ private key to decrypt the symmetric key
         -> L8.ByteString -- ^ input string to decrypt
         -> L8.ByteString -- ^ decrypted string
 openLBS cipher encKey iv pkey input

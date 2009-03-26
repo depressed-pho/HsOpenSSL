@@ -129,10 +129,10 @@ isDetachedSignature pkcs7
            >>= return . (== 1)
 
 
-pkcs7Sign' :: X509 -> PKey -> [X509] -> BIO -> [Pkcs7Flag] -> IO Pkcs7
+pkcs7Sign' :: KeyPair key => X509 -> key -> [X509] -> BIO -> [Pkcs7Flag] -> IO Pkcs7
 pkcs7Sign' signCert pkey certs input flagList
     = withX509Ptr signCert $ \ signCertPtr ->
-      withPKeyPtr pkey     $ \ pkeyPtr     ->
+      withPKeyPtr' pkey    $ \ pkeyPtr     ->
       withX509Stack certs  $ \ certStack   ->
       withBioPtr input     $ \ inputPtr    ->
       _sign signCertPtr pkeyPtr certStack inputPtr (flagListToInt flagList)
@@ -140,8 +140,9 @@ pkcs7Sign' signCert pkey certs input flagList
            >>= wrapPkcs7Ptr
 
 -- |@'pkcs7Sign'@ creates a PKCS#7 signedData structure.
-pkcs7Sign :: X509        -- ^ certificate to sign with
-          -> PKey        -- ^ corresponding private key
+pkcs7Sign :: KeyPair key =>
+             X509        -- ^ certificate to sign with
+          -> key         -- ^ corresponding private key
           -> [X509]      -- ^ optional additional set of certificates
                          --   to include in the PKCS#7 structure (for
                          --   example any intermediate CAs in the
@@ -313,10 +314,10 @@ pkcs7Encrypt certs input cipher flagList
          pkcs7Encrypt' certs mem cipher flagList
 
 
-pkcs7Decrypt' :: Pkcs7 -> PKey -> X509 -> BIO -> [Pkcs7Flag] -> IO ()
+pkcs7Decrypt' :: KeyPair key => Pkcs7 -> key -> X509 -> BIO -> [Pkcs7Flag] -> IO ()
 pkcs7Decrypt' pkcs7 pkey cert output flagList
     = withPkcs7Ptr pkcs7  $ \ pkcs7Ptr  ->
-      withPKeyPtr  pkey   $ \ pkeyPtr   ->
+      withPKeyPtr' pkey   $ \ pkeyPtr   ->
       withX509Ptr  cert   $ \ certPtr   ->
       withBioPtr   output $ \ outputPtr ->
       _decrypt pkcs7Ptr pkeyPtr certPtr outputPtr (flagListToInt flagList)
@@ -325,8 +326,9 @@ pkcs7Decrypt' pkcs7 pkey cert output flagList
 
 -- |@'pkcs7Decrypt'@ decrypts content from PKCS#7 envelopedData
 -- structure.
-pkcs7Decrypt :: Pkcs7       -- ^ The PKCS#7 structure to decrypt.
-             -> PKey        -- ^ The private key of the recipient.
+pkcs7Decrypt :: KeyPair key =>
+                Pkcs7       -- ^ The PKCS#7 structure to decrypt.
+             -> key         -- ^ The private key of the recipient.
              -> X509        -- ^ The recipient's certificate.
              -> [Pkcs7Flag] -- ^ An optional set of flags:
                             --

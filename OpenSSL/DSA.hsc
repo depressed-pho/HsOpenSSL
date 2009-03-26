@@ -9,84 +9,146 @@
 
 module OpenSSL.DSA
     ( -- * Type
-      DSA
-    , DSA_ -- private
-    , withDSAPtr -- private
+      DSAKey(..)
+    , DSAPubKey
+    , DSAKeyPair
+    , DSA -- private
 
       -- * Key and parameter generation
-    , generateParameters
-    , generateKey
-    , generateParametersAndKey
+    , generateDSAParameters
+    , generateDSAKey
+    , generateDSAParametersAndKey
 
       -- * Signing and verification
-    , signDigestedData
-    , verifyDigestedData
+    , signDigestedDataWithDSA
+    , verifyDigestedDataWithDSA
 
       -- * Extracting fields of DSA objects
-    , dsaP
-    , dsaQ
-    , dsaG
     , dsaPrivate
-    , dsaPublic
-    , dsaToTuple
-    , tupleToDSA
+    , dsaPubKeyToTuple
+    , dsaKeyPairToTuple
+    , tupleToDSAPubKey
+    , tupleToDSAKeyPair
     ) where
 
 import           Control.Monad
+import qualified Data.ByteString as BS
+import           Data.Typeable
 import           Foreign
 import           Foreign.C (CString)
 import           Foreign.C.Types
 import           OpenSSL.BN
 import           OpenSSL.Utils
-import qualified Data.ByteString as BS
+import           System.IO.Unsafe
 
--- | The type of a DSA key, includes parameters p, q, g.
-newtype DSA = DSA (ForeignPtr DSA_)
+-- | The type of a DSA public key, includes parameters p, q, g and public.
+newtype DSAPubKey = DSAPubKey (ForeignPtr DSA)
+    deriving Typeable
 
-data DSA_
+-- | The type of a DSA keypair, includes parameters p, q, g, public and private.
+newtype DSAKeyPair = DSAKeyPair (ForeignPtr DSA)
+    deriving Typeable
+
+-- DSAPubKey and DSAKeyPair are in fact the same type at the OpenSSL
+-- level, but we want to treat them differently for type-safety.
+data DSA
+
+-- |@'DSAKey' a@ is either 'DSAPubKey' or 'DSAKeyPair'.
+class DSAKey k where
+    -- |Return the length of key.
+    dsaSize :: k -> Int
+    dsaSize dsa
+        = unsafePerformIO $
+          withDSAPtr dsa $ \ dsaPtr ->
+              _size dsaPtr >>= return . fromIntegral
+
+    -- |Return the public prime number of the key.
+    dsaP :: k -> Integer
+    dsaP = peekI (#peek DSA, p)
+
+    -- |Return the public 160-bit subprime, @q | p - 1@ of the key.
+    dsaQ :: k -> Integer
+    dsaQ = peekI (#peek DSA, q)
+
+    -- |Return the public generator of subgroup of the key.
+    dsaG :: k -> Integer
+    dsaG = peekI (#peek DSA, g)
+
+    -- |Return the public key @y = g^x@.
+    dsaPublic :: k -> Integer
+    dsaPublic = peekI (#peek DSA, pub_key)
+
+    -- private
+    withDSAPtr :: k -> (Ptr DSA -> IO a) -> IO a
+    peekDSAPtr :: Ptr DSA -> IO (Maybe k)
+
+
+instance DSAKey DSAPubKey where
+    withDSAPtr (DSAPubKey fp) = withForeignPtr fp
+    peekDSAPtr dsaPtr         = do ptr <- _pubDup dsaPtr
+                                   fp  <- newForeignPtr _free ptr
+                                   return $ Just $ DSAPubKey fp
+
+
+instance DSAKey DSAKeyPair where
+    withDSAPtr (DSAKeyPair fp) = withForeignPtr fp
+    peekDSAPtr dsaPtr          = do private <- (#peek DSA, priv_key) dsaPtr
+                                    if private /= nullPtr then
+                                        do ptr <- _privDup dsaPtr
+                                           fp  <- newForeignPtr _free ptr
+                                           return $ Just $ DSAKeyPair fp
+                                      else
+                                        return Nothing
+
 
 foreign import ccall unsafe "&DSA_free"
-        _free :: FunPtr (Ptr DSA_ -> IO ())
+        _free :: FunPtr (Ptr DSA -> IO ())
 
 foreign import ccall unsafe "DSA_free"
-        dsa_free :: Ptr DSA_ -> IO ()
+        dsa_free :: Ptr DSA -> IO ()
 
 foreign import ccall unsafe "BN_free"
         _bn_free :: Ptr BIGNUM -> IO ()
 
 foreign import ccall unsafe "DSA_new"
-        _dsa_new :: IO (Ptr DSA_)
+        _dsa_new :: IO (Ptr DSA)
 
 foreign import ccall unsafe "DSA_generate_key"
-        _dsa_generate_key :: Ptr DSA_ -> IO ()
+        _dsa_generate_key :: Ptr DSA -> IO ()
 
 foreign import ccall unsafe "HsOpenSSL_dsa_sign"
-        _dsa_sign :: Ptr DSA_ -> CString -> CInt -> Ptr (Ptr BIGNUM) -> Ptr (Ptr BIGNUM) -> IO CInt
+        _dsa_sign :: Ptr DSA -> CString -> CInt -> Ptr (Ptr BIGNUM) -> Ptr (Ptr BIGNUM) -> IO CInt
 
 foreign import ccall unsafe "HsOpenSSL_dsa_verify"
-        _dsa_verify :: Ptr DSA_ -> CString -> CInt -> Ptr BIGNUM -> Ptr BIGNUM -> IO CInt
-
-withDSAPtr :: DSA -> (Ptr DSA_ -> IO a) -> IO a
-withDSAPtr (DSA ptr) = withForeignPtr ptr
+        _dsa_verify :: Ptr DSA -> CString -> CInt -> Ptr BIGNUM -> Ptr BIGNUM -> IO CInt
 
 foreign import ccall safe "DSA_generate_parameters"
-        _generate_params :: CInt -> Ptr CChar -> CInt -> Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> IO (Ptr DSA_)
+        _generate_params :: CInt -> Ptr CChar -> CInt -> Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> IO (Ptr DSA)
 
-peekDSA :: (Ptr DSA_ -> IO (Ptr BIGNUM)) -> DSA -> IO (Maybe Integer)
-peekDSA peeker (DSA dsa) = do
-  withForeignPtr dsa (\ptr -> do
-    bn <- peeker ptr
-    if bn == nullPtr
-       then return Nothing
-       else peekBN (wrapBN bn) >>= return . Just)
+foreign import ccall unsafe "HsOpenSSL_DSAPublicKey_dup"
+        _pubDup :: Ptr DSA -> IO (Ptr DSA)
+
+foreign import ccall unsafe "HsOpenSSL_DSAPrivateKey_dup"
+        _privDup :: Ptr DSA -> IO (Ptr DSA)
+
+foreign import ccall unsafe "DSA_size"
+        _size :: Ptr DSA -> IO CInt
+
+peekI :: DSAKey k => (Ptr DSA -> IO (Ptr BIGNUM)) -> k -> Integer
+peekI peeker dsa
+    = unsafePerformIO $
+      withDSAPtr dsa $ \ dsaPtr ->
+          do bn <- peeker dsaPtr
+             when (bn == nullPtr) $ fail "peekI: got a nullPtr"
+             peekBN (wrapBN bn)
 
 -- | Generate DSA parameters (*not* a key, but required for a key). This is a
 --   compute intensive operation. See FIPS 186-2, app 2. This agrees with the
 --   test vectors given in FIP 186-2, app 5
-generateParameters :: Int  -- ^ The number of bits in the generated prime: 512 <= x <= 1024
-                   -> Maybe BS.ByteString  -- ^ optional seed, its length must be 20 bytes
-                   -> IO (Int, Int, Integer, Integer, Integer)  -- ^ (iteration count, generator count, p, q, g)
-generateParameters nbits mseed = do
+generateDSAParameters :: Int  -- ^ The number of bits in the generated prime: 512 <= x <= 1024
+                      -> Maybe BS.ByteString  -- ^ optional seed, its length must be 20 bytes
+                      -> IO (Int, Int, Integer, Integer, Integer)  -- ^ (iteration count, generator count, p, q, g)
+generateDSAParameters nbits mseed = do
   when (nbits < 512 || nbits > 1024) $ fail "Invalid DSA bit size"
   alloca (\i1 -> do
     alloca (\i2 -> do
@@ -123,84 +185,89 @@ test_generateParameters = do
   return (a, toHex p, toHex q, g)
 -}
 
--- | Generate a new DSA key, given valid parameters
-generateKey :: Integer  -- ^ p
-            -> Integer  -- ^ q
-            -> Integer  -- ^ g
-            -> IO DSA
-generateKey p q g = do
+-- | Generate a new DSA keypair, given valid parameters
+generateDSAKey :: Integer  -- ^ p
+               -> Integer  -- ^ q
+               -> Integer  -- ^ g
+               -> IO DSAKeyPair
+generateDSAKey p q g = do
   ptr <- _dsa_new
   newBN p >>= return . unwrapBN >>= (#poke DSA, p) ptr
   newBN q >>= return . unwrapBN >>= (#poke DSA, q) ptr
   newBN g >>= return . unwrapBN >>= (#poke DSA, g) ptr
   _dsa_generate_key ptr
-  newForeignPtr _free ptr >>= return . DSA
-
--- |Return the public prime number of the key.
-dsaP :: DSA -> IO (Maybe Integer)
-dsaP = peekDSA (#peek DSA, p)
-
--- |Return the public 160-bit subprime, @q | p-1@ of the key.
-dsaQ :: DSA -> IO (Maybe Integer)
-dsaQ = peekDSA (#peek DSA, q)
-
--- |Return the public generator of subgroup of the key.
-dsaG :: DSA -> IO (Maybe Integer)
-dsaG = peekDSA (#peek DSA, g)
-
--- |Return the public key @y = g^x@.
-dsaPublic :: DSA -> IO (Maybe Integer)
-dsaPublic = peekDSA (#peek DSA, pub_key)
+  newForeignPtr _free ptr >>= return . DSAKeyPair
 
 -- |Return the private key @x@.
-dsaPrivate :: DSA -> IO (Maybe Integer)
-dsaPrivate = peekDSA (#peek DSA, priv_key)
+dsaPrivate :: DSAKeyPair -> Integer
+dsaPrivate = peekI (#peek DSA, priv_key)
 
--- | Convert a DSA object to a tuple of its members in the order p, q, g,
---   public, private. If this is a public key, private will be Nothing
-dsaToTuple :: DSA -> IO (Integer, Integer, Integer, Integer, Maybe Integer)
-dsaToTuple dsa = do
-  Just p <- peekDSA (#peek DSA, p) dsa
-  Just q <- peekDSA (#peek DSA, q) dsa
-  Just g <- peekDSA (#peek DSA, g) dsa
-  Just pub <- peekDSA (#peek DSA, pub_key) dsa
-  private <- peekDSA (#peek DSA, priv_key) dsa
+-- | Convert a DSAPubKey object to a tuple of its members in the
+--   order p, q, g, and public.
+dsaPubKeyToTuple :: DSAKeyPair -> (Integer, Integer, Integer, Integer)
+dsaPubKeyToTuple dsa
+    = let p   = peekI (#peek DSA, p) dsa
+          q   = peekI (#peek DSA, q) dsa
+          g   = peekI (#peek DSA, g) dsa
+          pub = peekI (#peek DSA, pub_key) dsa
+      in
+        (p, q, g, pub)
 
-  return (p, q, g, pub, private)
+-- | Convert a DSAKeyPair object to a tuple of its members in the
+--   order p, q, g, public and private.
+dsaKeyPairToTuple :: DSAKeyPair -> (Integer, Integer, Integer, Integer, Integer)
+dsaKeyPairToTuple dsa
+    = let p   = peekI (#peek DSA, p) dsa
+          q   = peekI (#peek DSA, q) dsa
+          g   = peekI (#peek DSA, g) dsa
+          pub = peekI (#peek DSA, pub_key ) dsa
+          pri = peekI (#peek DSA, priv_key) dsa
+      in
+        (p, q, g, pub, pri)
 
--- | Convert a tuple of members (in the same format as from dsaToTuple) into a
---   DSA object
-tupleToDSA :: (Integer, Integer, Integer, Integer, Maybe Integer) -> IO DSA
-tupleToDSA (p, q, g, pub, mpriv) = do
+-- | Convert a tuple of members (in the same format as from
+--   'dsaPubKeyToTuple') into a DSAPubKey object
+tupleToDSAPubKey :: (Integer, Integer, Integer, Integer) -> DSAPubKey
+tupleToDSAPubKey (p, q, g, pub) = unsafePerformIO $ do
   ptr <- _dsa_new
-  newBN p >>= return . unwrapBN >>= (#poke DSA, p) ptr
-  newBN q >>= return . unwrapBN >>= (#poke DSA, q) ptr
-  newBN g >>= return . unwrapBN >>= (#poke DSA, g) ptr
+  newBN p   >>= return . unwrapBN >>= (#poke DSA, p) ptr
+  newBN q   >>= return . unwrapBN >>= (#poke DSA, q) ptr
+  newBN g   >>= return . unwrapBN >>= (#poke DSA, g) ptr
   newBN pub >>= return . unwrapBN >>= (#poke DSA, pub_key) ptr
-  case mpriv of
-       Just priv -> newBN priv >>= return . unwrapBN >>= (#poke DSA, priv_key) ptr
-       Nothing -> (#poke DSA, priv_key) ptr nullPtr
-  newForeignPtr _free ptr >>= return . DSA
+  (#poke DSA, priv_key) ptr nullPtr
+  newForeignPtr _free ptr >>= return . DSAPubKey
+
+-- | Convert a tuple of members (in the same format as from
+--   'dsaPubKeyToTuple') into a DSAPubKey object
+tupleToDSAKeyPair :: (Integer, Integer, Integer, Integer, Integer) -> DSAKeyPair
+tupleToDSAKeyPair (p, q, g, pub, pri) = unsafePerformIO $ do
+  ptr <- _dsa_new
+  newBN p   >>= return . unwrapBN >>= (#poke DSA, p) ptr
+  newBN q   >>= return . unwrapBN >>= (#poke DSA, q) ptr
+  newBN g   >>= return . unwrapBN >>= (#poke DSA, g) ptr
+  newBN pub >>= return . unwrapBN >>= (#poke DSA, pub_key ) ptr
+  newBN pri >>= return . unwrapBN >>= (#poke DSA, priv_key) ptr
+  newForeignPtr _free ptr >>= return . DSAKeyPair
 
 -- | A utility function to generate both the parameters and the key pair at the
 --   same time. Saves serialising and deserialising the parameters too
-generateParametersAndKey :: Int  -- ^ The number of bits in the generated prime: 512 <= x <= 1024
-                         -> Maybe BS.ByteString  -- ^ optional seed, its length must be 20 bytes
-                         -> IO DSA
-generateParametersAndKey nbits mseed = do
+generateDSAParametersAndKey :: Int  -- ^ The number of bits in the generated prime: 512 <= x <= 1024
+                            -> Maybe BS.ByteString  -- ^ optional seed, its length must be 20 bytes
+                            -> IO DSAKeyPair
+generateDSAParametersAndKey nbits mseed = do
   (\x -> case mseed of
               Nothing -> x (nullPtr, 0)
               Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
     ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) nullPtr nullPtr nullPtr nullPtr
     failIfNull ptr
     _dsa_generate_key ptr
-    newForeignPtr _free ptr >>= return . DSA)
+    newForeignPtr _free ptr >>= return . DSAKeyPair)
 
 -- | Sign pre-digested data. The DSA specs call for SHA1 to be used so, if you
 --   use anything else, YMMV. Returns a pair of Integers which, together, are
 --   the signature
-signDigestedData :: DSA -> BS.ByteString -> IO (Integer, Integer)
-signDigestedData dsa bytes = do
+signDigestedDataWithDSA :: DSAKeyPair -> BS.ByteString -> IO (Integer, Integer)
+signDigestedDataWithDSA dsa bytes = do
   BS.useAsCStringLen bytes (\(ptr, len) -> do
     alloca (\rptr -> do
       alloca (\sptr -> do
@@ -213,8 +280,8 @@ signDigestedData dsa bytes = do
           return (r, s)))))
 
 -- | Verify pre-digested data given a signature.
-verifyDigestedData :: DSA -> BS.ByteString -> (Integer, Integer) -> IO Bool
-verifyDigestedData dsa bytes (r, s) = do
+verifyDigestedDataWithDSA :: DSAKey k => k -> BS.ByteString -> (Integer, Integer) -> IO Bool
+verifyDigestedDataWithDSA dsa bytes (r, s) = do
   BS.useAsCStringLen bytes (\(ptr, len) -> do
     withBN r (\bnR -> do
       withBN s (\bnS -> do

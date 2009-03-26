@@ -161,18 +161,19 @@ withCRLPtr :: CRL -> (Ptr X509_CRL -> IO a) -> IO a
 withCRLPtr (CRL crl) = withForeignPtr crl
 
 -- |@'signCRL'@ signs a revocation list with an issuer private key.
-signCRL :: CRL          -- ^ The revocation list to be signed.
-        -> PKey         -- ^ The private key to sign with.
+signCRL :: KeyPair key =>
+           CRL          -- ^ The revocation list to be signed.
+        -> key          -- ^ The private key to sign with.
         -> Maybe Digest -- ^ A hashing algorithm to use. If @Nothing@
                         --   the most suitable algorithm for the key
                         --   is automatically used.
         -> IO ()
-signCRL crl pkey mDigest
+signCRL crl key mDigest
     = withCRLPtr crl   $ \ crlPtr  ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       do digest <- case mDigest of
                      Just md -> return md
-                     Nothing -> pkeyDefaultMD pkey
+                     Nothing -> pkeyDefaultMD key
          withMDPtr digest $ \ digestPtr ->
              _sign crlPtr pkeyPtr digestPtr
                   >>= failIf (== 0)
@@ -180,10 +181,10 @@ signCRL crl pkey mDigest
 
 -- |@'verifyCRL'@ verifies a signature of revocation list with an
 -- issuer public key.
-verifyCRL :: CRL -> PKey -> IO VerifyStatus
-verifyCRL crl pkey
+verifyCRL :: PublicKey key => CRL -> key -> IO VerifyStatus
+verifyCRL crl key
     = withCRLPtr crl   $ \ crlPtr ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       _verify crlPtr pkeyPtr
            >>= interpret
     where

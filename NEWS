@@ -1,5 +1,80 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.5.2 to 0.6
+-------------------------
+* INCOMPATIBLE CHANGES:
+    + OpenSSL.DSA:
+        - The data type "DSA" is now broken into two separate types
+          "DSAPubKey" and "DSAKeyPair" to distinguish between public
+          keys and keypairs at type-level. These two data types are
+          instances of class "DSAKey".
+        - These functions are renamed to avoid name collision with
+          OpenSSL.RSA:
+            # generateParameters       --> generateDSAParameters
+            # generateKey              --> generateDSAKey
+            # generateParametersAndKey --> generateDSAParametersAndKey
+            # signDigestedData         --> signDigestedDataWithDSA
+            # verifyDigestedData       --> verifyDigestedDataWithDSA
+        - These functions are broken into two separate functions:
+            # dsaToTuple --> dsaPubKeyToTuple, dsaKeyPairToTuple
+            # tupleToDSA --> tupleToDSAPubKey, tupleToDSAKeyPair
+    + OpenSSL.RSA:
+        - The data type "RSA" is now broken into two separate types
+          "RSAPubKey" and "RSAKeyPair" to distinguish between public
+          keys and keypairs at type-level. These two data types are
+          instances of class "RSAKey".
+    + OpenSSL.EVP.PKey:
+        - The data type "PKey" is now broken into two separate
+          classes, not data types, "PublicKey" and "KeyPair" to
+          distinguish between public keys and keypairs at
+          type-level. You can pass "RSAPubKey" and such like directly
+          to cryptographic functions instead of the prior polymorphic
+          type "PKey", for the sake of type classes.
+    + OpenSSL.EVP.Open:
+        - These functions now take "KeyPair k" instead of "PKey":
+            # open
+            # openBS
+            # openLBS
+    + OpenSSL.EVP.Seal:
+        - These functions now take "SomePublicKey" instead of "PKey":
+            # seal
+            # sealBS
+            # sealLBS
+    + OpenSSL.EVP.Sign:
+        - These functions now take "KeyPair k" instead of "PKey":
+            # sign
+            # signBS
+            # signLBS
+    + OpenSSL.EVP.Verify:
+        - These functions now take "PublicKey k" instead of "PKey":
+            # verify
+            # verifyBS
+            # verifyLBS
+    + OpenSSL.PEM:
+        - writePKCS8PrivateKey now takes "KeyPair k" instead of "PKey".
+        - readPrivateKey now returns "SomeKeyPair" instead of "PKey".
+        - writePublicKey now takes "PublicKey k" instead of "PKey".
+        - readPublicKey now returns "SomePublicKey" instead of "PKey".
+    + OpenSSL.PKCS7:
+        - pkcs7Sign now takes "KeyPair k" instead of "PKey".
+        - pkcs7Decrypt now takes "KeyPair k" instead of "PKey".
+    + OpenSSL.X509:
+        - signX509 now takes "KeyPair k" instead of "PKey".
+        - verifyX509 now takes "PublicKey k" instead of "PKey".
+        - getPublicKey now returns "SomePublicKey" instead of "PKey".
+        - setPublicKey now takes "PublicKey k" instead of "PKey".
+    + OpenSSL.X509.Request:
+        - signX509Req now takes "KeyPair k" instead of "PKey".
+        - verifyX509Req now takes "PublicKey k" instead of "PKey".
+        - getPublicKey now returns "SomePublicKey" instead of "PKey".
+        - setPublicKey now takes "PublicKey k" instead of "PKey".
+    + OpenSSL.X509.Revocation:
+        - signCRL now takes "KeyPair k" instead of "PKey".
+        - verifyCRL now takes "PublicKey k" instead of "PKey".
+* OpenSSL.RSA:
+    - RSAPubKey and RSAKeyPair are now instances of Eq, Ord and Show.
+    - New function: generateRSAKey'
+
 Changes from 0.5.1 to 0.5.2
 ---------------------------
 * Fixed incorrect dependency declaration in HsOpenSSL.cabal. No

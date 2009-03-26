@@ -31,7 +31,7 @@ foreign import ccall unsafe "EVP_SealInit"
                   -> IO CInt
 
 
-sealInit :: Cipher -> [PKey] -> IO (CipherCtx, [String], String)
+sealInit :: Cipher -> [SomePublicKey] -> IO (CipherCtx, [String], String)
 
 sealInit _ []
     = fail "sealInit: at least one public key is required"
@@ -55,7 +55,8 @@ sealInit cipher pubKeys
 
          -- [PKey] から Ptr (Ptr EVP_PKEY) を作る。後でそれぞれの
          -- PKey を touchForeignPtr する事を忘れてはならない。
-         pubKeysPtr <- newArray $ map unsafePKeyToPtr pubKeys
+         pkeys      <- mapM toPKey pubKeys
+         pubKeysPtr <- newArray $ map unsafePKeyToPtr pkeys
 
          -- 確保した領域を解放する IO アクションを作って置く
          let cleanup = do mapM_ free encKeyBufs
@@ -63,7 +64,7 @@ sealInit cipher pubKeys
                           free encKeyBufsLenPtr
                           free ivPtr
                           free pubKeysPtr
-                          mapM_ touchPKey pubKeys
+                          mapM_ touchPKey pkeys
 
          -- いよいよ EVP_SealInit を呼ぶ。
          ret <- withCipherCtxPtr ctx $ \ ctxPtr ->
@@ -81,21 +82,20 @@ sealInit cipher pubKeys
       nKeys :: Int
       nKeys = length pubKeys
 
-      mallocEncKeyBuf :: Storable a => PKey -> IO (Ptr a)
-      mallocEncKeyBuf pubKey
-          = pkeySize pubKey >>= mallocArray
+      mallocEncKeyBuf :: (PKey k, Storable a) => k -> IO (Ptr a)
+      mallocEncKeyBuf = mallocArray . pkeySize
 
 -- |@'seal'@ lazilly encrypts a stream of data. The input string
 -- doesn't necessarily have to be finite.
-seal :: Cipher        -- ^ symmetric cipher algorithm to use
-     -> [PKey]        -- ^ A list of public keys to encrypt a
-                      --   symmetric key. At least one public key must
-                      --   be supplied. If two or more keys are given,
-                      --   the symmetric key are encrypted by each
-                      --   public keys so that any of the
-                      --   corresponding private keys can decrypt the
-                      --   message.
-     -> String        -- ^ input string to encrypt
+seal :: Cipher          -- ^ symmetric cipher algorithm to use
+     -> [SomePublicKey] -- ^ A list of public keys to encrypt a
+                        --   symmetric key. At least one public key
+                        --   must be supplied. If two or more keys are
+                        --   given, the symmetric key are encrypted by
+                        --   each public keys so that any of the
+                        --   corresponding private keys can decrypt
+                        --   the message.
+     -> String          -- ^ input string to encrypt
      -> IO (String, [String], String) -- ^ (encrypted string, list of
                                       --   encrypted asymmetric keys,
                                       --   IV)
@@ -104,10 +104,10 @@ seal cipher pubKeys input
          return (L8.unpack output, encKeys, iv)
 
 -- |@'sealBS'@ strictly encrypts a chunk of data.
-sealBS :: Cipher     -- ^ symmetric cipher algorithm to use
-       -> [PKey]     -- ^ list of public keys to encrypt a symmetric
-                     --   key
-       -> B8.ByteString -- ^ input string to encrypt
+sealBS :: Cipher          -- ^ symmetric cipher algorithm to use
+       -> [SomePublicKey] -- ^ list of public keys to encrypt a
+                          --   symmetric key
+       -> B8.ByteString   -- ^ input string to encrypt
        -> IO (B8.ByteString, [String], String) -- ^ (encrypted string,
                                             --   list of encrypted
                                             --   asymmetric keys, IV)
@@ -118,10 +118,10 @@ sealBS cipher pubKeys input
 
 -- |@'sealLBS'@ lazilly encrypts a stream of data. The input string
 -- doesn't necessarily have to be finite.
-sealLBS :: Cipher         -- ^ symmetric cipher algorithm to use
-        -> [PKey]         -- ^ list of public keys to encrypt a
-                          --   symmetric key
-        -> L8.ByteString -- ^ input string to encrypt
+sealLBS :: Cipher          -- ^ symmetric cipher algorithm to use
+        -> [SomePublicKey] -- ^ list of public keys to encrypt a
+                           --   symmetric key
+        -> L8.ByteString   -- ^ input string to encrypt
         -> IO (L8.ByteString, [String], String) -- ^ (encrypted
                                                  --   string, list of
                                                  --   encrypted

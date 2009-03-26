@@ -203,3 +203,23 @@ int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int dlen,
   sig.s = s;
   return dsa->meth->dsa_do_verify(ddata, dlen, &sig, dsa);
 }
+
+#if !defined(DSAPublicKey_dup)
+# define DSAPublicKey_dup(dsa)                                      \
+    (DSA *)ASN1_dup((i2d_of_void *)i2d_DSAPublicKey,                \
+                    (d2i_of_void *)d2i_DSAPublicKey,(char *)dsa)
+#endif
+
+#if !defined(DSAPrivateKey_dup)
+#define DSAPrivateKey_dup(dsa)                                      \
+    (DSA *)ASN1_dup((i2d_of_void *)i2d_DSAPrivateKey,               \
+                    (d2i_of_void *)d2i_DSAPrivateKey,(char *)dsa)
+#endif
+
+DSA* HsOpenSSL_DSAPublicKey_dup(const DSA* dsa) {
+    return DSAPublicKey_dup(dsa);
+}
+
+DSA* HsOpenSSL_DSAPrivateKey_dup(const DSA* dsa) {
+    return DSAPrivateKey_dup(dsa);
+}

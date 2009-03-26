@@ -31,11 +31,11 @@ foreign import ccall unsafe "EVP_VerifyFinal"
         _VerifyFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> CUInt -> Ptr EVP_PKEY -> IO CInt
 
 
-verifyFinalBS :: DigestCtx -> String -> PKey -> IO VerifyStatus
-verifyFinalBS ctx sig pkey
+verifyFinalBS :: PublicKey k => DigestCtx -> String -> k -> IO VerifyStatus
+verifyFinalBS ctx sig k
     = withDigestCtxPtr ctx $ \ ctxPtr ->
       withCStringLen sig $ \ (buf, len) ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' k $ \ pkeyPtr ->
       _VerifyFinal ctxPtr buf (fromIntegral len) pkeyPtr >>= interpret
     where
       interpret :: CInt -> IO VerifyStatus
@@ -46,29 +46,32 @@ verifyFinalBS ctx sig pkey
 -- |@'verify'@ verifies a signature and a stream of data. The string
 -- must not contain any letters which aren't in the range of U+0000 -
 -- U+00FF.
-verify :: Digest          -- ^ message digest algorithm to use
+verify :: PublicKey key =>
+          Digest          -- ^ message digest algorithm to use
        -> String          -- ^ message signature
-       -> PKey            -- ^ public key to verify the signature
+       -> key             -- ^ public key to verify the signature
        -> String          -- ^ input string to verify
        -> IO VerifyStatus -- ^ the result of verification
 verify md sig pkey input
     = verifyLBS md sig pkey (L8.pack input)
 
 -- |@'verifyBS'@ verifies a signature and a chunk of data.
-verifyBS :: Digest          -- ^ message digest algorithm to use
+verifyBS :: PublicKey key =>
+            Digest          -- ^ message digest algorithm to use
          -> String          -- ^ message signature
-         -> PKey            -- ^ public key to verify the signature
-         -> B8.ByteString      -- ^ input string to verify
+         -> key             -- ^ public key to verify the signature
+         -> B8.ByteString   -- ^ input string to verify
          -> IO VerifyStatus -- ^ the result of verification
 verifyBS md sig pkey input
     = do ctx <- digestStrictly md input
          verifyFinalBS ctx sig pkey
 
 -- |@'verifyLBS'@ verifies a signature of a stream of data.
-verifyLBS :: Digest          -- ^ message digest algorithm to use
+verifyLBS :: PublicKey key =>
+             Digest          -- ^ message digest algorithm to use
           -> String          -- ^ message signature
-          -> PKey            -- ^ public key to verify the signature
-          -> L8.ByteString  -- ^ input string to verify
+          -> key             -- ^ public key to verify the signature
+          -> L8.ByteString   -- ^ input string to verify
           -> IO VerifyStatus -- ^ the result of verification
 verifyLBS md sig pkey input
     = do ctx <- digestLazily md input

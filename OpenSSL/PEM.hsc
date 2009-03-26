@@ -37,6 +37,7 @@ module OpenSSL.PEM
 
 import           Control.Exception hiding (try)
 import           Control.Monad
+import           Data.Maybe
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BIO
@@ -131,13 +132,14 @@ foreign import ccall safe "PEM_write_bio_PKCS8PrivateKey"
                                    -> Ptr a
                                    -> IO CInt
 
-writePKCS8PrivateKey' :: BIO
-                      -> PKey
+writePKCS8PrivateKey' :: KeyPair key =>
+                         BIO
+                      -> key
                       -> Maybe (Cipher, PemPasswordSupply)
                       -> IO ()
-writePKCS8PrivateKey' bio pkey encryption
+writePKCS8PrivateKey' bio key encryption
     = withBioPtr bio   $ \ bioPtr  ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       do ret <- case encryption of
                   Nothing
                       -> _write_bio_PKCS8PrivateKey bioPtr pkeyPtr nullPtr nullPtr 0 nullFunPtr nullPtr
@@ -166,7 +168,8 @@ writePKCS8PrivateKey' bio pkey encryption
 -- |@'writePKCS8PrivateKey'@ writes a private key to PEM string in
 -- PKCS#8 format.
 writePKCS8PrivateKey
-    :: PKey      -- ^ private key to write
+    :: KeyPair key =>
+       key       -- ^ private key to write
     -> Maybe (Cipher, PemPasswordSupply) -- ^ Either (symmetric cipher
                                          --   algorithm, password
                                          --   supply) or @Nothing@. If
@@ -187,7 +190,7 @@ foreign import ccall safe "PEM_read_bio_PrivateKey"
                              -> Ptr ()
                              -> IO (Ptr EVP_PKEY)
 
-readPrivateKey' :: BIO -> PemPasswordSupply -> IO PKey
+readPrivateKey' :: BIO -> PemPasswordSupply -> IO SomeKeyPair
 readPrivateKey' bio supply
     = withBioPtr bio $ \ bioPtr ->
       do pkeyPtr <- case supply of
@@ -210,10 +213,10 @@ readPrivateKey' bio supply
                       PwTTY
                           -> _read_bio_PrivateKey bioPtr nullPtr nullFunPtr nullPtr 
          failIfNull pkeyPtr
-         wrapPKeyPtr pkeyPtr
+         wrapPKeyPtr pkeyPtr >>= fromPKey >>= return . fromJust
 
 -- |@'readPrivateKey' pem supply@ reads a private key in PEM string.
-readPrivateKey :: String -> PemPasswordSupply -> IO PKey
+readPrivateKey :: String -> PemPasswordSupply -> IO SomeKeyPair
 readPrivateKey pemStr supply
     = do mem <- newConstMem pemStr
          readPrivateKey' mem supply
@@ -232,14 +235,14 @@ foreign import ccall unsafe "PEM_read_bio_PUBKEY"
                          -> IO (Ptr EVP_PKEY)
 
 
-writePublicKey' :: BIO -> PKey -> IO ()
-writePublicKey' bio pkey
+writePublicKey' :: PublicKey key => BIO -> key -> IO ()
+writePublicKey' bio key
     = withBioPtr bio   $ \ bioPtr  ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       _write_bio_PUBKEY bioPtr pkeyPtr >>= failIf (/= 1) >> return ()
 
 -- |@'writePublicKey' pubkey@ writes a public to PEM string.
-writePublicKey :: PKey -> IO String
+writePublicKey :: PublicKey key => key -> IO String
 writePublicKey pkey
     = do mem <- newMem
          writePublicKey' mem pkey
@@ -247,16 +250,18 @@ writePublicKey pkey
 
 -- Why the heck PEM_read_bio_PUBKEY takes pem_password_cb? Is there
 -- any form of encrypted public key?
-readPublicKey' :: BIO -> IO PKey
+readPublicKey' :: BIO -> IO SomePublicKey
 readPublicKey' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
       _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapPKeyPtr
+           >>= fromPKey
+           >>= return . fromJust
 
 -- |@'readPublicKey' pem@ reads a public key in PEM string.
-readPublicKey :: String -> IO PKey
+readPublicKey :: String -> IO SomePublicKey
 readPublicKey pemStr
     = newConstMem pemStr >>= readPublicKey'
 

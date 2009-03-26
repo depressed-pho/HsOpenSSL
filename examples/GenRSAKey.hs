@@ -12,7 +12,7 @@ main = withOpenSSL $
 
           printf "Generating RSA key-pair, nbits = %d, e = %d:\n" keyBits keyE
           
-          rsa  <- generateKey keyBits keyE $ Just $ \ phase _ ->
+          rsa  <- generateRSAKey keyBits keyE $ Just $ \ phase _ ->
                   do hPutChar stdout $ case phase of
                                          0 -> '.'
                                          1 -> '+'
@@ -28,19 +28,12 @@ main = withOpenSSL $
               d    = rsaD rsa
               p    = rsaP rsa
               q    = rsaQ rsa
-              dmp1 = rsaDMP1 rsa
-              dmq1 = rsaDMQ1 rsa
-              iqmp = rsaIQMP rsa
 
           printf "n (public modulus) = %s\n" (show n)
           printf "e (public exponent) = %s\n" (show e)
           printf "d (private exponent) = %s\n" (show d)
           printf "p (secret prime factor) = %s\n" (show p)
           printf "q (secret prime factor) = %s\n" (show q)
-          printf "dmp1 (d mod (p-1)) = %s\n" (show dmp1)
-          printf "dmq1 (d mod (q-1)) = %s\n" (show dmq1)
-          printf "iqmp (q^-1 mod p) = %s\n" (show iqmp)
 
-          let pkey = newPKeyRSA rsa
-          writePKCS8PrivateKey pkey Nothing >>= putStr
-          writePublicKey pkey >>= putStr
+          writePKCS8PrivateKey rsa Nothing >>= putStr
+          writePublicKey       rsa         >>= putStr

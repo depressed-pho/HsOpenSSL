@@ -52,6 +52,7 @@ module OpenSSL.X509
 
 import           Control.Monad
 import           Data.Time.Clock
+import           Data.Maybe
 import           Foreign
 import           Foreign.C
 import           OpenSSL.ASN1
@@ -187,18 +188,19 @@ compareX509 cert1 cert2
           | otherwise = EQ
 
 -- |@'signX509'@ signs a certificate with an issuer private key.
-signX509 :: X509         -- ^ The certificate to be signed.
-         -> PKey         -- ^ The private key to sign with.
+signX509 :: KeyPair key =>
+            X509         -- ^ The certificate to be signed.
+         -> key          -- ^ The private key to sign with.
          -> Maybe Digest -- ^ A hashing algorithm to use. If @Nothing@
                          --   the most suitable algorithm for the key
                          --   is automatically used.
          -> IO ()
-signX509 x509 pkey mDigest
+signX509 x509 key mDigest
     = withX509Ptr x509 $ \ x509Ptr ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       do digest <- case mDigest of
                      Just md -> return md
-                     Nothing -> pkeyDefaultMD pkey
+                     Nothing -> pkeyDefaultMD key
          withMDPtr digest $ \ digestPtr ->
              _sign x509Ptr pkeyPtr digestPtr
                   >>= failIf (== 0)
@@ -206,12 +208,13 @@ signX509 x509 pkey mDigest
 
 -- |@'verifyX509'@ verifies a signature of certificate with an issuer
 -- public key.
-verifyX509 :: X509 -- ^ The certificate to be verified.
-           -> PKey -- ^ The public key to verify with.
+verifyX509 :: PublicKey key =>
+              X509 -- ^ The certificate to be verified.
+           -> key  -- ^ The public key to verify with.
            -> IO VerifyStatus
-verifyX509 x509 pkey
+verifyX509 x509 key
     = withX509Ptr x509 $ \ x509Ptr ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       _verify x509Ptr pkeyPtr
            >>= interpret
     where
@@ -344,19 +347,21 @@ setNotAfter x509 utc
 
 -- |@'getPublicKey' cert@ returns the public key of the subject of
 -- certificate.
-getPublicKey :: X509 -> IO PKey
+getPublicKey :: X509 -> IO SomePublicKey
 getPublicKey x509
     = withX509Ptr x509 $ \ x509Ptr ->
       _get_pubkey x509Ptr
            >>= failIfNull
            >>= wrapPKeyPtr
+           >>= fromPKey
+           >>= return . fromJust
 
 -- |@'setPublicKey' cert pubkey@ updates the public key of the subject
 -- of certificate.
-setPublicKey :: X509 -> PKey -> IO ()
-setPublicKey x509 pkey
+setPublicKey :: PublicKey key => X509 -> key -> IO ()
+setPublicKey x509 key
     = withX509Ptr x509 $ \ x509Ptr ->
-      withPKeyPtr pkey $ \ pkeyPtr ->
+      withPKeyPtr' key $ \ pkeyPtr ->
       _set_pubkey x509Ptr pkeyPtr
            >>= failIf (/= 1)
            >>  return ()

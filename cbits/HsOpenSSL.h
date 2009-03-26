@@ -68,5 +68,7 @@ int HsOpenSSL_dsa_sign(DSA *dsa, const unsigned char *ddata, int len,
                        BIGNUM **r, BIGNUM **s);
 int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int len,
                          BIGNUM *r, BIGNUM *s);
+DSA* HsOpenSSL_DSAPublicKey_dup(const DSA* dsa);
+DSA* HsOpenSSL_DSAPrivateKey_dup(const DSA* dsa);
 
 #endif

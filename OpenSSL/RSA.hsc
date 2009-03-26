@@ -8,17 +8,17 @@
 
 module OpenSSL.RSA
     ( -- * Type
-      RSA
-    , RSA_ -- private
-    , withRSAPtr -- private
+      RSAKey(..)
+    , RSAPubKey
+    , RSAKeyPair
+    , RSA -- private
 
       -- * Generating keypair
     , RSAGenKeyCallback
-    , generateKey
+    , generateRSAKey
+    , generateRSAKey'
 
       -- * Exploring keypair
-    , rsaN
-    , rsaE
     , rsaD
     , rsaP
     , rsaQ
@@ -29,24 +29,78 @@ module OpenSSL.RSA
     where
 
 import           Control.Monad
+import           Data.Typeable
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
--- |@'RSA'@ is an opaque object that represents either RSA public key
--- or public\/private keypair.
-newtype RSA  = RSA (ForeignPtr RSA_)
-data    RSA_
+-- |@'RSAPubKey'@ is an opaque object that represents RSA public key.
+newtype RSAPubKey  = RSAPubKey (ForeignPtr RSA)
+    deriving Typeable
+
+-- |@'RSAKeyPair'@ is an opaque object that represents RSA keypair.
+newtype RSAKeyPair = RSAKeyPair (ForeignPtr RSA)
+    deriving Typeable
+
+-- RSAPubKey and RSAKeyPair are in fact the same type at the OpenSSL
+-- level, but we want to treat them differently for type-safety.
+data RSA
+
+-- |@'RSAKey' a@ is either 'RSAPubKey' or 'RSAKeyPair'.
+class RSAKey k where
+    -- |@'rsaSize' key@ returns the length of key.
+    rsaSize :: k -> Int
+    rsaSize rsa
+        = unsafePerformIO $
+          withRSAPtr rsa $ \ rsaPtr ->
+              _size rsaPtr >>= return . fromIntegral
+
+    -- |@'rsaN' key@ returns the public modulus of the key.
+    rsaN :: k -> Integer
+    rsaN = peekI (#peek RSA, n)
+
+    -- |@'rsaE' key@ returns the public exponent of the key.
+    rsaE :: k -> Integer
+    rsaE = peekI (#peek RSA, e)
+
+    -- private
+    withRSAPtr :: k -> (Ptr RSA -> IO a) -> IO a
+    peekRSAPtr :: Ptr RSA -> IO (Maybe k)
+
+
+instance RSAKey RSAPubKey where
+    withRSAPtr (RSAPubKey fp) = withForeignPtr fp
+    peekRSAPtr rsaPtr         = do ptr <- _pubDup rsaPtr
+                                   fp  <- newForeignPtr _free ptr
+                                   return $ Just $ RSAPubKey fp
+
+
+instance RSAKey RSAKeyPair where
+    withRSAPtr (RSAKeyPair fp) = withForeignPtr fp
+    peekRSAPtr rsaPtr          = do d <- (#peek RSA, d) rsaPtr
+                                    p <- (#peek RSA, p) rsaPtr
+                                    q <- (#peek RSA, q) rsaPtr
+                                    if d /= nullPtr && p /= nullPtr && q /= nullPtr then
+                                        do ptr <- _privDup rsaPtr
+                                           fp  <- newForeignPtr _free ptr
+                                           return $ Just $ RSAKeyPair fp
+                                      else
+                                        return Nothing
 
 
 foreign import ccall unsafe "&RSA_free"
-        _free :: FunPtr (Ptr RSA_ -> IO ())
+        _free :: FunPtr (Ptr RSA -> IO ())
 
+foreign import ccall unsafe "RSAPublicKey_dup"
+        _pubDup :: Ptr RSA -> IO (Ptr RSA)
 
-withRSAPtr :: RSA -> (Ptr RSA_ -> IO a) -> IO a
-withRSAPtr (RSA rsa) = withForeignPtr rsa
+foreign import ccall unsafe "RSAPrivateKey_dup"
+        _privDup :: Ptr RSA -> IO (Ptr RSA)
+
+foreign import ccall unsafe "RSA_size"
+        _size :: Ptr RSA -> IO CInt
 
 
 {- generation --------------------------------------------------------------- -}
@@ -76,44 +130,53 @@ foreign import ccall "wrapper"
         mkGenKeyCallback :: RSAGenKeyCallback' -> IO (FunPtr RSAGenKeyCallback')
 
 foreign import ccall safe "RSA_generate_key"
-        _generate_key :: CInt -> CInt -> FunPtr RSAGenKeyCallback' -> Ptr a -> IO (Ptr RSA_)
+        _generate_key :: CInt -> CInt -> FunPtr RSAGenKeyCallback' -> Ptr a -> IO (Ptr RSA)
 
--- |@'generateKey'@ generates an RSA keypair.
-generateKey :: Int    -- ^ The number of bits of the public modulus
-                      --   (i.e. key size). Key sizes with @n < 1024@
-                      --   should be considered insecure.
-            -> Int    -- ^ The public exponent. It is an odd number,
-                      --   typically 3, 17 or 65537.
-            -> Maybe RSAGenKeyCallback -- ^ A callback function.
-            -> IO RSA -- ^ The generated keypair.
+-- |@'generateRSAKey'@ generates an RSA keypair.
+generateRSAKey :: Int    -- ^ The number of bits of the public modulus
+                         --   (i.e. key size). Key sizes with @n <
+                         --   1024@ should be considered insecure.
+               -> Int    -- ^ The public exponent. It is an odd
+                         --   number, typically 3, 17 or 65537.
+               -> Maybe RSAGenKeyCallback -- ^ A callback function.
+               -> IO RSAKeyPair -- ^ The generated keypair.
 
-generateKey nbits e Nothing
+generateRSAKey nbits e Nothing
     = do ptr <- _generate_key (fromIntegral nbits) (fromIntegral e) nullFunPtr nullPtr
          failIfNull ptr
-         newForeignPtr _free ptr >>= return . RSA
+         newForeignPtr _free ptr >>= return . RSAKeyPair
 
-generateKey nbits e (Just cb)
+generateRSAKey nbits e (Just cb)
     = do cbPtr <- mkGenKeyCallback
                   $ \ arg1 arg2 _ -> cb arg1 arg2
          ptr   <- _generate_key (fromIntegral nbits) (fromIntegral e) cbPtr nullPtr
          freeHaskellFunPtr cbPtr
          failIfNull ptr
-         newForeignPtr _free ptr >>= return . RSA
+         newForeignPtr _free ptr >>= return . RSAKeyPair
+
+-- |A simplified alternative to 'generateRSAKey'
+generateRSAKey' :: Int   -- ^ The number of bits of the public modulus
+                         --   (i.e. key size). Key sizes with @n <
+                         --   1024@ should be considered insecure.
+                -> Int   -- ^ The public exponent. It is an odd
+                         --   number, typically 3, 17 or 65537.
+                -> IO RSAKeyPair -- ^ The generated keypair.
+generateRSAKey' nbits e
+    = generateRSAKey nbits e Nothing
 
 
 {- exploration -------------------------------------------------------------- -}
 
-peekRSAPublic :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> Integer
-peekRSAPublic peeker rsa
+peekI :: RSAKey a => (Ptr RSA -> IO (Ptr BIGNUM)) -> a -> Integer
+peekI peeker rsa
     = unsafePerformIO $
       withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
-         when (bn == nullPtr) $ fail "peekRSAPublic: got a nullPtr"
+         when (bn == nullPtr) $ fail "peekI: got a nullPtr"
          peekBN (wrapBN bn)
 
-
-peekRSAPrivate :: (Ptr RSA_ -> IO (Ptr BIGNUM)) -> RSA -> (Maybe Integer)
-peekRSAPrivate peeker rsa
+peekMI :: RSAKey a => (Ptr RSA -> IO (Ptr BIGNUM)) -> a -> Maybe Integer
+peekMI peeker rsa
     = unsafePerformIO $
       withRSAPtr rsa $ \ rsaPtr ->
       do bn <- peeker rsaPtr
@@ -122,43 +185,39 @@ peekRSAPrivate peeker rsa
            else
              peekBN (wrapBN bn) >>= return . Just
 
--- |@'rsaN' pubKey@ returns the public modulus of the key.
-rsaN :: RSA -> Integer
-rsaN = peekRSAPublic (#peek RSA, n)
-
--- |@'rsaE' pubKey@ returns the public exponent of the key.
-rsaE :: RSA -> Integer
-rsaE = peekRSAPublic (#peek RSA, e)
-
--- |@'rsaD' privKey@ returns the private exponent of the key. If
--- @privKey@ is not really a private key, the result is @Nothing@.
-rsaD :: RSA -> Maybe Integer
-rsaD = peekRSAPrivate (#peek RSA, d)
+-- |@'rsaD' privKey@ returns the private exponent of the key.
+rsaD :: RSAKeyPair -> Integer
+rsaD = peekI (#peek RSA, d)
 
 -- |@'rsaP' privkey@ returns the secret prime factor @p@ of the key.
-rsaP :: RSA -> Maybe Integer
-rsaP = peekRSAPrivate (#peek RSA, p)
+rsaP :: RSAKeyPair -> Integer
+rsaP = peekI (#peek RSA, p)
 
 -- |@'rsaQ' privkey@ returns the secret prime factor @q@ of the key.
-rsaQ :: RSA -> Maybe Integer
-rsaQ = peekRSAPrivate (#peek RSA, q)
+rsaQ :: RSAKeyPair -> Integer
+rsaQ = peekI (#peek RSA, q)
 
 -- |@'rsaDMP1' privkey@ returns @d mod (p-1)@ of the key.
-rsaDMP1 :: RSA -> Maybe Integer
-rsaDMP1 = peekRSAPrivate (#peek RSA, dmp1)
+rsaDMP1 :: RSAKeyPair -> Maybe Integer
+rsaDMP1 = peekMI (#peek RSA, dmp1)
 
 -- |@'rsaDMQ1' privkey@ returns @d mod (q-1)@ of the key.
-rsaDMQ1 :: RSA -> Maybe Integer
-rsaDMQ1 = peekRSAPrivate (#peek RSA, dmq1)
+rsaDMQ1 :: RSAKeyPair -> Maybe Integer
+rsaDMQ1 = peekMI (#peek RSA, dmq1)
 
 -- |@'rsaIQMP' privkey@ returns @q^-1 mod p@ of the key.
-rsaIQMP :: RSA -> Maybe Integer
-rsaIQMP = peekRSAPrivate (#peek RSA, iqmp)
+rsaIQMP :: RSAKeyPair -> Maybe Integer
+rsaIQMP = peekMI (#peek RSA, iqmp)
 
 
 {- instances ---------------------------------------------------------------- -}
 
-instance Eq RSA where
+instance Eq RSAPubKey where
+    a == b
+        = rsaN a == rsaN b &&
+          rsaE a == rsaE b
+
+instance Eq RSAKeyPair where
     a == b
         = rsaN a == rsaN b &&
           rsaE a == rsaE b &&
@@ -166,7 +225,15 @@ instance Eq RSA where
           rsaP a == rsaP b &&
           rsaQ a == rsaQ b
 
-instance Ord RSA where
+instance Ord RSAPubKey where
+    a `compare` b
+        | rsaN a < rsaN b = LT
+        | rsaN a > rsaN b = GT
+        | rsaE a < rsaE b = LT
+        | rsaE a > rsaE b = GT
+        | otherwise       = EQ
+
+instance Ord RSAKeyPair where
     a `compare` b
         | rsaN a < rsaN b = LT
         | rsaN a > rsaN b = GT
@@ -179,3 +246,22 @@ instance Ord RSA where
         | rsaQ a < rsaQ b = LT
         | rsaQ a > rsaQ b = GT
         | otherwise       = EQ
+
+instance Show RSAPubKey where
+    show a
+        = concat [ "RSAPubKey {"
+                 , "rsaN = ", show (rsaN a), ", "
+                 , "rsaE = ", show (rsaE a), ", "
+                 , "}"
+                 ] 
+
+instance Show RSAKeyPair where
+    show a
+        = concat [ "RSAKeyPair {"
+                 , "rsaN = ", show (rsaN a), ", "
+                 , "rsaE = ", show (rsaE a), ", "
+                 , "rsaD = ", show (rsaD a), ", "
+                 , "rsaP = ", show (rsaP a), ", "
+                 , "rsaQ = ", show (rsaQ a), ", "
+                 , "}"
+                 ] 

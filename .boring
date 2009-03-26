@@ -91,6 +91,7 @@ _stub\.(c|h)$
 ^examples/HelloWorld$
 ^examples/GenRSAKey$
 ^examples/PKCS7$
+^examples/Server$
 ^tests/Base64$
 ^tests/Cipher$
 ^tests/DSA$

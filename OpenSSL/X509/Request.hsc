@@ -34,6 +34,7 @@ module OpenSSL.X509.Request
     where
 
 import           Control.Monad
+import           Data.Maybe
 import           Foreign
 import           Foreign.C
 import           OpenSSL.BIO
@@ -107,15 +108,16 @@ withX509ReqPtr (X509Req req) = withForeignPtr req
 
 -- |@'signX509Req'@ signs a certificate request with a subject private
 -- key.
-signX509Req :: X509Req      -- ^ The request to be signed.
-            -> PKey         -- ^ The private key to sign with.
+signX509Req :: KeyPair key =>
+               X509Req      -- ^ The request to be signed.
+            -> key          -- ^ The private key to sign with.
             -> Maybe Digest -- ^ A hashing algorithm to use. If
                             --   @Nothing@ the most suitable algorithm
                             --   for the key is automatically used.
             -> IO ()
 signX509Req req pkey mDigest
     = withX509ReqPtr req  $ \ reqPtr  ->
-      withPKeyPtr    pkey $ \ pkeyPtr ->
+      withPKeyPtr'   pkey $ \ pkeyPtr ->
       do digest <- case mDigest of
                      Just md -> return md
                      Nothing -> pkeyDefaultMD pkey
@@ -126,12 +128,13 @@ signX509Req req pkey mDigest
 
 -- |@'verifyX509Req'@ verifies a signature of certificate request with
 -- a subject public key.
-verifyX509Req :: X509Req -- ^ The request to be verified.
-              -> PKey    -- ^ The public key to verify with.
+verifyX509Req :: PublicKey key =>
+                 X509Req -- ^ The request to be verified.
+              -> key     -- ^ The public key to verify with.
               -> IO VerifyStatus
 verifyX509Req req pkey
     = withX509ReqPtr req  $ \ reqPtr  ->
-      withPKeyPtr    pkey $ \ pkeyPtr ->
+      withPKeyPtr'   pkey $ \ pkeyPtr ->
       _verify reqPtr pkeyPtr
            >>= interpret
     where
@@ -189,19 +192,21 @@ setSubjectName req subject
 
 -- |@'getPublicKey' req@ returns the public key of the subject of
 -- certificate request.
-getPublicKey :: X509Req -> IO PKey
+getPublicKey :: X509Req -> IO SomePublicKey
 getPublicKey req
     = withX509ReqPtr req $ \ reqPtr ->
       _get_pubkey reqPtr
            >>= failIfNull
            >>= wrapPKeyPtr
+           >>= fromPKey
+           >>= return . fromJust
 
 -- |@'setPublicKey' req@ updates the public key of the subject of
 -- certificate request.
-setPublicKey :: X509Req -> PKey -> IO ()
+setPublicKey :: PublicKey key => X509Req -> key -> IO ()
 setPublicKey req pkey
     = withX509ReqPtr req  $ \ reqPtr  ->
-      withPKeyPtr    pkey $ \ pkeyPtr ->
+      withPKeyPtr'   pkey $ \ pkeyPtr ->
       _set_pubkey reqPtr pkeyPtr
            >>= failIf (/= 1)
            >>  return ()
