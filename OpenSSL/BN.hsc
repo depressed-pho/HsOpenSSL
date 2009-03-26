@@ -187,7 +187,7 @@ bnToInteger bn = do
 -- | This is a GHC specific, fast conversion between Integers and OpenSSL
 --   bignums. It returns a malloced BigNum.
 integerToBN :: Integer -> IO BigNum
-integerToBN 0 = do
+integerToBN (S## 0##) = do
   bnptr <- mallocBytes (#size BIGNUM)
   (#poke BIGNUM, d) bnptr nullPtr
   -- This is needed to give GHC enough type information
