@@ -251,7 +251,7 @@ instance Show RSAPubKey where
     show a
         = concat [ "RSAPubKey {"
                  , "rsaN = ", show (rsaN a), ", "
-                 , "rsaE = ", show (rsaE a), ", "
+                 , "rsaE = ", show (rsaE a)
                  , "}"
                  ] 
 
@@ -262,6 +262,6 @@ instance Show RSAKeyPair where
                  , "rsaE = ", show (rsaE a), ", "
                  , "rsaD = ", show (rsaD a), ", "
                  , "rsaP = ", show (rsaP a), ", "
-                 , "rsaQ = ", show (rsaQ a), ", "
+                 , "rsaQ = ", show (rsaQ a)
                  , "}"
                  ] 

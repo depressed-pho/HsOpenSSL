@@ -55,7 +55,7 @@ class PKey k where
 
 -- |Instances of this class has at least public portion of a
 -- keypair. They might or might not have the private key.
-class (Typeable k, PKey k) => PublicKey k where
+class (Eq k, Typeable k, PKey k) => PublicKey k where
 
     -- |Wrap an arbitrary public key into polymorphic type
     -- 'SomePublicKey'.
@@ -126,6 +126,12 @@ withConcreteKeyPair pk f
 data SomePublicKey = forall k. PublicKey k => SomePublicKey !k
     deriving Typeable
 
+instance Eq SomePublicKey where
+    (SomePublicKey a) == (SomePublicKey b)
+        = case cast b of
+            Just c  -> a == c
+            Nothing -> False  -- different types
+
 instance PublicKey SomePublicKey where
     fromPublicKey = id
     toPublicKey   = Just
@@ -142,6 +148,12 @@ instance PKey SomePublicKey where
 -- actual key type can be safelly type-casted using 'toKeyPair'.
 data SomeKeyPair = forall k. KeyPair k => SomeKeyPair !k
     deriving Typeable
+
+instance Eq SomeKeyPair where
+    (SomeKeyPair a) == (SomeKeyPair b)
+        = case cast b of
+            Just c  -> a == c
+            Nothing -> False
 
 instance PublicKey SomeKeyPair where
     -- Cast the keypair to a public key, hiding its private part.

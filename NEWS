@@ -74,6 +74,8 @@ Changes from 0.5.2 to 0.6
 * OpenSSL.RSA:
     - RSAPubKey and RSAKeyPair are now instances of Eq, Ord and Show.
     - New function: generateRSAKey'
+* OpenSSL.DSA:
+    - DSAPubKey and DSAKeyPair are now instances of Eq, Ord and Show.
 
 Changes from 0.5.1 to 0.5.2
 ---------------------------

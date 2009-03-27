@@ -287,3 +287,66 @@ verifyDigestedDataWithDSA dsa bytes (r, s) = do
       withBN s (\bnS -> do
         withDSAPtr dsa (\dsaptr -> do
           _dsa_verify dsaptr ptr (fromIntegral len) (unwrapBN bnR) (unwrapBN bnS) >>= return . (== 1)))))
+
+
+instance Eq DSAPubKey where
+    a == b
+        = dsaP      a == dsaP      b &&
+          dsaQ      a == dsaQ      b &&
+          dsaG      a == dsaG      b &&
+          dsaPublic a == dsaPublic b
+
+instance Eq DSAKeyPair where
+    a == b
+        = dsaP       a == dsaP       b &&
+          dsaQ       a == dsaQ       b &&
+          dsaG       a == dsaG       b &&
+          dsaPublic  a == dsaPublic  b &&
+          dsaPrivate a == dsaPrivate b
+
+instance Ord DSAPubKey where
+    a `compare` b
+        | dsaP      a < dsaP      b = LT
+        | dsaP      a > dsaP      b = GT
+        | dsaQ      a < dsaQ      b = LT
+        | dsaQ      a > dsaQ      b = GT
+        | dsaG      a < dsaG      b = LT
+        | dsaG      a > dsaG      b = GT
+        | dsaPublic a < dsaPublic b = LT
+        | dsaPublic a > dsaPublic b = GT
+        | otherwise                 = EQ
+
+instance Ord DSAKeyPair where
+    a `compare` b
+        | dsaP       a < dsaP       b = LT
+        | dsaP       a > dsaP       b = GT
+        | dsaQ       a < dsaQ       b = LT
+        | dsaQ       a > dsaQ       b = GT
+        | dsaG       a < dsaG       b = LT
+        | dsaG       a > dsaG       b = GT
+        | dsaPublic  a < dsaPublic  b = LT
+        | dsaPublic  a > dsaPublic  b = GT
+        | dsaPrivate a < dsaPrivate b = LT
+        | dsaPrivate a > dsaPrivate b = GT
+        | otherwise                   = EQ
+
+instance Show DSAPubKey where
+    show a
+        = concat [ "DSAPubKey {"
+                 , "dsaP = ", show (dsaP a), ", "
+                 , "dsaQ = ", show (dsaQ a), ", "
+                 , "dsaG = ", show (dsaG a), ", "
+                 , "dsaPublic = ", show (dsaPublic a)
+                 , "}"
+                 ]
+
+instance Show DSAKeyPair where
+    show a
+        = concat [ "DSAPubKey {"
+                 , "dsaP = ", show (dsaP a), ", "
+                 , "dsaQ = ", show (dsaQ a), ", "
+                 , "dsaG = ", show (dsaG a), ", "
+                 , "dsaPublic = ", show (dsaPublic a), ", "
+                 , "dsaPrivate = ", show (dsaPrivate a)
+                 , "}"
+                 ]
