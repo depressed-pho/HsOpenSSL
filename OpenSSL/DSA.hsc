@@ -79,26 +79,35 @@ class DSAKey k where
     dsaPublic = peekI (#peek DSA, pub_key)
 
     -- private
-    withDSAPtr :: k -> (Ptr DSA -> IO a) -> IO a
-    peekDSAPtr :: Ptr DSA -> IO (Maybe k)
+    withDSAPtr   :: k -> (Ptr DSA -> IO a) -> IO a
+    peekDSAPtr   :: Ptr DSA -> IO (Maybe k)
+    absorbDSAPtr :: Ptr DSA -> IO (Maybe k)
 
 
 instance DSAKey DSAPubKey where
     withDSAPtr (DSAPubKey fp) = withForeignPtr fp
-    peekDSAPtr dsaPtr         = do ptr <- _pubDup dsaPtr
-                                   fp  <- newForeignPtr _free ptr
-                                   return $ Just $ DSAPubKey fp
+    peekDSAPtr dsaPtr         = _pubDup dsaPtr >>= absorbDSAPtr
+    absorbDSAPtr dsaPtr       = newForeignPtr _free dsaPtr >>= return . Just . DSAPubKey
 
 
 instance DSAKey DSAKeyPair where
     withDSAPtr (DSAKeyPair fp) = withForeignPtr fp
-    peekDSAPtr dsaPtr          = do private <- (#peek DSA, priv_key) dsaPtr
-                                    if private /= nullPtr then
-                                        do ptr <- _privDup dsaPtr
-                                           fp  <- newForeignPtr _free ptr
-                                           return $ Just $ DSAKeyPair fp
-                                      else
-                                        return Nothing
+    peekDSAPtr dsaPtr
+        = do hasP <- hasDSAPrivateKey dsaPtr
+             if hasP then
+                 _privDup dsaPtr >>= absorbDSAPtr
+               else
+                 return Nothing
+    absorbDSAPtr dsaPtr
+        = do hasP <- hasDSAPrivateKey dsaPtr
+             if hasP then
+                 newForeignPtr _free dsaPtr >>= return . Just . DSAKeyPair
+               else
+                 return Nothing
+
+hasDSAPrivateKey :: Ptr DSA -> IO Bool
+hasDSAPrivateKey dsaPtr
+    = (#peek DSA, priv_key) dsaPtr >>= return . (/= nullPtr)
 
 
 foreign import ccall unsafe "&DSA_free"

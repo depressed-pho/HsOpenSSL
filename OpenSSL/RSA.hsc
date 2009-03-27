@@ -66,28 +66,40 @@ class RSAKey k where
     rsaE = peekI (#peek RSA, e)
 
     -- private
-    withRSAPtr :: k -> (Ptr RSA -> IO a) -> IO a
-    peekRSAPtr :: Ptr RSA -> IO (Maybe k)
+    withRSAPtr   :: k -> (Ptr RSA -> IO a) -> IO a
+    peekRSAPtr   :: Ptr RSA -> IO (Maybe k)
+    absorbRSAPtr :: Ptr RSA -> IO (Maybe k)
 
 
 instance RSAKey RSAPubKey where
     withRSAPtr (RSAPubKey fp) = withForeignPtr fp
-    peekRSAPtr rsaPtr         = do ptr <- _pubDup rsaPtr
-                                   fp  <- newForeignPtr _free ptr
-                                   return $ Just $ RSAPubKey fp
+    peekRSAPtr rsaPtr         = _pubDup rsaPtr >>= absorbRSAPtr
+    absorbRSAPtr rsaPtr       = newForeignPtr _free rsaPtr >>= return . Just . RSAPubKey
 
 
 instance RSAKey RSAKeyPair where
     withRSAPtr (RSAKeyPair fp) = withForeignPtr fp
-    peekRSAPtr rsaPtr          = do d <- (#peek RSA, d) rsaPtr
-                                    p <- (#peek RSA, p) rsaPtr
-                                    q <- (#peek RSA, q) rsaPtr
-                                    if d /= nullPtr && p /= nullPtr && q /= nullPtr then
-                                        do ptr <- _privDup rsaPtr
-                                           fp  <- newForeignPtr _free ptr
-                                           return $ Just $ RSAKeyPair fp
-                                      else
-                                        return Nothing
+    peekRSAPtr rsaPtr
+        = do hasP <- hasRSAPrivateKey rsaPtr
+             if hasP then
+                 _privDup rsaPtr >>= absorbRSAPtr
+               else
+                 return Nothing
+    absorbRSAPtr rsaPtr
+        = do hasP <- hasRSAPrivateKey rsaPtr
+             if hasP then
+                 newForeignPtr _free rsaPtr >>= return . Just . RSAKeyPair
+               else
+                 return Nothing
+
+
+hasRSAPrivateKey :: Ptr RSA -> IO Bool
+hasRSAPrivateKey rsaPtr
+    = do d <- (#peek RSA, d) rsaPtr
+         p <- (#peek RSA, p) rsaPtr
+         q <- (#peek RSA, q) rsaPtr
+         return (d /= nullPtr && p /= nullPtr && q /= nullPtr)
+                                               
 
 
 foreign import ccall unsafe "&RSA_free"

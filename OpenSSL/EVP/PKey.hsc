@@ -89,13 +89,13 @@ withConcretePubKey pk f
 #ifndef OPENSSL_NO_RSA
                (#const EVP_PKEY_RSA)
                    -> do rsaPtr   <- _get1_RSA pkeyPtr
-                         Just rsa <- peekRSAPtr rsaPtr
+                         Just rsa <- absorbRSAPtr rsaPtr
                          f (rsa :: RSAPubKey)
 #endif
 #ifndef OPENSSL_NO_DSA
                (#const EVP_PKEY_DSA)
                    -> do dsaPtr   <- _get1_DSA pkeyPtr
-                         Just dsa <- peekDSAPtr dsaPtr
+                         Just dsa <- absorbDSAPtr dsaPtr
                          f (dsa :: DSAPubKey)
 #endif
                _   -> fail ("withConcretePubKey: unsupported EVP_PKEY type: " ++ show pkeyType)
@@ -109,13 +109,13 @@ withConcreteKeyPair pk f
 #ifndef OPENSSL_NO_RSA
                (#const EVP_PKEY_RSA)
                    -> do rsaPtr   <- _get1_RSA pkeyPtr
-                         Just rsa <- peekRSAPtr rsaPtr
+                         Just rsa <- absorbRSAPtr rsaPtr
                          f (rsa :: RSAKeyPair)
 #endif
 #ifndef OPENSSL_NO_DSA
                (#const EVP_PKEY_DSA)
                    -> do dsaPtr   <- _get1_DSA pkeyPtr
-                         Just dsa <- peekDSAPtr dsaPtr
+                         Just dsa <- absorbDSAPtr dsaPtr
                          f (dsa :: DSAKeyPair)
 #endif
                _   -> fail ("withConcreteKeyPair: unsupported EVP_PKEY type: " ++ show pkeyType)
@@ -205,6 +205,7 @@ touchPKey (VaguePKey pkey) = touchForeignPtr pkey
 
 
 #ifndef OPENSSL_NO_RSA
+-- The resulting Ptr RSA must be freed by caller.
 foreign import ccall unsafe "EVP_PKEY_get1_RSA"
         _get1_RSA :: Ptr EVP_PKEY -> IO (Ptr RSA)
 
@@ -226,7 +227,7 @@ rsaFromPKey pk
              case pkeyType of
                (#const EVP_PKEY_RSA)
                    -> do rsaPtr <- _get1_RSA pkeyPtr
-                         rsaM   <- peekRSAPtr rsaPtr
+                         rsaM   <- absorbRSAPtr rsaPtr
                          return rsaM
                _   -> return Nothing
 
@@ -268,7 +269,7 @@ dsaFromPKey pk
              case pkeyType of
                (#const EVP_PKEY_DSA)
                    -> do dsaPtr <- _get1_DSA pkeyPtr
-                         dsaM   <- peekDSAPtr dsaPtr
+                         dsaM   <- absorbDSAPtr dsaPtr
                          return dsaM
                _   -> return Nothing
 
