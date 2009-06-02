@@ -1,10 +1,10 @@
 {- -*- haskell -*- -}
 
--- |HsOpenSSL is a (part of) OpenSSL binding for Haskell. It can
+-- |HsOpenSSL is an (incomplete) OpenSSL binding for Haskell. It can
 -- generate RSA and DSA keys, read and write PEM files, generate
 -- message digests, sign and verify messages, encrypt and decrypt
 -- messages.  But since OpenSSL is a very large library, it is uneasy
--- to cover everything in it.
+-- to cover every parts of it.
 --
 -- Features that aren't (yet) supported:
 --
