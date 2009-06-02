@@ -74,11 +74,12 @@ module OpenSSL.BIO
 import           Control.Monad
 import           Data.ByteString.Internal (createAndTrim, toForeignPtr)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import qualified Data.ByteString.Char8      as B8
-import qualified Data.ByteString.Lazy.Char8 as L8
-import           Foreign                    hiding (new)
+import qualified Data.ByteString.Char8         as B
+import qualified Data.ByteString.Lazy.Char8    as L
+import qualified Data.ByteString.Lazy.Internal as L
+import           Foreign                       hiding (new)
 import           Foreign.C
-import qualified GHC.ForeignPtr             as GF
+import qualified GHC.ForeignPtr                as GF
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
@@ -229,12 +230,12 @@ foreign import ccall unsafe "BIO_write"
 -- |@'bioRead' bio@ lazily reads all data in @bio@.
 bioRead :: BIO -> IO String
 bioRead bio
-    = liftM L8.unpack $ bioReadLBS bio
+    = liftM L.unpack $ bioReadLBS bio
 
 -- |@'bioReadBS' bio len@ attempts to read @len@ bytes from @bio@,
 -- then return a ByteString. The actual length of result may be less
 -- than @len@.
-bioReadBS :: BIO -> Int -> IO B8.ByteString
+bioReadBS :: BIO -> Int -> IO B.ByteString
 bioReadBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
@@ -249,15 +250,15 @@ bioReadBS bio maxLen
 
 -- |@'bioReadLBS' bio@ lazily reads all data in @bio@, then return a
 -- LazyByteString.
-bioReadLBS :: BIO -> IO L8.ByteString
-bioReadLBS bio = lazyRead >>= return . L8.fromChunks
+bioReadLBS :: BIO -> IO L.ByteString
+bioReadLBS bio = lazyRead >>= return . L.fromChunks
     where
-      chunkSize = 32 * 1024
+      chunkSize = L.defaultChunkSize
       
       lazyRead = unsafeInterleaveIO loop
 
       loop = do bs <- bioReadBS bio chunkSize
-                if B8.null bs then
+                if B.null bs then
                     do isEOF <- bioEOF bio
                        if isEOF then
                            return []
@@ -277,10 +278,10 @@ bioReadLBS bio = lazyRead >>= return . L8.fromChunks
 -- return the digest and other BIOs may not support 'bioGets' at all.
 bioGets :: BIO -> Int -> IO String
 bioGets bio maxLen
-    = liftM B8.unpack (bioGetsBS bio maxLen)
+    = liftM B.unpack (bioGetsBS bio maxLen)
 
 -- |'bioGetsBS' does the same as 'bioGets' but returns ByteString.
-bioGetsBS :: BIO -> Int -> IO B8.ByteString
+bioGetsBS :: BIO -> Int -> IO B.ByteString
 bioGetsBS bio maxLen
     = withBioPtr bio       $ \ bioPtr ->
       createAndTrim maxLen $ \ bufPtr ->
@@ -295,18 +296,18 @@ bioGetsBS bio maxLen
 
 -- |'bioGetsLBS' does the same as 'bioGets' but returns
 -- LazyByteString.
-bioGetsLBS :: BIO -> Int -> IO L8.ByteString
+bioGetsLBS :: BIO -> Int -> IO L.ByteString
 bioGetsLBS bio maxLen
-    = bioGetsBS bio maxLen >>= \ bs -> (return . L8.fromChunks) [bs]
+    = bioGetsBS bio maxLen >>= \ bs -> (return . L.fromChunks) [bs]
 
 -- |@'bioWrite' bio str@ lazily writes entire @str@ to @bio@. The
 -- string doesn't necessarily have to be finite.
 bioWrite :: BIO -> String -> IO ()
 bioWrite bio str
-    = (return . L8.pack) str >>= bioWriteLBS bio
+    = (return . L.pack) str >>= bioWriteLBS bio
 
 -- |@'bioWriteBS' bio bs@ writes @bs@ to @bio@.
-bioWriteBS :: BIO -> B8.ByteString -> IO ()
+bioWriteBS :: BIO -> B.ByteString -> IO ()
 bioWriteBS bio bs
     = withBioPtr bio           $ \ bioPtr ->
       unsafeUseAsCStringLen bs $ \ (buf, len) ->
@@ -314,17 +315,17 @@ bioWriteBS bio bs
     where
       interpret :: CInt -> IO ()
       interpret n
-          | n == fromIntegral (B8.length bs)
+          | n == fromIntegral (B.length bs)
                       = return ()
           | n == -1   = bioWriteBS bio bs -- full retry
           | n <  -1   = raiseOpenSSLError
-          | otherwise = bioWriteBS bio (B8.drop (fromIntegral n) bs) -- partial retry
+          | otherwise = bioWriteBS bio (B.drop (fromIntegral n) bs) -- partial retry
 
 -- |@'bioWriteLBS' bio lbs@ lazily writes entire @lbs@ to @bio@. The
 -- string doesn't necessarily have to be finite.
-bioWriteLBS :: BIO -> L8.ByteString -> IO ()
+bioWriteLBS :: BIO -> L.ByteString -> IO ()
 bioWriteLBS bio lbs
-    = mapM_ (bioWriteBS bio) $ L8.toChunks lbs
+    = mapM_ (bioWriteBS bio) $ L.toChunks lbs
 
 
 {- base64 ------------------------------------------------------------------- -}
@@ -435,10 +436,10 @@ newMem = s_mem >>= new
 -- |@'newConstMem' str@ creates a read-only memory BIO source.
 newConstMem :: String -> IO BIO
 newConstMem str
-    = (return . B8.pack) str >>= newConstMemBS
+    = (return . B.pack) str >>= newConstMemBS
 
 -- |@'newConstMemBS' bs@ is like 'newConstMem' but takes a ByteString.
-newConstMemBS :: B8.ByteString -> IO BIO
+newConstMemBS :: B.ByteString -> IO BIO
 newConstMemBS bs
     = let (foreignBuf, off, len) = toForeignPtr bs
       in
@@ -454,9 +455,9 @@ newConstMemBS bs
 
 -- |@'newConstMemLBS' lbs@ is like 'newConstMem' but takes a
 -- LazyByteString.
-newConstMemLBS :: L8.ByteString -> IO BIO
+newConstMemLBS :: L.ByteString -> IO BIO
 newConstMemLBS lbs
-    = (return . B8.concat . L8.toChunks) lbs >>= newConstMemBS
+    = (return . B.concat . L.toChunks) lbs >>= newConstMemBS
 
 {- null --------------------------------------------------------------------- -}
 
