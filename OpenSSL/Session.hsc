@@ -23,6 +23,8 @@ module OpenSSL.Session
   , connect
   , read
   , write
+  , lazyRead
+  , lazyWrite
   , shutdown
   , ShutdownType(..)
   , getPeerCertificate
@@ -38,6 +40,7 @@ import Control.Concurrent.QSem
 import Control.Exception (finally)
 import Foreign
 import Foreign.C
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Lazy as L
@@ -339,6 +342,31 @@ write ssl@(SSL (_, _, fd, _)) bs = B.unsafeUseAsCStringLen bs $ f ssl where
          Done _ -> return ()
          WantRead -> threadWaitRead fd >> f ssl (ptr, len)
          WantWrite -> threadWaitWrite fd >> f ssl (ptr, len)
+
+-- | Lazily read all data until reaching EOF. If the connection dies
+--   without a graceful SSL shutdown, an exception is raised.
+lazyRead :: SSL -> IO L.ByteString
+lazyRead ssl = lazyRead' >>= return . L.fromChunks
+    where
+      chunkSize = L.defaultChunkSize
+
+      lazyRead' = unsafeInterleaveIO loop
+
+      loop = do bs <- read ssl chunkSize
+                if B.null bs then
+                    -- got EOF
+                    return []
+                  else
+                    do bss <- lazyRead'
+                       return (bs:bss)
+
+-- | Write a lazy ByteString to the SSL connection. In contrast to
+--   'write', there is a chance that the string is written partway and
+--   then an exception is raised for an error. The string doesn't
+--   necessarily have to be finite.
+lazyWrite :: SSL -> L.ByteString -> IO ()
+lazyWrite ssl lbs
+    = mapM_ (write ssl) $ L.toChunks lbs
 
 foreign import ccall "SSL_shutdown" _ssl_shutdown :: Ptr SSL_ -> IO CInt
 

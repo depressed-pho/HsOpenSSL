@@ -105,6 +105,7 @@ instance DSAKey DSAKeyPair where
                else
                  return Nothing
 
+
 hasDSAPrivateKey :: Ptr DSA -> IO Bool
 hasDSAPrivateKey dsaPtr
     = (#peek DSA, priv_key) dsaPtr >>= return . (/= nullPtr)
