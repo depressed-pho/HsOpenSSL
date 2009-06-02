@@ -6,6 +6,7 @@ Changes from 0.6 to 0.6.1
     - New functions:
       # lazyRead
       # lazyWrite
+      # contextGetCAStore
 
 Changes from 0.5.2 to 0.6
 -------------------------

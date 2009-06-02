@@ -15,6 +15,7 @@ module OpenSSL.Session
   , contextSetVerificationMode
   , contextSetCAFile
   , contextSetCADirectory
+  , contextGetCAStore
 
     -- * SSL connections
   , SSL
@@ -52,6 +53,7 @@ import Network.Socket (Socket(..))
 
 import OpenSSL.Utils (failIfNull, failIf)
 import OpenSSL.X509 (X509, X509_, wrapX509)
+import OpenSSL.X509.Store
 
 data SSLContext_
 -- | An SSL context. Contexts carry configuration such as a server's private
@@ -85,6 +87,10 @@ withContext :: SSLContext -> (Ptr SSLContext_ -> IO a) -> IO a
 withContext (SSLContext (sem, ctxfp)) action = do
   waitQSem sem
   finally (withForeignPtr ctxfp action) $ signalQSem sem
+
+touchContext :: SSLContext -> IO ()
+touchContext (SSLContext (_, fp))
+    = touchForeignPtr fp
 
 contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO CInt)
                 -> SSLContext -> String -> IO ()
@@ -186,6 +192,16 @@ contextSetCADirectory context path = do
       _ssl_load_verify_locations ctx nullPtr cpath >>= failIf (/= 1)
       return ()
 
+foreign import ccall unsafe "SSL_CTX_get_cert_store"
+  _ssl_get_cert_store :: Ptr SSLContext_ -> IO (Ptr X509_STORE)
+
+-- | Get a reference to, not a copy of, the X.509 certificate storage
+--   in the SSL context.
+contextGetCAStore :: SSLContext -> IO X509Store
+contextGetCAStore context
+    = withContext context $ \ ctx ->
+      _ssl_get_cert_store ctx
+           >>= wrapX509Store (touchContext context)
 
 
 data SSL_
