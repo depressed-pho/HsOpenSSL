@@ -1,5 +1,12 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.6 to 0.6.1
+-------------------------
+* OpenSSL.Session:
+    - New functions:
+      # lazyRead
+      # lazyWrite
+
 Changes from 0.5.2 to 0.6
 -------------------------
 * INCOMPATIBLE CHANGES:
