@@ -7,6 +7,8 @@ Changes from 0.6 to 0.6.1
       # lazyRead
       # lazyWrite
       # contextGetCAStore
+      # contextSetPrivateKey
+      # contextSetCertificate
 
 Changes from 0.5.2 to 0.6
 -------------------------

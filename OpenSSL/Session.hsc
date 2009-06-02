@@ -6,6 +6,8 @@ module OpenSSL.Session
   ( -- * Contexts
     SSLContext
   , context
+  , contextSetPrivateKey
+  , contextSetCertificate
   , contextSetPrivateKeyFile
   , contextSetCertificateFile
   , contextSetCiphers
@@ -51,8 +53,9 @@ import System.IO.Unsafe
 import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
 
+import OpenSSL.EVP.PKey
 import OpenSSL.Utils (failIfNull, failIf)
-import OpenSSL.X509 (X509, X509_, wrapX509)
+import OpenSSL.X509 (X509, X509_, wrapX509, withX509Ptr)
 import OpenSSL.X509.Store
 
 data SSLContext_
@@ -101,6 +104,29 @@ contextLoadFile f context path =
       if result == 1
          then return ()
          else f ctx cpath (#const SSL_FILETYPE_ASN1) >>= failIf (/= 1) >> return ()
+
+foreign import ccall unsafe "SSL_CTX_use_PrivateKey"
+    _ssl_ctx_use_privatekey :: Ptr SSLContext_ -> Ptr EVP_PKEY -> IO CInt
+foreign import ccall unsafe "SSL_CTX_use_certificate"
+    _ssl_ctx_use_certificate :: Ptr SSLContext_ -> Ptr X509_ -> IO CInt
+
+-- | Install a private key into a context.
+contextSetPrivateKey :: KeyPair k => SSLContext -> k -> IO ()
+contextSetPrivateKey context key
+    = withContext context $ \ ctx    ->
+      withPKeyPtr' key    $ \ keyPtr ->
+          _ssl_ctx_use_privatekey ctx keyPtr
+               >>= failIf (/= 1)
+               >>  return ()
+
+-- | Install a certificate (public key) into a context.
+contextSetCertificate :: SSLContext -> X509 -> IO ()
+contextSetCertificate context cert
+    = withContext context $ \ ctx     ->
+      withX509Ptr cert    $ \ certPtr ->
+          _ssl_ctx_use_certificate ctx certPtr
+               >>= failIf (/= 1)
+               >>  return ()
 
 foreign import ccall unsafe "SSL_CTX_use_PrivateKey_file"
    _ssl_ctx_use_privatekey_file :: Ptr SSLContext_ -> CString -> CInt -> IO CInt
