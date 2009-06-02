@@ -40,7 +40,10 @@ import Foreign
 import Foreign.C
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
-import System.IO.Error (mkIOError, ioError, eofErrorType)
+import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy.Internal as L
+import System.IO.Error (mkIOError, ioError, eofErrorType, catch, isEOFError)
+import System.IO.Unsafe
 import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
 
@@ -309,13 +312,20 @@ sslIOInner f ptr nbytes ssl = do
 --   empty ByteString is returned. If the connection dies without a graceful
 --   SSL shutdown, an exception is raised.
 read :: SSL -> Int -> IO B.ByteString
-read ssl@(SSL (_, _, fd, _)) nbytes = B.createAndTrim nbytes $ f ssl where
-  f ssl ptr = do
-    result <- withSSL ssl $ sslIOInner _ssl_read (castPtr ptr) nbytes
-    case result of
-         Done n -> return $ fromIntegral n
-         WantRead -> threadWaitRead fd >> f ssl ptr
-         WantWrite -> threadWaitWrite fd >> f ssl ptr
+read ssl@(SSL (_, _, fd, _)) nbytes = B.createAndTrim nbytes $ f ssl
+    where
+      f ssl ptr
+          = do result <- withSSL ssl $ sslIOInner _ssl_read (castPtr ptr) nbytes
+               case result of
+                 Done n -> return $ fromIntegral n
+                 WantRead -> threadWaitRead fd >> f ssl ptr
+                 WantWrite -> threadWaitWrite fd >> f ssl ptr
+            `catch`
+            \ ioe ->
+                if isEOFError ioe then
+                    return 0
+                else
+                    ioError ioe -- rethrow
 
 foreign import ccall "SSL_write" _ssl_write :: Ptr SSL_ -> Ptr Word8 -> CInt -> IO CInt
 
