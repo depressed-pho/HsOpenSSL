@@ -4,14 +4,11 @@
 #if defined(MINGW32)
   #include <windows.h>
   typedef HANDLE mutex_t;
-#elif defined(LINUX)
-  #include <pthread.h>
-  typedef pthread_mutex_t mutex_t;
-#elif defined(BSD)
+#elif defined(PTHREAD)
   #include <pthread.h>
   typedef pthread_mutex_t mutex_t;
 #else
-  #error "ERROR: This platform not supported."
+  #error "ERROR: This platform is not supported."
 #endif
 
 void mutex_init(mutex_t* mutex);

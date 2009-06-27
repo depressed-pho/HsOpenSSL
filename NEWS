@@ -1,5 +1,20 @@
 -*- Coding: utf-8 -*-
 
+Chanegs from 0.6.1 to 0.6.2
+---------------------------
+* Applied a patch by John Van Enk and his friend:
+
+  1) Moved away from the Configure build type to the Simple build
+     type.
+
+  2) Removed the direct dependency on pthreads. This involved an
+     indirection layer using the preprocessor. In linux/bsd, we use
+     pthreads. In windows, we call out to the OS mutexing
+     functions. This allows us to "cabal install" the HsOpenSSL
+     library from the cmd.exe terminal in windows *without* having to
+     use cygwin.
+
+
 Changes from 0.6 to 0.6.1
 -------------------------
 * OpenSSL.Session:
@@ -9,6 +24,7 @@ Changes from 0.6 to 0.6.1
       # contextGetCAStore
       # contextSetPrivateKey
       # contextSetCertificate
+
 
 Changes from 0.5.2 to 0.6
 -------------------------
