@@ -15,18 +15,19 @@ Homepage: http://cielonegro.org/HsOpenSSL.html
 Category: Cryptography
 Tested-With: GHC == 6.10.1
 Cabal-Version: >= 1.6
-Build-Type: Configure
+Build-Type: Simple
 Extra-Source-Files:
-	AUTHORS
-	HsOpenSSL.buildinfo.in
-	NEWS
-	cbits/HsOpenSSL.h
-	configure
-	configure.ac
-	examples/Makefile
-	examples/GenRSAKey.hs
-	examples/HelloWorld.hs
-	examples/PKCS7.hs
+    AUTHORS
+    HsOpenSSL.buildinfo.in
+    NEWS
+    cbits/HsOpenSSL.h
+    cbits/mutex.h
+    configure
+    configure.ac
+    examples/Makefile
+    examples/GenRSAKey.hs
+    examples/HelloWorld.hs
+    examples/PKCS7.hs
     tests/Base64.hs
     tests/Cipher.hs
     tests/DSA.hs
@@ -38,10 +39,21 @@ Source-Repository head
 
 Library
   Build-Depends: base >= 4, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
-
   --PkgConfig-Depends: openssl >= 0.9.7l
   -- We really should use this instead of the configure script but
   -- Cabal 1.6.0.1 can't handle this weird version scheme of OpenSSL.
+  if os(mingw32)
+      Extra-Libraries: eay32
+      c-sources:          cbits/mutex-win.c
+      cc-options:         -D MINGW32
+      cpp-options:        -DCALLCONV=stdcall
+
+  if os(linux)
+      Extra-Libraries: ssl
+      build-depends: unix >= 2.3.0.0
+      c-sources:          cbits/mutex-linux.c
+      cc-options:         -D LINUX
+      cpp-options:        -DCALLCONV=ccall
 
   Exposed-Modules:
           OpenSSL

@@ -1,6 +1,6 @@
-#include <pthread.h>
 #include "HsOpenSSL.h"
 #include <stdint.h>
+#include "mutex.h"
 
 /* OpenSSL ********************************************************************/
 void HsOpenSSL_OpenSSL_add_all_algorithms() {
@@ -123,55 +123,55 @@ void HsOpenSSL_M_ASN1_TIME_free(ASN1_TIME* timePtr) {
 }
 
 /* Threads ********************************************************************/
-static pthread_mutex_t* mutex_at;
+static mutex_t* mutex_at;
 
 struct CRYPTO_dynlock_value {
-    pthread_mutex_t mutex;
+    mutex_t mutex;
 };
 
 static void HsOpenSSL_lockingCallback(int mode, int n, const char* file, int line) {
     if (mode & CRYPTO_LOCK) {
-        pthread_mutex_lock(&mutex_at[n]);
+        mutex_lock(&mutex_at[n]);
     }
     else {
-        pthread_mutex_unlock(&mutex_at[n]);
+        mutex_unlock(&mutex_at[n]);
     }
 }
 
 static unsigned long HsOpenSSL_idCallback() {
-    return (unsigned long)pthread_self();
+    return (unsigned long)self();
 }
 
 static struct CRYPTO_dynlock_value* HsOpenSSL_dynlockCreateCallback(const char* file, int line) {
     struct CRYPTO_dynlock_value* val;
 
     val = OPENSSL_malloc(sizeof(struct CRYPTO_dynlock_value));
-    pthread_mutex_init(&val->mutex, NULL);
+    mutex_init(&val->mutex);
 
     return val;
 }
 
 static void HsOpenSSL_dynlockLockCallback(int mode, struct CRYPTO_dynlock_value* val, const char* file, int line) {
     if (mode & CRYPTO_LOCK) {
-        pthread_mutex_lock(&val->mutex);
+        mutex_lock(&val->mutex);
     }
     else {
-        pthread_mutex_unlock(&val->mutex);
+        mutex_unlock(&val->mutex);
     }
 }
 
 static void HsOpenSSL_dynlockDestroyCallback(struct CRYPTO_dynlock_value* val, const char* file, int line) {
-    pthread_mutex_destroy(&val->mutex);
+    mutex_destroy(&val->mutex);
     OPENSSL_free(val);
 }
 
 void HsOpenSSL_setupMutex() {
     int i;
     
-    mutex_at = OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+    mutex_at = OPENSSL_malloc(CRYPTO_num_locks() * sizeof(*mutex_at));
 
     for (i = 0; i < CRYPTO_num_locks(); i++) {
-        pthread_mutex_init(&mutex_at[i], NULL);
+        mutex_init(&mutex_at[i]);
     }
 
     CRYPTO_set_locking_callback(HsOpenSSL_lockingCallback);
