@@ -44,7 +44,6 @@ Library
       CPP-Options:        -DCALLCONV=stdcall
   else
       Extra-Libraries: crypto ssl
-      build-depends:      unix >= 2.3.0.0
       C-Sources:          cbits/mutex-pthread.c
       CC-Options:         -D PTHREAD
       CPP-Options:        -DCALLCONV=ccall
