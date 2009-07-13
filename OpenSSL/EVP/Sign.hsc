@@ -46,24 +46,26 @@ sign :: KeyPair key =>
      -> String    -- ^ input string
      -> IO String -- ^ the result signature
 sign md pkey input
-    = signLBS md pkey $ L8.pack input
+    = liftM L8.unpack $ signLBS md pkey $ L8.pack input
 
 -- |@'signBS'@ generates a signature from a chunk of data.
 signBS :: KeyPair key =>
           Digest     -- ^ message digest algorithm to use
        -> key        -- ^ private key to sign the message digest
        -> B8.ByteString -- ^ input string
-       -> IO String  -- ^ the result signature
+       -> IO B8.ByteString -- ^ the result signature
 signBS md pkey input
     = do ctx <- digestStrictly md input
-         signFinal ctx pkey
+         sig <- signFinal ctx pkey
+         return $ B8.pack sig
 
 -- |@'signLBS'@ generates a signature from a stream of data.
 signLBS :: KeyPair key =>
            Digest        -- ^ message digest algorithm to use
         -> key           -- ^ private key to sign the message digest
         -> L8.ByteString -- ^ input string
-        -> IO String     -- ^ the result signature
+        -> IO L8.ByteString -- ^ the result signature
 signLBS md pkey input
     = do ctx <- digestLazily md input
-         signFinal ctx pkey
+         sig <- signFinal ctx pkey
+         return $ L8.pack sig

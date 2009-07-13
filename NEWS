@@ -1,5 +1,20 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.6.2 to 0.6.3
+---------------------------
+* Suggestion by Grant Monroe:
+
+  - Changed the signature of OpenSSL.EVP.Sign.signBS from
+      signBS :: KeyPair key => Digest -> key -> Strict.ByteString -> IO String
+    to
+      signBS :: KeyPair key => Digest -> key -> Strict.ByteString -> IO Strict.ByteString
+
+  - Changed the signature of OpenSSL.EVP.Sign.signLBS from
+      signLBS :: KeyPair key => Digest -> key -> Lazy.ByteString -> IO String
+    to
+      signLBS :: KeyPair key => Digest -> key -> Lazy.ByteString -> IO Lazy.ByteString
+
+
 Chanegs from 0.6.1 to 0.6.2
 ---------------------------
 * Applied a patch by John Van Enk and his friend:
