@@ -1,5 +1,16 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.6.3 to 0.6.4
+---------------------------
+* Applied a patch by Taru Karttunen:
+
+  > Unbreak BIO ForeignPtrs for GHC 6.10
+  >
+  > In GHC 6.10 it is no longer possible to mix C and Haskell
+  > finalizers on the same ForeignPtr. This patch fixes that
+  > and unbreaks things for GHC 6.10.
+
+
 Changes from 0.6.2 to 0.6.3
 ---------------------------
 * Suggestion by Grant Monroe:
