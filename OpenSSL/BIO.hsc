@@ -97,6 +97,9 @@ foreign import ccall unsafe "BIO_new"
 foreign import ccall unsafe "&BIO_free"
         _free :: FunPtr (Ptr BIO_ -> IO ())
 
+foreign import ccall unsafe "BIO_free"
+        _free' :: Ptr BIO_ -> IO ()
+
 foreign import ccall unsafe "BIO_push"
         _push :: Ptr BIO_ -> Ptr BIO_ -> IO (Ptr BIO_)
 
@@ -435,8 +438,7 @@ newMem = s_mem >>= new
 
 -- |@'newConstMem' str@ creates a read-only memory BIO source.
 newConstMem :: String -> IO BIO
-newConstMem str
-    = (return . B.pack) str >>= newConstMemBS
+newConstMem str = newConstMemBS (B.pack str)
 
 -- |@'newConstMemBS' bs@ is like 'newConstMem' but takes a ByteString.
 newConstMemBS :: B.ByteString -> IO BIO
@@ -448,8 +450,8 @@ newConstMemBS bs
         do bioPtr <- _new_mem_buf (castPtr $ buf `plusPtr` off) (fromIntegral len)
                      >>= failIfNull
 
-           bio <- newForeignPtr _free bioPtr
-           GF.addForeignPtrConcFinalizer bio $ touchForeignPtr foreignBuf
+           bio <- newForeignPtr_ bioPtr
+           GF.addForeignPtrConcFinalizer bio (_free' bioPtr >> touchForeignPtr foreignBuf)
            
            return $ BIO bio
 
