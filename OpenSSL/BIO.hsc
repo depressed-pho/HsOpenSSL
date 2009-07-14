@@ -79,7 +79,7 @@ import qualified Data.ByteString.Lazy.Char8    as L
 import qualified Data.ByteString.Lazy.Internal as L
 import           Foreign                       hiding (new)
 import           Foreign.C
-import qualified GHC.ForeignPtr                as GF
+import           Foreign.Concurrent            as Conc
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
@@ -94,11 +94,8 @@ data    BIO_
 foreign import ccall unsafe "BIO_new"
         _new :: Ptr BIO_METHOD -> IO (Ptr BIO_)
 
-foreign import ccall unsafe "&BIO_free"
-        _free :: FunPtr (Ptr BIO_ -> IO ())
-
 foreign import ccall unsafe "BIO_free"
-        _free' :: Ptr BIO_ -> IO ()
+        _free :: Ptr BIO_ -> IO ()
 
 foreign import ccall unsafe "BIO_push"
         _push :: Ptr BIO_ -> Ptr BIO_ -> IO (Ptr BIO_)
@@ -116,7 +113,7 @@ new method
 
 
 wrapBioPtr :: Ptr BIO_ -> IO BIO
-wrapBioPtr bioPtr = newForeignPtr _free bioPtr >>= return . BIO
+wrapBioPtr bioPtr = Conc.newForeignPtr bioPtr (_free bioPtr) >>= return . BIO
 
 
 withBioPtr :: BIO -> (Ptr BIO_ -> IO a) -> IO a
@@ -154,8 +151,8 @@ bioPush (BIO a) (BIO b)
     = withForeignPtr a $ \ aPtr ->
       withForeignPtr b $ \ bPtr ->
       do _push aPtr bPtr
-         GF.addForeignPtrConcFinalizer a $ touchForeignPtr b
-         GF.addForeignPtrConcFinalizer b $ touchForeignPtr a
+         Conc.addForeignPtrFinalizer a $ touchForeignPtr b
+         Conc.addForeignPtrFinalizer b $ touchForeignPtr a
          return ()
 
 -- |@a '==>' b@ is an alias to @'bioPush' a b@.
@@ -451,7 +448,7 @@ newConstMemBS bs
                      >>= failIfNull
 
            bio <- newForeignPtr_ bioPtr
-           GF.addForeignPtrConcFinalizer bio (_free' bioPtr >> touchForeignPtr foreignBuf)
+           Conc.addForeignPtrFinalizer bio (_free bioPtr >> touchForeignPtr foreignBuf)
            
            return $ BIO bio
 
