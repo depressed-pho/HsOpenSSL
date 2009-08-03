@@ -1,5 +1,12 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.6.4 to 0.6.5
+---------------------------
+* Suggestion by Carl Mackey:
+
+  - OpenSSL.Cipher now exports a type AESCtx.
+
+
 Changes from 0.6.3 to 0.6.4
 ---------------------------
 * Applied a patch by Taru Karttunen:

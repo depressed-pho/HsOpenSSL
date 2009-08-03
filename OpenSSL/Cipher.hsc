@@ -14,6 +14,7 @@
 --   which don't use that system (like SSH).
 module OpenSSL.Cipher
     ( Mode(..)
+    , AESCtx
     , newAESCtx
     , aesCBC
     , aesCTR)
