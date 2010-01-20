@@ -35,7 +35,12 @@ Source-Repository head
     Location: http://darcs.cielonegro.org/HsOpenSSL/
 
 Library
-  Build-Depends: base >= 4 && < 5, bytestring, ghc-prim, integer, time >= 1.1.1, old-locale, network>=2.1.0.0
+  Build-Depends: base >= 4 && < 5, bytestring, ghc-prim, time >= 1.1.1, old-locale, network>=2.1.0.0
+
+  if impl(ghc >= 6.11)
+      Build-Depends:      integer-gmp
+  else
+      Build-Depends:      integer
 
   if os(mingw32)
       Extra-Libraries: eay32
