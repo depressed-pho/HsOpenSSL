@@ -54,7 +54,11 @@ import           Foreign.C.Types
 import           GHC.Base
 import           GHC.Num
 import           GHC.Prim
+#if __GLASGOW_HASKELL__ < 612
 import           GHC.Integer.Internals
+#else
+import           GHC.Integer.GMP.Internals
+#endif
 import           GHC.IOBase (IO(..))
 #endif
 
