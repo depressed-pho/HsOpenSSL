@@ -116,7 +116,7 @@ digestInit :: Digest -> IO DigestCtx
 digestInit (Digest md)
     = do ctx <- newCtx
          withDigestCtxPtr ctx $ \ ctxPtr ->
-             _DigestInit ctxPtr md >>= failIf (/= 1)
+             _DigestInit ctxPtr md >>= failIf_ (/= 1)
          return ctx   
 
 
@@ -132,7 +132,7 @@ digestFinal ctx
     = withDigestCtxPtr ctx $ \ ctxPtr ->
       allocaArray (#const EVP_MAX_MD_SIZE) $ \ bufPtr ->
       alloca $ \ bufLenPtr ->
-      do _DigestFinal ctxPtr bufPtr bufLenPtr >>= failIf (/= 1)
+      do _DigestFinal ctxPtr bufPtr bufLenPtr >>= failIf_ (/= 1)
          bufLen <- liftM fromIntegral $ peek bufLenPtr
          peekCStringLen (bufPtr, bufLen)
 
@@ -141,7 +141,7 @@ digestFinalBS ctx =
   withDigestCtxPtr ctx $ \ctxPtr ->
   createAndTrim (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
   alloca $ \bufLenPtr ->
-  do _DigestFinal ctxPtr (castPtr bufPtr) bufLenPtr >>= failIf (/= 1)
+  do _DigestFinal ctxPtr (castPtr bufPtr) bufLenPtr >>= failIf_ (/= 1)
      liftM fromIntegral $ peek bufLenPtr
 
 
@@ -216,8 +216,11 @@ pkcs5_pbkdf2_hmac_sha1 pass salt iter dkeylen =
   unsafeUseAsCStringLen pass $ \(passdata, passlen) ->
   unsafeUseAsCStringLen salt $ \(saltdata, saltlen) ->
   create dkeylen $ \dkeydata ->
-  do _PKCS5_PBKDF2_HMAC_SHA1 passdata (fromIntegral passlen) saltdata (fromIntegral saltlen) (fromIntegral iter) (fromIntegral dkeylen) (castPtr dkeydata)
-     return ()
+      _PKCS5_PBKDF2_HMAC_SHA1
+           passdata (fromIntegral passlen)
+           saltdata (fromIntegral saltlen)
+           (fromIntegral iter) (fromIntegral dkeylen) (castPtr dkeydata)
+      >> return ()
 
 foreign import ccall unsafe "PKCS5_PBKDF2_HMAC_SHA1" _PKCS5_PBKDF2_HMAC_SHA1 :: Ptr CChar -> CInt
                                                                              -> Ptr CChar -> CInt

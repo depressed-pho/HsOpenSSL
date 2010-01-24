@@ -123,8 +123,7 @@ signX509Req req pkey mDigest
                      Nothing -> pkeyDefaultMD pkey
          withMDPtr digest $ \ digestPtr ->
              _sign reqPtr pkeyPtr digestPtr
-                  >>= failIf (== 0)
-         return ()
+                  >>= failIf_ (== 0)
 
 -- |@'verifyX509Req'@ verifies a signature of certificate request with
 -- a subject public key.
@@ -151,7 +150,7 @@ printX509Req req
          withBioPtr mem $ \ memPtr ->
              withX509ReqPtr req $ \ reqPtr ->
                  _print memPtr reqPtr
-                      >>= failIf (/= 1)
+                      >>= failIf_ (/= 1)
          bioRead mem
 
 -- |@'getVersion' req@ returns the version number of certificate

@@ -52,14 +52,14 @@ import           Foreign.C
 #else
 import           Foreign.C.Types
 import           GHC.Base
+#if __GLASGOW_HASKELL__ < 612
 import           GHC.Num
 import           GHC.Prim
-#if __GLASGOW_HASKELL__ < 612
 import           GHC.Integer.Internals
+import           GHC.IOBase (IO(..))
 #else
 import           GHC.Integer.GMP.Internals
 #endif
-import           GHC.IOBase (IO(..))
 #endif
 
 -- |'BigNum' is an opaque object representing a big number.
@@ -177,8 +177,8 @@ bnToInteger bn = do
                then return $ S## i
                else return $ 0 - (S## i)
     _ -> do
-      let (I## nlimbsi) = fromIntegral nlimbs
-          (I## limbsize) = (#size unsigned long)
+      let !(I## nlimbsi) = fromIntegral nlimbs
+          !(I## limbsize) = (#size unsigned long)
       (MBA arr) <- newByteArray (nlimbsi *## limbsize)
       (BA ba) <- freezeByteArray arr
       limbs <- (#peek BIGNUM, d) (unwrapBN bn)
@@ -269,7 +269,7 @@ bnToMPI :: BigNum -> IO BS.ByteString
 bnToMPI bn = do
   bytes <- _bn2mpi (unwrapBN bn) nullPtr
   allocaBytes (fromIntegral bytes) (\buffer -> do
-    _bn2mpi (unwrapBN bn) buffer
+    _ <- _bn2mpi (unwrapBN bn) buffer
     BS.packCStringLen (buffer, fromIntegral bytes))
 
 -- | Convert an MPI into a BigNum. See bnToMPI for details of the format
@@ -313,7 +313,7 @@ modexp a p m = unsafePerformIO (do
       withBN m (\bnM -> (do
         withBNCtx (\ctx -> (do
           r <- newBN 0
-          _mod_exp (unwrapBN r) (unwrapBN bnA) (unwrapBN bnP) (unwrapBN bnM) ctx
+          _ <- _mod_exp (unwrapBN r) (unwrapBN bnA) (unwrapBN bnP) (unwrapBN bnM) ctx
           bnToInteger r >>= return)))))))))
 
 {- Random Integer generation ------------------------------------------------ -}
@@ -332,7 +332,7 @@ randIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
 randIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
   r <- newBN 0
   let try = do
-        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf (/= 1)
+        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf_ (/= 1)
         i <- bnToInteger r
         if f i
            then return i
@@ -347,7 +347,7 @@ prandIntegerUptoNMinusOneSuchThat :: (Integer -> Bool)  -- ^ a filter function
 prandIntegerUptoNMinusOneSuchThat f range = withBN range (\bnRange -> (do
   r <- newBN 0
   let try = do
-        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf (/= 1)
+        _BN_rand_range (unwrapBN r) (unwrapBN bnRange) >>= failIf_ (/= 1)
         i <- bnToInteger r
         if f i
            then return i

@@ -217,7 +217,7 @@ rsaToPKey :: RSAKey k => k -> IO VaguePKey
 rsaToPKey rsa
     = withRSAPtr rsa $ \ rsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
-         _set1_RSA pkeyPtr rsaPtr >>= failIf (/= 1)
+         _set1_RSA pkeyPtr rsaPtr >>= failIf_ (/= 1)
          wrapPKeyPtr pkeyPtr
 
 rsaFromPKey :: RSAKey k => VaguePKey -> IO (Maybe k)
@@ -259,7 +259,7 @@ dsaToPKey :: DSAKey k => k -> IO VaguePKey
 dsaToPKey dsa
     = withDSAPtr dsa $ \ dsaPtr ->
       do pkeyPtr <- _pkey_new >>= failIfNull
-         _set1_DSA pkeyPtr dsaPtr >>= failIf (/= 1)
+         _set1_DSA pkeyPtr dsaPtr >>= failIf_ (/= 1)
          wrapPKeyPtr pkeyPtr
 
 dsaFromPKey :: DSAKey k => VaguePKey -> IO (Maybe k)

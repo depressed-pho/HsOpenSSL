@@ -162,8 +162,7 @@ writePKCS8PrivateKey' bio key encryption
                   Just (cipher, PwTTY)
                       -> withCipherPtr cipher $ \ cipherPtr ->
                          _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr nullPtr 0 nullFunPtr nullPtr
-         failIf (/= 1) ret
-         return ()
+         failIf_ (/= 1) ret
 
 -- |@'writePKCS8PrivateKey'@ writes a private key to PEM string in
 -- PKCS#8 format.
@@ -212,7 +211,7 @@ readPrivateKey' bio supply
                                 return pkeyPtr
                       PwTTY
                           -> _read_bio_PrivateKey bioPtr nullPtr nullFunPtr nullPtr 
-         failIfNull pkeyPtr
+         failIfNull_ pkeyPtr
          wrapPKeyPtr pkeyPtr >>= fromPKey >>= return . fromJust
 
 -- |@'readPrivateKey' pem supply@ reads a private key in PEM string.

@@ -176,7 +176,7 @@ signCRL crl key mDigest
                      Nothing -> pkeyDefaultMD key
          withMDPtr digest $ \ digestPtr ->
              _sign crlPtr pkeyPtr digestPtr
-                  >>= failIf (== 0)
+                  >>= failIf_ (== 0)
          return ()
 
 -- |@'verifyCRL'@ verifies a signature of revocation list with an
@@ -201,7 +201,7 @@ printCRL crl
          withBioPtr mem $ \ memPtr ->
              withCRLPtr crl $ \ crlPtr ->
                  _print memPtr crlPtr
-                      >>= failIf (/= 1)
+                      >>= failIf_ (/= 1)
          bioRead mem
 
 -- |@'getVersion' crl@ returns the version number of revocation list.

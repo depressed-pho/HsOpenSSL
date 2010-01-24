@@ -39,7 +39,9 @@ import           Foreign.C (CString)
 import           Foreign.C.Types
 import           OpenSSL.BN
 import           OpenSSL.Utils
+#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 612)
 import           System.IO.Unsafe
+#endif
 
 -- | The type of a DSA public key, includes parameters p, q, g and public.
 newtype DSAPubKey = DSAPubKey (ForeignPtr DSA)
@@ -166,7 +168,7 @@ generateDSAParameters nbits mseed = do
                   Nothing -> x (nullPtr, 0)
                   Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
         ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) i1 i2 nullPtr nullPtr
-        failIfNull ptr
+        failIfNull_ ptr
         itcount <- peek i1
         gencount <- peek i2
         p <- (#peek DSA, p) ptr >>= peekBN . wrapBN
@@ -269,7 +271,7 @@ generateDSAParametersAndKey nbits mseed = do
               Nothing -> x (nullPtr, 0)
               Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
     ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) nullPtr nullPtr nullPtr nullPtr
-    failIfNull ptr
+    failIfNull_ ptr
     _dsa_generate_key ptr
     newForeignPtr _free ptr >>= return . DSAKeyPair)
 
@@ -282,7 +284,7 @@ signDigestedDataWithDSA dsa bytes = do
     alloca (\rptr -> do
       alloca (\sptr -> do
         withDSAPtr dsa (\dsaptr -> do
-          _dsa_sign dsaptr ptr (fromIntegral len) rptr sptr >>= failIf (== 0)
+          _dsa_sign dsaptr ptr (fromIntegral len) rptr sptr >>= failIf_ (== 0)
           r <- peek rptr >>= peekBN . wrapBN
           peek rptr >>= _bn_free
           s <- peek sptr >>= peekBN . wrapBN

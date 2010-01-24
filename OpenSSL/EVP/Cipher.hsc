@@ -142,7 +142,7 @@ cipherInit (Cipher c) key iv mode
              withCString key $ \ keyPtr ->
                  withCString iv $ \ ivPtr ->
                      _CipherInit ctxPtr c keyPtr ivPtr (cryptoModeToInt mode)
-                          >>= failIf (/= 1)
+                          >>= failIf_ (/= 1)
          return ctx
 
 

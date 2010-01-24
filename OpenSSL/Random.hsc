@@ -33,7 +33,7 @@ randBytes :: Int  -- ^ the number of bytes requested
           -> IO BS.ByteString
 randBytes n =
   allocaArray n $ \bufPtr ->
-  do _RAND_bytes bufPtr (fromIntegral n) >>= failIf (/= 1)
+  do _RAND_bytes bufPtr (fromIntegral n) >>= failIf_ (/= 1)
      BS.packCStringLen (bufPtr, n)
 
 -- | Return a bytestring consisting of the given number of pseudo random

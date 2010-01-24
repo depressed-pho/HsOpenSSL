@@ -48,13 +48,13 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Internal as L
-import System.IO.Error (mkIOError, ioError, eofErrorType, catch, isEOFError)
+import System.IO.Error (mkIOError, ioError, eofErrorType, isEOFError)
 import System.IO.Unsafe
 import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
 
 import OpenSSL.EVP.PKey
-import OpenSSL.Utils (failIfNull, failIf)
+import OpenSSL.Utils
 import OpenSSL.X509 (X509, X509_, wrapX509, withX509Ptr)
 import OpenSSL.X509.Store
 
@@ -203,9 +203,8 @@ foreign import ccall unsafe "SSL_CTX_load_verify_locations"
 contextSetCAFile :: SSLContext -> FilePath -> IO ()
 contextSetCAFile context path = do
   withContext context $ \ctx ->
-    withCString path $ \cpath -> do
-      _ssl_load_verify_locations ctx cpath nullPtr >>= failIf (/= 1)
-      return ()
+    withCString path $ \cpath ->
+        _ssl_load_verify_locations ctx cpath nullPtr >>= failIf_ (/= 1)
 
 -- | Set the path to a directory which contains the PEM encoded CA root
 --   certificates. This is an alternative to 'contextSetCAFile'. See
@@ -214,9 +213,8 @@ contextSetCAFile context path = do
 contextSetCADirectory :: SSLContext -> FilePath -> IO ()
 contextSetCADirectory context path = do
   withContext context $ \ctx ->
-    withCString path $ \cpath -> do
-      _ssl_load_verify_locations ctx nullPtr cpath >>= failIf (/= 1)
-      return ()
+    withCString path $ \cpath ->
+        _ssl_load_verify_locations ctx nullPtr cpath >>= failIf_ (/= 1)
 
 foreign import ccall unsafe "SSL_CTX_get_cert_store"
   _ssl_get_cert_store :: Ptr SSLContext_ -> IO (Ptr X509_STORE)

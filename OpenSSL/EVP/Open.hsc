@@ -10,7 +10,6 @@ module OpenSSL.EVP.Open
     )
     where
 
-import           Control.Monad
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -38,7 +37,7 @@ openInit cipher encKey iv pkey
                  withCString iv $ \ ivPtr ->
                      withPKeyPtr' pkey $ \ pkeyPtr ->
                          _OpenInit ctxPtr cipher encKeyPtr (fromIntegral encKeyLen) ivPtr pkeyPtr
-                              >>= failIf (== 0)
+                              >>= failIf_ (== 0)
          return ctx
 
 -- |@'open'@ lazilly decrypts a stream of data. The input string

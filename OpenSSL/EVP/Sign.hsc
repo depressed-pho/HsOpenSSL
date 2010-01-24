@@ -32,7 +32,7 @@ signFinal ctx k
                  allocaArray maxLen $ \ bufPtr ->
                      alloca $ \ bufLenPtr ->
                          do _SignFinal ctxPtr bufPtr bufLenPtr pkeyPtr
-                                 >>= failIf (/= 1)
+                                 >>= failIf_ (/= 1)
                             bufLen <- liftM fromIntegral $ peek bufLenPtr
                             peekCStringLen (bufPtr, bufLen)
 

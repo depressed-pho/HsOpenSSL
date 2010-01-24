@@ -1,6 +1,9 @@
+{-# LANGUAGE CPP #-}
 module OpenSSL.Utils
     ( failIfNull
+    , failIfNull_
     , failIf
+    , failIf_
     , raiseOpenSSLError
     , toHex
     , fromHex
@@ -11,8 +14,10 @@ module OpenSSL.Utils
 import           Foreign
 import           Foreign.C
 import           OpenSSL.ERR
-import           Data.Bits ((.&.), (.|.), shiftR, shiftL)
 import           Data.List (unfoldr)
+#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__)
+import           Data.Bits ((.&.), (.|.), shiftR, shiftL)
+#endif
 
 failIfNull :: Ptr a -> IO (Ptr a)
 failIfNull ptr
@@ -21,11 +26,19 @@ failIfNull ptr
       else
           return ptr
 
+failIfNull_ :: Ptr a -> IO ()
+failIfNull_ ptr
+    = failIfNull ptr >> return ()
 
 failIf :: (a -> Bool) -> a -> IO a
 failIf f a
     | f a       = raiseOpenSSLError
     | otherwise = return a
+
+
+failIf_ :: (a -> Bool) -> a -> IO ()
+failIf_ f a
+    = failIf f a >> return ()
 
 
 raiseOpenSSLError :: IO a

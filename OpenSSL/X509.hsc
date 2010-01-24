@@ -203,7 +203,7 @@ signX509 x509 key mDigest
                      Nothing -> pkeyDefaultMD key
          withMDPtr digest $ \ digestPtr ->
              _sign x509Ptr pkeyPtr digestPtr
-                  >>= failIf (== 0)
+                  >>= failIf_ (== 0)
          return ()
 
 -- |@'verifyX509'@ verifies a signature of certificate with an issuer
@@ -231,7 +231,7 @@ printX509 x509
          withX509Ptr x509 $ \ x509Ptr ->
              withBioPtr mem $ \ memPtr ->
                  _print memPtr x509Ptr
-                      >>= failIf (/= 1)
+                      >>= failIf_ (/= 1)
          bioRead mem
 
 -- |@'getVersion' cert@ returns the version number of certificate. It

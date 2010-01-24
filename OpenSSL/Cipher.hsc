@@ -75,8 +75,8 @@ newAESCtx mode key iv = do
   withForeignPtr ctx $ \ctxPtr ->
     BS.useAsCStringLen key (\(ptr, _) ->
       case mode of
-           Encrypt -> _AES_set_encrypt_key ptr (fromIntegral keyLen) ctxPtr >>= failIf (/= 0)
-           Decrypt -> _AES_set_decrypt_key ptr (fromIntegral keyLen) ctxPtr >>= failIf (/= 0))
+           Encrypt -> _AES_set_encrypt_key ptr (fromIntegral keyLen) ctxPtr >>= failIf_ (/= 0)
+           Decrypt -> _AES_set_decrypt_key ptr (fromIntegral keyLen) ctxPtr >>= failIf_ (/= 0))
   ivbytes <- mallocForeignPtrBytes 16
   ecounter <- mallocForeignPtrBytes 16
   nref <- newIORef 0

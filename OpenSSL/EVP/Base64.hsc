@@ -26,11 +26,13 @@ import           Foreign
 import           Foreign.C
 
 
--- エンコード時: 最低 3 バイト以上になるまで次のブロックを取り出し續け
--- る。返された[ByteString] は B8.concat してから、その文字列長より小さ
--- な最大の 3 の倍數の位置で分割し、殘りは次のブロックの一部と見做す。
+-- On encoding, we keep fetching the next block until we get at least
+-- 3 bytes. Then we apply B8.concat to the returned [ByteString] and
+-- split it at the offset in multiple of 3, then prepend the remaining
+-- bytes to the next block.
 --
--- デコード時: 分割のアルゴリズムは同じだが最低バイト数が 4。
+-- On decoding, we apply the same algorithm but we split the input in
+-- multiple of 4.
 nextBlock :: Int -> ([B8.ByteString], L8.ByteString) -> ([B8.ByteString], L8.ByteString)
 nextBlock minLen (xs, src)
     = if foldl' (+) 0 (map B8.length xs) >= minLen then
@@ -79,7 +81,7 @@ encodeBase64LBS inLBS
               block'                  = B8.concat blockParts'
               blockLen'               = B8.length block'
               (block      , leftover) = if blockLen' < 3 then
-                                            -- 最後の半端
+                                            -- The last remnant.
                                             (block', B8.empty)
                                         else
                                             B8.splitAt (blockLen' - blockLen' `mod` 3) block'

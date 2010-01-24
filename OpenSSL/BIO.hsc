@@ -125,10 +125,11 @@ withBioPtr' Nothing    f = f nullPtr
 withBioPtr' (Just bio) f = withBioPtr bio f
 
 
--- a の後ろに b を付ける。a の參照だけ保持してそこに書き込む事も、b の
--- 參照だけ保持してそこから讀み出す事も、兩方考へられるので、双方の
--- ForeignPtr が双方を touch する。參照カウント方式ではないから循環參照
--- しても問題無い。
+-- Connect 'b' behind 'a'. It's possible that 1. we only retain 'a'
+-- and write to 'a', and 2. we only retain 'b' and read from 'b', so
+-- both ForeignPtr's have to touch each other. This involves a
+-- circular dependency but that won't be a problem as the garbage
+-- collector isn't reference-counting.
 
 -- |Computation of @'bioPush' a b@ connects @b@ behind @a@.
 --
@@ -150,7 +151,7 @@ bioPush :: BIO -> BIO -> IO ()
 bioPush (BIO a) (BIO b)
     = withForeignPtr a $ \ aPtr ->
       withForeignPtr b $ \ bPtr ->
-      do _push aPtr bPtr
+      do _ <- _push aPtr bPtr
          Conc.addForeignPtrFinalizer a $ touchForeignPtr b
          Conc.addForeignPtrFinalizer b $ touchForeignPtr a
          return ()
@@ -205,8 +206,9 @@ bioFlush bio
 bioReset :: BIO -> IO ()
 bioReset bio
     = withBioPtr bio $ \ bioPtr ->
-      _reset bioPtr >> return () -- BIO_reset の戻り値は全 BIO で共通で
-                                 -- ないのでエラーチェックが出來ない。
+      _reset bioPtr >> return () -- Return value of BIO_reset is not
+                                 -- consistent in every BIO's so we
+                                 -- can't do error-checking.
 
 -- |@'bioEOF' bio@ returns 1 if @bio@ has read EOF, the precise
 -- meaning of EOF varies according to the BIO type.
@@ -442,7 +444,7 @@ newConstMemBS :: B.ByteString -> IO BIO
 newConstMemBS bs
     = let (foreignBuf, off, len) = toForeignPtr bs
       in
-        -- ByteString への參照を BIO の finalizer に持たせる。
+        -- Let the BIO's finalizer have a reference to the ByteString.
         withForeignPtr foreignBuf $ \ buf ->
         do bioPtr <- _new_mem_buf (castPtr $ buf `plusPtr` off) (fromIntegral len)
                      >>= failIfNull

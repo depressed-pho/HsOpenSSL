@@ -21,7 +21,6 @@ module OpenSSL.ASN1
 
 
 import           Control.Exception
-import           Control.Monad
 import           Data.Time.Clock
 import           Data.Time.Clock.POSIX
 import           Data.Time.Format
@@ -86,7 +85,7 @@ peekASN1Integer :: Ptr ASN1_INTEGER -> IO Integer
 peekASN1Integer intPtr
     = allocaBN $ \ bn ->
       do _ASN1_INTEGER_to_BN intPtr (unwrapBN bn)
-              >>= failIfNull
+              >>= failIfNull_
          peekBN bn
 
 
@@ -100,7 +99,7 @@ withASN1Integer int m
     = withBN int $ \ bn ->
       allocaASN1Integer $ \ intPtr ->
       do _BN_to_ASN1_INTEGER (unwrapBN bn) intPtr
-              >>= failIfNull
+              >>= failIfNull_
          m intPtr
 
 
@@ -126,7 +125,7 @@ peekASN1Time time
     = do bio <- newMem
          withBioPtr bio $ \ bioPtr ->
              _ASN1_TIME_print bioPtr time
-                  >>= failIf (/= 1)
+                  >>= failIf_ (/= 1)
          timeStr <- bioRead bio
          case parseTime locale "%b %e %H:%M:%S %Y %Z" timeStr of
            Just utc -> return utc
@@ -158,5 +157,5 @@ withASN1Time :: UTCTime -> (Ptr ASN1_TIME -> IO a) -> IO a
 withASN1Time utc m
     = allocaASN1Time $ \ time ->
       do _ASN1_TIME_set time (fromIntegral $ (round $ utcTimeToPOSIXSeconds utc :: Integer))
-              >>= failIfNull
+              >>= failIfNull_
          m time

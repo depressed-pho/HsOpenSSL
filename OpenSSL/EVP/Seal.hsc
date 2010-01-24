@@ -10,7 +10,6 @@ module OpenSSL.EVP.Seal
     )
     where
 
-import           Control.Monad
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
@@ -38,27 +37,27 @@ sealInit _ []
 
 sealInit cipher pubKeys
     = do ctx <- newCtx
-         
-         -- 暗号化された共通鍵の配列が書き込まれる場所を作る。各共通鍵
-         -- は最大で pkeySize の長さになる。
+
+         -- Allocate a list of buffers to write encrypted symmetric
+         -- keys. Each keys will be at most pkeySize bytes long.
          encKeyBufs <- mapM mallocEncKeyBuf pubKeys
 
-         -- encKeys は [Ptr a] なので、これを Ptr (Ptr CChar) にしなけ
-         -- ればならない。
+         -- encKeyBufs is [Ptr a] but we want Ptr (Ptr CChar).
          encKeyBufsPtr <- newArray encKeyBufs
 
-         -- 暗号化された共通鍵の各々の長さが書き込まれる場所を作る。
+         -- Allocate a buffer to write lengths of each encrypted
+         -- symmetric keys.
          encKeyBufsLenPtr <- mallocArray nKeys
 
-         -- IV の書き込まれる場所を作る。
+         -- Allocate a buffer to write IV.
          ivPtr <- mallocArray (cipherIvLength cipher)
 
-         -- [PKey] から Ptr (Ptr EVP_PKEY) を作る。後でそれぞれの
-         -- PKey を touchForeignPtr する事を忘れてはならない。
+         -- Create Ptr (Ptr EVP_PKEY) from [PKey]. Don't forget to
+         -- apply touchForeignPtr to each PKey's later.
          pkeys      <- mapM toPKey pubKeys
          pubKeysPtr <- newArray $ map unsafePKeyToPtr pkeys
 
-         -- 確保した領域を解放する IO アクションを作って置く
+         -- Prepare an IO action to free buffers we allocated above.
          let cleanup = do mapM_ free encKeyBufs
                           free encKeyBufsPtr
                           free encKeyBufsLenPtr
@@ -66,7 +65,7 @@ sealInit cipher pubKeys
                           free pubKeysPtr
                           mapM_ touchPKey pkeys
 
-         -- いよいよ EVP_SealInit を呼ぶ。
+         -- Call EVP_SealInit finally.
          ret <- withCipherCtxPtr ctx $ \ ctxPtr ->
                 _SealInit ctxPtr cipher encKeyBufsPtr encKeyBufsLenPtr ivPtr pubKeysPtr (fromIntegral nKeys)
 

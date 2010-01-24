@@ -34,7 +34,9 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
+#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__)
 import           System.IO.Unsafe
+#endif
 
 -- |@'RSAPubKey'@ is an opaque object that represents RSA public key.
 newtype RSAPubKey  = RSAPubKey (ForeignPtr RSA)
@@ -155,7 +157,7 @@ generateRSAKey :: Int    -- ^ The number of bits of the public modulus
 
 generateRSAKey nbits e Nothing
     = do ptr <- _generate_key (fromIntegral nbits) (fromIntegral e) nullFunPtr nullPtr
-         failIfNull ptr
+         failIfNull_ ptr
          newForeignPtr _free ptr >>= return . RSAKeyPair
 
 generateRSAKey nbits e (Just cb)
@@ -163,7 +165,7 @@ generateRSAKey nbits e (Just cb)
                   $ \ arg1 arg2 _ -> cb arg1 arg2
          ptr   <- _generate_key (fromIntegral nbits) (fromIntegral e) cbPtr nullPtr
          freeHaskellFunPtr cbPtr
-         failIfNull ptr
+         failIfNull_ ptr
          newForeignPtr _free ptr >>= return . RSAKeyPair
 
 -- |A simplified alternative to 'generateRSAKey'
