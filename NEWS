@@ -1,5 +1,14 @@
 -*- Coding: utf-8 -*-
 
+Changes from 0.6.5 to 0.7
+-------------------------
+* Applied patches by Taru Karttunen to make HsOpenSSL compatible with
+  GHC 6.12.1.
+
+* Many cosmetic changes to suppress warnings which GHC 6.12.1
+  emits. It shouldn't change any semantics.
+
+
 Changes from 0.6.4 to 0.6.5
 ---------------------------
 * Suggestion by Carl Mackey:
