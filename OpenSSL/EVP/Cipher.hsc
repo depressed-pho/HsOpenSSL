@@ -29,9 +29,11 @@ module OpenSSL.EVP.Cipher
     , cipher
     , cipherBS
     , cipherLBS
+    , cipherStrictLBS
     )
     where
 
+import           Control.Exception(bracket_)
 import           Control.Monad
 import           Data.ByteString.Internal (createAndTrim)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
@@ -98,6 +100,9 @@ foreign import ccall unsafe "EVP_CIPHER_CTX_init"
 foreign import ccall unsafe "&EVP_CIPHER_CTX_cleanup"
         _ctx_cleanup :: FunPtr (Ptr EVP_CIPHER_CTX -> IO ())
 
+foreign import ccall unsafe "EVP_CIPHER_CTX_cleanup"
+        _ctx_cleanup' :: Ptr EVP_CIPHER_CTX -> IO ()
+
 foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_CTX_block_size"
         _ctx_block_size :: Ptr EVP_CIPHER_CTX -> CInt
 
@@ -145,6 +150,23 @@ cipherInit (Cipher c) key iv mode
                           >>= failIf_ (/= 1)
          return ctx
 
+-- | Encrypt a lazy bytestring in a strict manner. Does not leak the keys.
+cipherStrictLBS :: Cipher         -- ^ Cipher
+                -> B8.ByteString  -- ^ Key
+                -> B8.ByteString  -- ^ IV
+                -> CryptoMode     -- ^ Encrypt\/Decrypt
+                -> L8.ByteString  -- ^ Input
+                -> IO L8.ByteString
+cipherStrictLBS (Cipher c) key iv mode input = do
+  allocaBytes (#size EVP_CIPHER_CTX) $ \cptr -> do
+  bracket_ (_ctx_init cptr) (_ctx_cleanup' cptr) $ do
+  unsafeUseAsCStringLen key $ \(keyp,_) -> do
+  unsafeUseAsCStringLen iv  $ \(ivp, _)  -> do
+  failIf_ (/= 1) =<< _CipherInit cptr c keyp ivp (cryptoModeToInt mode)
+  cc <- fmap CipherCtx (newForeignPtr_ cptr)
+  rr <- cipherUpdateBS cc `mapM` L8.toChunks input
+  rf <- cipherFinalBS cc
+  return $ L8.fromChunks (rr++[rf])
 
 cipherUpdateBS :: CipherCtx -> B8.ByteString -> IO B8.ByteString
 cipherUpdateBS ctx inBS
