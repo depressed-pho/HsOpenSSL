@@ -25,6 +25,8 @@ module OpenSSL.RSA
     , rsaDMP1
     , rsaDMQ1
     , rsaIQMP
+    , rsaCopyPublic
+    , rsaKeyPairFinalize -- private
     )
     where
 
@@ -116,6 +118,13 @@ foreign import ccall unsafe "RSAPrivateKey_dup"
 foreign import ccall unsafe "RSA_size"
         _size :: Ptr RSA -> IO CInt
 
+-- | Make a copy of the public parameters of the given key.
+rsaCopyPublic :: RSAKey key => key -> IO RSAPubKey
+rsaCopyPublic key = withRSAPtr key (fmap RSAPubKey . (newForeignPtr _free =<<) . _pubDup)
+
+-- private
+rsaKeyPairFinalize :: RSAKeyPair -> IO ()
+rsaKeyPairFinalize (RSAKeyPair fp) = finalizeForeignPtr fp
 
 {- generation --------------------------------------------------------------- -}
 
