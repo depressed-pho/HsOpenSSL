@@ -206,6 +206,7 @@ hmacBS (Digest md) key input =
      bufLen <- liftM fromIntegral $ peek bufLenPtr
      B8.packCStringLen (bufPtr, bufLen)
 
+-- | Calculate a PKCS5-PBKDF2 SHA1-HMAC suitable for password hashing.
 pkcs5_pbkdf2_hmac_sha1 :: B8.ByteString -- ^ password
                        -> B8.ByteString -- ^ salt
                        -> Int           -- ^ iterations
