@@ -12,6 +12,7 @@ module OpenSSL.EVP.Sign
 
 import           Control.Monad
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Internal as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign
 import           Foreign.C
@@ -21,20 +22,18 @@ import           OpenSSL.Utils
 
 
 foreign import ccall unsafe "EVP_SignFinal"
-        _SignFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> Ptr EVP_PKEY -> IO CInt
+        _SignFinal :: Ptr EVP_MD_CTX -> Ptr Word8 -> Ptr CUInt -> Ptr EVP_PKEY -> IO CInt
 
 
-signFinal :: KeyPair k => DigestCtx -> k -> IO String
+signFinal :: KeyPair k => DigestCtx -> k -> IO B8.ByteString
 signFinal ctx k
     = do let maxLen = pkeySize k
          withDigestCtxPtr ctx $ \ ctxPtr ->
              withPKeyPtr' k $ \ pkeyPtr ->
-                 allocaArray maxLen $ \ bufPtr ->
+                 B8.createAndTrim maxLen $ \ bufPtr ->
                      alloca $ \ bufLenPtr ->
-                         do _SignFinal ctxPtr bufPtr bufLenPtr pkeyPtr
-                                 >>= failIf_ (/= 1)
-                            bufLen <- liftM fromIntegral $ peek bufLenPtr
-                            peekCStringLen (bufPtr, bufLen)
+                         do failIf_ (/= 1) =<< _SignFinal ctxPtr bufPtr bufLenPtr pkeyPtr
+                            liftM fromIntegral $ peek bufLenPtr
 
 
 -- |@'sign'@ generates a signature from a stream of data. The string
@@ -56,8 +55,7 @@ signBS :: KeyPair key =>
        -> IO B8.ByteString -- ^ the result signature
 signBS md pkey input
     = do ctx <- digestStrictly md input
-         sig <- signFinal ctx pkey
-         return $ B8.pack sig
+         signFinal ctx pkey
 
 -- |@'signLBS'@ generates a signature from a stream of data.
 signLBS :: KeyPair key =>
@@ -68,4 +66,4 @@ signLBS :: KeyPair key =>
 signLBS md pkey input
     = do ctx <- digestLazily md input
          sig <- signFinal ctx pkey
-         return $ L8.pack sig
+         return $ L8.fromChunks [sig]
