@@ -7,6 +7,7 @@ module OpenSSL.EVP.Sign
     ( sign
     , signBS
     , signLBS
+    , signFinal -- private
     )
     where
 
