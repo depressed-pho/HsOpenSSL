@@ -37,6 +37,7 @@ module OpenSSL.PEM
 
 import           Control.Exception hiding (try)
 import           Control.Monad
+import qualified Data.ByteString.Char8 as B8
 import           Data.Maybe
 import           Foreign
 import           Foreign.C
@@ -81,6 +82,7 @@ data PemPasswordRWState = PwRead  -- ^ The callback was called to get
 -- password\"
 data PemPasswordSupply = PwNone       -- ^ no password
                        | PwStr String -- ^ password in a static string
+                       | PwBS B8.ByteString -- ^ password in a static bytestring.
                        | PwCallback PemPasswordCallback -- ^ get a
                                                         --   password
                                                         --   by a
@@ -148,10 +150,13 @@ writePKCS8PrivateKey' bio key encryption
                       -> _write_bio_PKCS8PrivateKey bioPtr pkeyPtr nullPtr nullPtr 0 nullFunPtr nullPtr
 
                   Just (cipher, PwStr passStr)
-                      -> withCStringLen passStr $ \ (passPtr, passLen) ->
+                      -> withCStringLen passStr $ \(passPtr, passLen) ->
                          withCipherPtr cipher   $ \ cipherPtr          ->
                          _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr passPtr (fromIntegral passLen) nullFunPtr nullPtr
-
+                  Just (cipher, PwBS passStr)
+                      -> withBS passStr $ \(passPtr, passLen) ->
+                         withCipherPtr cipher   $ \ cipherPtr          ->
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr passPtr (fromIntegral passLen) nullFunPtr nullPtr
                   Just (cipher, PwCallback cb)
                       -> withCipherPtr cipher $ \ cipherPtr ->
                          bracket (mkPemPasswordCallback $ callPasswordCB cb) freeHaskellFunPtr $ \cbPtr ->
@@ -184,7 +189,7 @@ foreign import ccall safe "PEM_read_bio_PrivateKey"
         _read_bio_PrivateKey :: Ptr BIO_
                              -> Ptr (Ptr EVP_PKEY)
                              -> FunPtr PemPasswordCallback'
-                             -> Ptr ()
+                             -> CString
                              -> IO (Ptr EVP_PKEY)
 
 readPrivateKey' :: BIO -> PemPasswordSupply -> IO SomeKeyPair
@@ -194,14 +199,12 @@ readPrivateKey' bio supply
                       PwNone
                           -> withCString "" $ \ strPtr ->
                              _read_bio_PrivateKey bioPtr nullPtr nullFunPtr (castPtr strPtr)
-                                
                       PwStr passStr
-                          -> do cbPtr <- mkPemPasswordCallback $
-                                         callPasswordCB $ \ _ _ ->
-                                         return passStr
-                                pkeyPtr <- _read_bio_PrivateKey bioPtr nullPtr cbPtr nullPtr 
-                                freeHaskellFunPtr cbPtr
-                                return pkeyPtr
+                          -> withCString passStr $ \passPtr ->
+                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr passPtr
+                      PwBS passStr
+                          -> withBS passStr $ \(passPtr,_) ->
+                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr passPtr
                       PwCallback cb
                           -> bracket (mkPemPasswordCallback $ callPasswordCB cb) freeHaskellFunPtr $ \cbPtr ->
                              _read_bio_PrivateKey bioPtr nullPtr cbPtr nullPtr
@@ -460,3 +463,11 @@ readPkcs7' bio
 readPkcs7 :: String -> IO Pkcs7
 readPkcs7 pemStr
     = newConstMem pemStr >>= readPkcs7'
+
+withBS :: B8.ByteString -> ((Ptr CChar, Int) -> IO t) -> IO t
+withBS passStr act =
+  B8.useAsCStringLen passStr $ \ (passPtr, passLen) ->
+  flip finally (memset passPtr 0 $ fromIntegral passLen) $
+  act (castPtr passPtr, passLen)
+
+foreign import ccall unsafe memset :: Ptr a -> CInt -> CSize -> IO ()
