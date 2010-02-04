@@ -154,10 +154,8 @@ writePKCS8PrivateKey' bio key encryption
 
                   Just (cipher, PwCallback cb)
                       -> withCipherPtr cipher $ \ cipherPtr ->
-                         do cbPtr <- mkPemPasswordCallback $ callPasswordCB cb
-                            ret   <- _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr nullPtr 0 cbPtr nullPtr
-                            freeHaskellFunPtr cbPtr
-                            return ret
+                         bracket (mkPemPasswordCallback $ callPasswordCB cb) freeHaskellFunPtr $ \cbPtr ->
+                         _write_bio_PKCS8PrivateKey bioPtr pkeyPtr cipherPtr nullPtr 0 cbPtr nullPtr
                
                   Just (cipher, PwTTY)
                       -> withCipherPtr cipher $ \ cipherPtr ->
@@ -205,10 +203,8 @@ readPrivateKey' bio supply
                                 freeHaskellFunPtr cbPtr
                                 return pkeyPtr
                       PwCallback cb
-                          -> do cbPtr <- mkPemPasswordCallback $ callPasswordCB cb
-                                pkeyPtr <- _read_bio_PrivateKey bioPtr nullPtr cbPtr nullPtr 
-                                freeHaskellFunPtr cbPtr
-                                return pkeyPtr
+                          -> bracket (mkPemPasswordCallback $ callPasswordCB cb) freeHaskellFunPtr $ \cbPtr ->
+                             _read_bio_PrivateKey bioPtr nullPtr cbPtr nullPtr
                       PwTTY
                           -> _read_bio_PrivateKey bioPtr nullPtr nullFunPtr nullPtr 
          failIfNull_ pkeyPtr
