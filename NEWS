@@ -1,4 +1,26 @@
--*- Coding: utf-8 -*-
+-*- coding: utf-8 -*-
+
+Changes from 0.7 to 0.8
+-----------------------
+* Applied 7 patches by Taru Karttunen:
+
+  - Add cipherStrictLBS - Encrypt a lazy bytestring in a strict
+    manner. Does not leak the keys
+
+  - Add rsaCopyPublic and rsaKeyPairFinalize to OpenSSL.RSA
+
+  - Document pkcs5_pbkdf2_hmac_sha1 in OpenSSL.EVP.Digest
+
+  - Make OpenSSL.EVP.Sign.signFinal use ByteStrings internally
+
+  - Export OpenSSL.EVP.Sign.signFinal
+
+  - Add PEM-functionality with a new PwBS that works like PwStr except
+    there are no superfluous extra copies retained in the memory.
+
+  - Make PEM callbacks use bracket which makes cleanup work even if
+    there are exceptions.
+
 
 Changes from 0.6.5 to 0.7
 -------------------------
