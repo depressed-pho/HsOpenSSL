@@ -42,8 +42,7 @@ foreign import ccall unsafe "X509_NAME_ENTRY_get_data"
 
 
 allocaX509Name :: (Ptr X509_NAME -> IO a) -> IO a
-allocaX509Name m
-    = bracket _new _free m
+allocaX509Name = bracket _new _free
 
 
 withX509Name :: [(String, String)] -> (Ptr X509_NAME -> IO a) -> IO a

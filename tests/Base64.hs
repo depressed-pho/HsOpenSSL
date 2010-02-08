@@ -65,7 +65,7 @@ lazyEncoding = all id $ map (\(a, v) -> encodeBase64LBS a == v) lazyEncodeTests
 decoding = all id $ map (\(a, v) -> decodeBase64BS a == v) decodeTests
 
 main = do
-  mapM (print . encodeBase64LBS . fst) lazyEncodeTests
+  mapM_ (print . encodeBase64LBS . fst) lazyEncodeTests
   if encoding && lazyEncoding && decoding
      then putStrLn "PASS"
      else putStrLn "FAIL"

@@ -90,8 +90,7 @@ foreign import ccall unsafe "&EVP_MD_CTX_cleanup"
 
 newCtx :: IO DigestCtx
 newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_MD_CTX)
-            withForeignPtr ctx $ \ ctxPtr ->
-                _ctx_init ctxPtr
+            withForeignPtr ctx _ctx_init
             addForeignPtrFinalizer _ctx_cleanup ctx
             return $ DigestCtx ctx
 
@@ -168,22 +167,19 @@ digest md input
 -- |@'digestBS'@ digests a chunk of data.
 digestBS :: Digest -> B8.ByteString -> String
 digestBS md input
-    = unsafePerformIO $
-      do ctx <- digestStrictly md input
-         digestFinal ctx
+    = unsafePerformIO
+      (digestStrictly md input >>= digestFinal)
 
 digestBS' :: Digest -> B8.ByteString -> B8.ByteString
 digestBS' md input
-    = unsafePerformIO $
-      do ctx <- digestStrictly md input
-         digestFinalBS ctx
+    = unsafePerformIO
+      (digestStrictly md input >>= digestFinalBS)
 
 -- |@'digestLBS'@ digests a stream of data.
 digestLBS :: Digest -> L8.ByteString -> String
 digestLBS md input
-    = unsafePerformIO $
-      do ctx <- digestLazily md input
-         digestFinal ctx
+    = unsafePerformIO
+      (digestLazily md input >>= digestFinal)
 
 {- HMAC ---------------------------------------------------------------------- -}
 

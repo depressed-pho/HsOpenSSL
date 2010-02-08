@@ -113,7 +113,8 @@ new method
 
 
 wrapBioPtr :: Ptr BIO_ -> IO BIO
-wrapBioPtr bioPtr = Conc.newForeignPtr bioPtr (_free bioPtr) >>= return . BIO
+wrapBioPtr bioPtr
+    = fmap BIO (Conc.newForeignPtr bioPtr (_free bioPtr))
 
 
 withBioPtr :: BIO -> (Ptr BIO_ -> IO a) -> IO a
@@ -174,13 +175,13 @@ bioJoin (a:b:xs) = bioPush a b >> bioJoin (b:xs)
 
 setFlags :: BIO -> CInt -> IO ()
 setFlags bio flags
-    = withBioPtr bio $ \ bioPtr ->
-      _set_flags bioPtr flags
+    = withBioPtr bio $ flip _set_flags flags
+      
 
 bioShouldRetry :: BIO -> IO Bool
 bioShouldRetry bio
     = withBioPtr bio $ \ bioPtr ->
-      _should_retry bioPtr >>= return . (/= 0)
+      fmap (/= 0) (_should_retry bioPtr)
 
 
 {- ctrl --------------------------------------------------------------------- -}
@@ -215,7 +216,7 @@ bioReset bio
 bioEOF :: BIO -> IO Bool
 bioEOF bio
     = withBioPtr bio $ \ bioPtr ->
-      _eof bioPtr >>= return . (== 1)
+      fmap (==1) (_eof bioPtr)
 
 
 {- I/O ---------------------------------------------------------------------- -}
@@ -253,7 +254,7 @@ bioReadBS bio maxLen
 -- |@'bioReadLBS' bio@ lazily reads all data in @bio@, then return a
 -- LazyByteString.
 bioReadLBS :: BIO -> IO L.ByteString
-bioReadLBS bio = lazyRead >>= return . L.fromChunks
+bioReadLBS bio = fmap L.fromChunks lazyRead
     where
       chunkSize = L.defaultChunkSize
       

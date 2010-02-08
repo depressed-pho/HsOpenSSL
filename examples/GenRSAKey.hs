@@ -13,12 +13,12 @@ main = withOpenSSL $
           printf "Generating RSA key-pair, nbits = %d, e = %d:\n" keyBits keyE
           
           rsa  <- generateRSAKey keyBits keyE $ Just $ \ phase _ ->
-                  do hPutChar stdout $ case phase of
-                                         0 -> '.'
-                                         1 -> '+'
-                                         2 -> '*'
-                                         3 -> '\n'
-                                         n -> head $ show n
+                  do putChar $ case phase of
+                                 0 -> '.'
+                                 1 -> '+'
+                                 2 -> '*'
+                                 3 -> '\n'
+                                 n -> head $ show n
                      hFlush stdout
 
           printf "Done.\n"

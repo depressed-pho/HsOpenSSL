@@ -115,7 +115,7 @@ foreign import ccall "PKCS7_decrypt"
 
 
 wrapPkcs7Ptr :: Ptr PKCS7 -> IO Pkcs7
-wrapPkcs7Ptr p7Ptr = newForeignPtr _free p7Ptr >>= return . Pkcs7
+wrapPkcs7Ptr = fmap Pkcs7 . newForeignPtr _free
 
 
 withPkcs7Ptr :: Pkcs7 -> (Ptr PKCS7 -> IO a) -> IO a
@@ -125,8 +125,7 @@ withPkcs7Ptr (Pkcs7 pkcs7) = withForeignPtr pkcs7
 isDetachedSignature :: Pkcs7 -> IO Bool
 isDetachedSignature pkcs7
     = withPkcs7Ptr pkcs7 $ \ pkcs7Ptr ->
-      _is_detached pkcs7Ptr
-           >>= return . (== 1)
+      fmap (== 1) (_is_detached pkcs7Ptr)
 
 
 pkcs7Sign' :: KeyPair key => X509 -> key -> [X509] -> BIO -> [Pkcs7Flag] -> IO Pkcs7
@@ -213,7 +212,7 @@ pkcs7Verify' pkcs7 certs store inData flagList
          outData    <- if isDetached then
                            return Nothing
                        else
-                           newMem >>= return . Just
+                           fmap Just newMem
          withBioPtr' outData $ \ outDataPtr ->
              _verify pkcs7Ptr certStack storePtr inDataPtr outDataPtr (flagListToInt flagList)
                   >>= interpret outData
@@ -416,6 +415,6 @@ readSmime' inBio
          outBio    <- if outBioPtr == nullPtr then
                           return Nothing
                       else
-                          wrapBioPtr outBioPtr >>= return . Just
+                          fmap Just (wrapBioPtr outBioPtr)
 
          return (pkcs7, outBio)

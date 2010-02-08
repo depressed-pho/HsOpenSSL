@@ -54,7 +54,8 @@ encodeBlock inBS
     = unsafePerformIO $
       unsafeUseAsCStringLen inBS $ \ (inBuf, inLen) ->
       createAndTrim maxOutLen $ \ outBuf ->
-      _EncodeBlock (castPtr outBuf) inBuf (fromIntegral inLen) >>= return . fromIntegral
+      fmap fromIntegral
+           (_EncodeBlock (castPtr outBuf) inBuf (fromIntegral inLen))
     where
       maxOutLen = (inputLen `div` 3 + 1) * 4 + 1 -- +1: '\0'
       inputLen  = B8.length inBS

@@ -154,7 +154,7 @@ newCRL = _new >>= wrapCRL
 
 
 wrapCRL :: Ptr X509_CRL -> IO CRL
-wrapCRL crlPtr = newForeignPtr _free crlPtr >>= return . CRL
+wrapCRL = fmap CRL . newForeignPtr _free
 
 
 withCRLPtr :: CRL -> (Ptr X509_CRL -> IO a) -> IO a
@@ -278,8 +278,7 @@ setIssuerName crl issuer
 getRevokedList :: CRL -> IO [RevokedCertificate]
 getRevokedList crl
     = withCRLPtr crl $ \ crlPtr ->
-      do stRevoked <- _get_REVOKED crlPtr
-         mapStack peekRevoked stRevoked
+      (_get_REVOKED crlPtr >>= mapStack peekRevoked)
     where
       peekRevoked :: Ptr X509_REVOKED -> IO RevokedCertificate
       peekRevoked rev
@@ -294,11 +293,11 @@ newRevoked :: RevokedCertificate -> IO (Ptr X509_REVOKED)
 newRevoked revoked
     = do revPtr  <- _new_revoked
 
-         seriRet <- withASN1Integer (revSerialNumber revoked) $ \ serialPtr ->
-                    _set_serialNumber revPtr serialPtr
+         seriRet <- withASN1Integer (revSerialNumber revoked) $
+                    _set_serialNumber revPtr
 
-         dateRet <- withASN1Time (revRevocationDate revoked) $ \ datePtr ->
-                    _set_revocationDate revPtr datePtr
+         dateRet <- withASN1Time (revRevocationDate revoked) $
+                    _set_revocationDate revPtr
 
          if seriRet /= 1 || dateRet /= 1 then
              freeRevoked revPtr >> raiseOpenSSLError

@@ -156,7 +156,7 @@ newX509 = _new >>= failIfNull >>= wrapX509
 
 
 wrapX509 :: Ptr X509_ -> IO X509
-wrapX509 x509Ptr = newForeignPtr _free x509Ptr >>= return . X509
+wrapX509 = fmap X509 . newForeignPtr _free
 
 
 withX509Ptr :: X509 -> (Ptr X509_ -> IO a) -> IO a
@@ -179,7 +179,7 @@ compareX509 :: X509 -> X509 -> IO Ordering
 compareX509 cert1 cert2
     = withX509Ptr cert1 $ \ cert1Ptr ->
       withX509Ptr cert2 $ \ cert2Ptr ->
-      _cmp cert1Ptr cert2Ptr >>= return . interpret
+      fmap interpret (_cmp cert1Ptr cert2Ptr)
     where
       interpret :: CInt -> Ordering
       interpret n
@@ -350,11 +350,11 @@ setNotAfter x509 utc
 getPublicKey :: X509 -> IO SomePublicKey
 getPublicKey x509
     = withX509Ptr x509 $ \ x509Ptr ->
-      _get_pubkey x509Ptr
-           >>= failIfNull
-           >>= wrapPKeyPtr
-           >>= fromPKey
-           >>= return . fromJust
+      fmap fromJust ( _get_pubkey x509Ptr
+                      >>= failIfNull
+                      >>= wrapPKeyPtr
+                      >>= fromPKey
+                    )
 
 -- |@'setPublicKey' cert pubkey@ updates the public key of the subject
 -- of certificate.

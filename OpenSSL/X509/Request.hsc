@@ -100,7 +100,7 @@ newX509Req = _new >>= wrapX509Req
 
 
 wrapX509Req :: Ptr X509_REQ -> IO X509Req
-wrapX509Req reqPtr = newForeignPtr _free reqPtr >>= return . X509Req
+wrapX509Req = fmap X509Req . newForeignPtr _free
 
 
 withX509ReqPtr :: X509Req -> (Ptr X509_REQ -> IO a) -> IO a
@@ -194,11 +194,12 @@ setSubjectName req subject
 getPublicKey :: X509Req -> IO SomePublicKey
 getPublicKey req
     = withX509ReqPtr req $ \ reqPtr ->
-      _get_pubkey reqPtr
-           >>= failIfNull
-           >>= wrapPKeyPtr
-           >>= fromPKey
-           >>= return . fromJust
+      fmap fromJust
+           ( _get_pubkey reqPtr
+             >>= failIfNull
+             >>= wrapPKeyPtr
+             >>= fromPKey
+           )
 
 -- |@'setPublicKey' req@ updates the public key of the subject of
 -- certificate request.

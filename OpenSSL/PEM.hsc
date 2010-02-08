@@ -200,8 +200,8 @@ readPrivateKey' bio supply
                           -> withCString "" $ \ strPtr ->
                              _read_bio_PrivateKey bioPtr nullPtr nullFunPtr (castPtr strPtr)
                       PwStr passStr
-                          -> withCString passStr $ \passPtr ->
-                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr passPtr
+                          -> withCString passStr $
+                             _read_bio_PrivateKey bioPtr nullPtr nullFunPtr
                       PwBS passStr
                           -> withBS passStr $ \(passPtr,_) ->
                              _read_bio_PrivateKey bioPtr nullPtr nullFunPtr passPtr
@@ -211,7 +211,7 @@ readPrivateKey' bio supply
                       PwTTY
                           -> _read_bio_PrivateKey bioPtr nullPtr nullFunPtr nullPtr 
          failIfNull_ pkeyPtr
-         wrapPKeyPtr pkeyPtr >>= fromPKey >>= return . fromJust
+         fmap fromJust (wrapPKeyPtr pkeyPtr >>= fromPKey)
 
 -- |@'readPrivateKey' pem supply@ reads a private key in PEM string.
 readPrivateKey :: String -> PemPasswordSupply -> IO SomeKeyPair
@@ -252,11 +252,12 @@ readPublicKey' :: BIO -> IO SomePublicKey
 readPublicKey' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (castPtr passPtr)
-           >>= failIfNull
-           >>= wrapPKeyPtr
-           >>= fromPKey
-           >>= return . fromJust
+      fmap fromJust
+           ( _read_bio_PUBKEY bioPtr nullPtr nullFunPtr (castPtr passPtr)
+             >>= failIfNull
+             >>= wrapPKeyPtr
+             >>= fromPKey
+           )
 
 -- |@'readPublicKey' pem@ reads a public key in PEM string.
 readPublicKey :: String -> IO SomePublicKey

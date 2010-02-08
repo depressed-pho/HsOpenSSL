@@ -109,8 +109,7 @@ foreign import ccall unsafe "HsOpenSSL_EVP_CIPHER_CTX_block_size"
 
 newCtx :: IO CipherCtx
 newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_CIPHER_CTX)
-            withForeignPtr ctx $ \ ctxPtr ->
-                _ctx_init ctxPtr
+            withForeignPtr ctx _ctx_init
             addForeignPtrFinalizer _ctx_cleanup ctx
             return $ CipherCtx ctx
 
@@ -157,11 +156,11 @@ cipherStrictLBS :: Cipher         -- ^ Cipher
                 -> CryptoMode     -- ^ Encrypt\/Decrypt
                 -> L8.ByteString  -- ^ Input
                 -> IO L8.ByteString
-cipherStrictLBS (Cipher c) key iv mode input = do
-  allocaBytes (#size EVP_CIPHER_CTX) $ \cptr -> do
-  bracket_ (_ctx_init cptr) (_ctx_cleanup' cptr) $ do
-  unsafeUseAsCStringLen key $ \(keyp,_) -> do
-  unsafeUseAsCStringLen iv  $ \(ivp, _)  -> do
+cipherStrictLBS (Cipher c) key iv mode input =
+  allocaBytes (#size EVP_CIPHER_CTX) $ \cptr ->
+  bracket_ (_ctx_init cptr) (_ctx_cleanup' cptr) $
+  unsafeUseAsCStringLen key $ \(keyp,_) ->
+  unsafeUseAsCStringLen iv  $ \(ivp, _) -> do
   failIf_ (/= 1) =<< _CipherInit cptr c keyp ivp (cryptoModeToInt mode)
   cc <- fmap CipherCtx (newForeignPtr_ cptr)
   rr <- cipherUpdateBS cc `mapM` L8.toChunks input

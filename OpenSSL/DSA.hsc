@@ -62,7 +62,7 @@ class DSAKey k where
     dsaSize dsa
         = unsafePerformIO $
           withDSAPtr dsa $ \ dsaPtr ->
-              _size dsaPtr >>= return . fromIntegral
+              fmap fromIntegral (_size dsaPtr)
 
     -- |Return the public prime number of the key.
     dsaP :: k -> Integer
@@ -89,7 +89,7 @@ class DSAKey k where
 instance DSAKey DSAPubKey where
     withDSAPtr (DSAPubKey fp) = withForeignPtr fp
     peekDSAPtr dsaPtr         = _pubDup dsaPtr >>= absorbDSAPtr
-    absorbDSAPtr dsaPtr       = newForeignPtr _free dsaPtr >>= return . Just . DSAPubKey
+    absorbDSAPtr dsaPtr       = fmap (Just . DSAPubKey) (newForeignPtr _free dsaPtr)
 
 
 instance DSAKey DSAKeyPair where
@@ -103,14 +103,14 @@ instance DSAKey DSAKeyPair where
     absorbDSAPtr dsaPtr
         = do hasP <- hasDSAPrivateKey dsaPtr
              if hasP then
-                 newForeignPtr _free dsaPtr >>= return . Just . DSAKeyPair
+                 fmap (Just . DSAKeyPair) (newForeignPtr _free dsaPtr)
                else
                  return Nothing
 
 
 hasDSAPrivateKey :: Ptr DSA -> IO Bool
 hasDSAPrivateKey dsaPtr
-    = (#peek DSA, priv_key) dsaPtr >>= return . (/= nullPtr)
+    = fmap (/= nullPtr) ((#peek DSA, priv_key) dsaPtr)
 
 
 foreign import ccall unsafe "&DSA_free"
@@ -162,8 +162,8 @@ generateDSAParameters :: Int  -- ^ The number of bits in the generated prime: 51
                       -> IO (Int, Int, Integer, Integer, Integer)  -- ^ (iteration count, generator count, p, q, g)
 generateDSAParameters nbits mseed = do
   when (nbits < 512 || nbits > 1024) $ fail "Invalid DSA bit size"
-  alloca (\i1 -> do
-    alloca (\i2 -> do
+  alloca (\i1 ->
+    alloca (\i2 ->
       (\x -> case mseed of
                   Nothing -> x (nullPtr, 0)
                   Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
@@ -204,11 +204,11 @@ generateDSAKey :: Integer  -- ^ p
                -> IO DSAKeyPair
 generateDSAKey p q g = do
   ptr <- _dsa_new
-  newBN p >>= return . unwrapBN >>= (#poke DSA, p) ptr
-  newBN q >>= return . unwrapBN >>= (#poke DSA, q) ptr
-  newBN g >>= return . unwrapBN >>= (#poke DSA, g) ptr
+  fmap unwrapBN (newBN p) >>= (#poke DSA, p) ptr
+  fmap unwrapBN (newBN q) >>= (#poke DSA, q) ptr
+  fmap unwrapBN (newBN g) >>= (#poke DSA, g) ptr
   _dsa_generate_key ptr
-  newForeignPtr _free ptr >>= return . DSAKeyPair
+  fmap DSAKeyPair (newForeignPtr _free ptr)
 
 -- |Return the private key @x@.
 dsaPrivate :: DSAKeyPair -> Integer
@@ -242,47 +242,47 @@ dsaKeyPairToTuple dsa
 tupleToDSAPubKey :: (Integer, Integer, Integer, Integer) -> DSAPubKey
 tupleToDSAPubKey (p, q, g, pub) = unsafePerformIO $ do
   ptr <- _dsa_new
-  newBN p   >>= return . unwrapBN >>= (#poke DSA, p) ptr
-  newBN q   >>= return . unwrapBN >>= (#poke DSA, q) ptr
-  newBN g   >>= return . unwrapBN >>= (#poke DSA, g) ptr
-  newBN pub >>= return . unwrapBN >>= (#poke DSA, pub_key) ptr
+  fmap unwrapBN (newBN p  ) >>= (#poke DSA, p) ptr
+  fmap unwrapBN (newBN q  ) >>= (#poke DSA, q) ptr
+  fmap unwrapBN (newBN g  ) >>= (#poke DSA, g) ptr
+  fmap unwrapBN (newBN pub) >>= (#poke DSA, pub_key) ptr
   (#poke DSA, priv_key) ptr nullPtr
-  newForeignPtr _free ptr >>= return . DSAPubKey
+  fmap DSAPubKey (newForeignPtr _free ptr)
 
 -- | Convert a tuple of members (in the same format as from
 --   'dsaPubKeyToTuple') into a DSAPubKey object
 tupleToDSAKeyPair :: (Integer, Integer, Integer, Integer, Integer) -> DSAKeyPair
 tupleToDSAKeyPair (p, q, g, pub, pri) = unsafePerformIO $ do
   ptr <- _dsa_new
-  newBN p   >>= return . unwrapBN >>= (#poke DSA, p) ptr
-  newBN q   >>= return . unwrapBN >>= (#poke DSA, q) ptr
-  newBN g   >>= return . unwrapBN >>= (#poke DSA, g) ptr
-  newBN pub >>= return . unwrapBN >>= (#poke DSA, pub_key ) ptr
-  newBN pri >>= return . unwrapBN >>= (#poke DSA, priv_key) ptr
-  newForeignPtr _free ptr >>= return . DSAKeyPair
+  fmap unwrapBN (newBN p  ) >>= (#poke DSA, p) ptr
+  fmap unwrapBN (newBN q  ) >>= (#poke DSA, q) ptr
+  fmap unwrapBN (newBN g  ) >>= (#poke DSA, g) ptr
+  fmap unwrapBN (newBN pub) >>= (#poke DSA, pub_key ) ptr
+  fmap unwrapBN (newBN pri) >>= (#poke DSA, priv_key) ptr
+  fmap DSAKeyPair (newForeignPtr _free ptr)
 
 -- | A utility function to generate both the parameters and the key pair at the
 --   same time. Saves serialising and deserialising the parameters too
 generateDSAParametersAndKey :: Int  -- ^ The number of bits in the generated prime: 512 <= x <= 1024
                             -> Maybe BS.ByteString  -- ^ optional seed, its length must be 20 bytes
                             -> IO DSAKeyPair
-generateDSAParametersAndKey nbits mseed = do
+generateDSAParametersAndKey nbits mseed =
   (\x -> case mseed of
               Nothing -> x (nullPtr, 0)
               Just seed -> BS.useAsCStringLen seed x) (\(seedptr, seedlen) -> do
     ptr <- _generate_params (fromIntegral nbits) seedptr (fromIntegral seedlen) nullPtr nullPtr nullPtr nullPtr
     failIfNull_ ptr
     _dsa_generate_key ptr
-    newForeignPtr _free ptr >>= return . DSAKeyPair)
+    fmap DSAKeyPair (newForeignPtr _free ptr))
 
 -- | Sign pre-digested data. The DSA specs call for SHA1 to be used so, if you
 --   use anything else, YMMV. Returns a pair of Integers which, together, are
 --   the signature
 signDigestedDataWithDSA :: DSAKeyPair -> BS.ByteString -> IO (Integer, Integer)
-signDigestedDataWithDSA dsa bytes = do
-  BS.useAsCStringLen bytes (\(ptr, len) -> do
-    alloca (\rptr -> do
-      alloca (\sptr -> do
+signDigestedDataWithDSA dsa bytes =
+  BS.useAsCStringLen bytes (\(ptr, len) ->
+    alloca (\rptr ->
+      alloca (\sptr ->
         withDSAPtr dsa (\dsaptr -> do
           _dsa_sign dsaptr ptr (fromIntegral len) rptr sptr >>= failIf_ (== 0)
           r <- peek rptr >>= peekBN . wrapBN
@@ -293,12 +293,13 @@ signDigestedDataWithDSA dsa bytes = do
 
 -- | Verify pre-digested data given a signature.
 verifyDigestedDataWithDSA :: DSAKey k => k -> BS.ByteString -> (Integer, Integer) -> IO Bool
-verifyDigestedDataWithDSA dsa bytes (r, s) = do
-  BS.useAsCStringLen bytes (\(ptr, len) -> do
-    withBN r (\bnR -> do
-      withBN s (\bnS -> do
-        withDSAPtr dsa (\dsaptr -> do
-          _dsa_verify dsaptr ptr (fromIntegral len) (unwrapBN bnR) (unwrapBN bnS) >>= return . (== 1)))))
+verifyDigestedDataWithDSA dsa bytes (r, s) =
+  BS.useAsCStringLen bytes (\(ptr, len) ->
+    withBN r (\bnR ->
+      withBN s (\bnS ->
+        withDSAPtr dsa (\dsaptr ->
+          fmap (== 1)
+               (_dsa_verify dsaptr ptr (fromIntegral len) (unwrapBN bnR) (unwrapBN bnS))))))
 
 
 instance Eq DSAPubKey where

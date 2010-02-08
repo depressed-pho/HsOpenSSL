@@ -33,7 +33,7 @@ foreign import ccall unsafe "sk_value"
 mapStack :: (Ptr a -> IO b) -> Ptr STACK -> IO [b]
 mapStack m st
     = do num <- skNum st
-         mapM (\ i -> skValue st i >>= return . castPtr >>= m)
+         mapM (\ i -> fmap castPtr (skValue st i) >>= m)
                   $ take (fromIntegral num) [0..]
 
 
@@ -45,8 +45,8 @@ newStack values
 
 
 withStack :: [Ptr a] -> (Ptr STACK -> IO b) -> IO b
-withStack values f
-    = bracket (newStack values) skFree f
+withStack values
+    = bracket (newStack values) skFree
 
 
 withForeignStack :: (fp -> Ptr obj)

@@ -52,8 +52,7 @@ iterateObjNames nameType wantSorted cb
 
 objNameStr :: ObjName -> IO String
 objNameStr name
-    = do strPtr <- (#peek OBJ_NAME, name) name
-         peekCString strPtr
+    = (#peek OBJ_NAME, name) name >>= peekCString
 
 
 getObjNames :: ObjNameType -> Bool -> IO [String]

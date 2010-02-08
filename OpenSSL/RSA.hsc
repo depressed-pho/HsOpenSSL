@@ -59,7 +59,7 @@ class RSAKey k where
     rsaSize rsa
         = unsafePerformIO $
           withRSAPtr rsa $ \ rsaPtr ->
-              _size rsaPtr >>= return . fromIntegral
+              fmap fromIntegral (_size rsaPtr)
 
     -- |@'rsaN' key@ returns the public modulus of the key.
     rsaN :: k -> Integer
@@ -78,7 +78,7 @@ class RSAKey k where
 instance RSAKey RSAPubKey where
     withRSAPtr (RSAPubKey fp) = withForeignPtr fp
     peekRSAPtr rsaPtr         = _pubDup rsaPtr >>= absorbRSAPtr
-    absorbRSAPtr rsaPtr       = newForeignPtr _free rsaPtr >>= return . Just . RSAPubKey
+    absorbRSAPtr rsaPtr       = fmap (Just . RSAPubKey) (newForeignPtr _free rsaPtr)
 
 
 instance RSAKey RSAKeyPair where
@@ -92,7 +92,7 @@ instance RSAKey RSAKeyPair where
     absorbRSAPtr rsaPtr
         = do hasP <- hasRSAPrivateKey rsaPtr
              if hasP then
-                 newForeignPtr _free rsaPtr >>= return . Just . RSAKeyPair
+                 fmap (Just . RSAKeyPair) (newForeignPtr _free rsaPtr)
                else
                  return Nothing
 
@@ -167,7 +167,7 @@ generateRSAKey :: Int    -- ^ The number of bits of the public modulus
 generateRSAKey nbits e Nothing
     = do ptr <- _generate_key (fromIntegral nbits) (fromIntegral e) nullFunPtr nullPtr
          failIfNull_ ptr
-         newForeignPtr _free ptr >>= return . RSAKeyPair
+         fmap RSAKeyPair (newForeignPtr _free ptr)
 
 generateRSAKey nbits e (Just cb)
     = do cbPtr <- mkGenKeyCallback
@@ -175,7 +175,7 @@ generateRSAKey nbits e (Just cb)
          ptr   <- _generate_key (fromIntegral nbits) (fromIntegral e) cbPtr nullPtr
          freeHaskellFunPtr cbPtr
          failIfNull_ ptr
-         newForeignPtr _free ptr >>= return . RSAKeyPair
+         fmap RSAKeyPair (newForeignPtr _free ptr)
 
 -- |A simplified alternative to 'generateRSAKey'
 generateRSAKey' :: Int   -- ^ The number of bits of the public modulus
@@ -206,7 +206,7 @@ peekMI peeker rsa
          if bn == nullPtr then
              return Nothing
            else
-             peekBN (wrapBN bn) >>= return . Just
+             fmap Just (peekBN (wrapBN bn))
 
 -- |@'rsaD' privKey@ returns the private exponent of the key.
 rsaD :: RSAKeyPair -> Integer

@@ -21,11 +21,11 @@ foreign import ccall unsafe "ERR_error_string"
 
 
 getError :: IO Integer
-getError = _get_error >>= return . fromIntegral
+getError = fmap fromIntegral _get_error
 
 
 peekError :: IO Integer
-peekError = _peek_error >>= return . fromIntegral
+peekError = fmap fromIntegral _peek_error
 
 
 errorString :: Integer -> IO String

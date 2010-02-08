@@ -20,7 +20,7 @@ module OpenSSL.Cipher
     , aesCTR)
     where
 
-import           Control.Monad (when)
+import           Control.Monad (when, unless)
 import           Data.IORef
 import           Foreign
 import           Foreign.C.Types
@@ -69,7 +69,7 @@ newAESCtx :: Mode  -- ^ For CTR mode, this must always be Encrypt
           -> IO AESCtx
 newAESCtx mode key iv = do
   let keyLen = BS.length key * 8
-  when (not $ any ((==) keyLen) [128, 192, 256]) $ fail "Bad AES key length"
+  unless (any (keyLen ==) [128, 192, 256]) $ fail "Bad AES key length"
   when (BS.length iv /= 16) $ fail "Bad AES128 iv length"
   ctx <- mallocForeignPtrBytes (#size AES_KEY)
   withForeignPtr ctx $ \ctxPtr ->
@@ -105,7 +105,7 @@ aesCTR :: AESCtx  -- ^ context
        -> BS.ByteString  -- ^ input, any number of bytes
        -> IO BS.ByteString
 aesCTR (AESCtx _   _  _        _    Decrypt) _     = fail "the context mode must be Encrypt"
-aesCTR (AESCtx ctx iv ecounter nref Encrypt) input = do
+aesCTR (AESCtx ctx iv ecounter nref Encrypt) input =
   withForeignPtr ctx $ \ctxPtr ->
     withForeignPtr iv $ \ivPtr ->
     withForeignPtr ecounter $ \ecptr ->

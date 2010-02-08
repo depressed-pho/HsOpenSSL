@@ -71,7 +71,7 @@ toHex = reverse . map hexByte . unfoldr step where
 -- | Convert a hex string to an integer
 fromHex :: (Bits i) => String -> i
 fromHex = foldl step 0 where
-  step acc hexchar = (acc `shiftL` 4) .|. (byteHex hexchar)
+  step acc hexchar = (acc `shiftL` 4) .|. byteHex hexchar
 
   byteHex '0' = 0
   byteHex '1' = 1

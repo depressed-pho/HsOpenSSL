@@ -183,8 +183,8 @@ foreign import ccall unsafe "&EVP_PKEY_free"
 
 
 wrapPKeyPtr :: Ptr EVP_PKEY -> IO VaguePKey
-wrapPKeyPtr ptr
-    = newForeignPtr _pkey_free ptr >>= return . VaguePKey
+wrapPKeyPtr
+    = fmap VaguePKey . newForeignPtr _pkey_free
 
 
 withPKeyPtr' :: PKey k => k -> (Ptr EVP_PKEY -> IO a) -> IO a
@@ -226,9 +226,7 @@ rsaFromPKey pk
           do pkeyType <- (#peek EVP_PKEY, type) pkeyPtr :: IO CInt
              case pkeyType of
                (#const EVP_PKEY_RSA)
-                   -> do rsaPtr <- _get1_RSA pkeyPtr
-                         rsaM   <- absorbRSAPtr rsaPtr
-                         return rsaM
+                   -> _get1_RSA pkeyPtr >>= absorbRSAPtr
                _   -> return Nothing
 
 instance PublicKey RSAPubKey
@@ -268,9 +266,7 @@ dsaFromPKey pk
           do pkeyType <- (#peek EVP_PKEY, type) pkeyPtr :: IO CInt
              case pkeyType of
                (#const EVP_PKEY_DSA)
-                   -> do dsaPtr <- _get1_DSA pkeyPtr
-                         dsaM   <- absorbDSAPtr dsaPtr
-                         return dsaM
+                   -> _get1_DSA pkeyPtr >>= absorbDSAPtr
                _   -> return Nothing
 
 instance PublicKey DSAPubKey

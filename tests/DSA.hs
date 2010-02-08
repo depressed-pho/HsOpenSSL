@@ -1,7 +1,7 @@
 module Main where
 
+import Control.Monad
 import System.Time
-
 import OpenSSL.DSA
 import qualified Data.ByteString as BS
 
@@ -35,7 +35,7 @@ test_signVerifySpeed = do
         return ()
 
   starttime <- getClockTime
-  sequence_ $ take 2000 $ repeat test
+  replicateM_ 2000 test
   endtime <- getClockTime
   print $ diffClockTimes endtime starttime
 

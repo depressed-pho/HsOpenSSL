@@ -90,8 +90,8 @@ peekASN1Integer intPtr
 
 
 allocaASN1Integer :: (Ptr ASN1_INTEGER -> IO a) -> IO a
-allocaASN1Integer m
-    = bracket _ASN1_INTEGER_new _ASN1_INTEGER_free m
+allocaASN1Integer
+    = bracket _ASN1_INTEGER_new _ASN1_INTEGER_free
 
 
 withASN1Integer :: Integer -> (Ptr ASN1_INTEGER -> IO a) -> IO a
@@ -149,13 +149,13 @@ peekASN1Time time
 
 
 allocaASN1Time :: (Ptr ASN1_TIME -> IO a) -> IO a
-allocaASN1Time m
-    = bracket _ASN1_TIME_new _ASN1_TIME_free m
+allocaASN1Time
+    = bracket _ASN1_TIME_new _ASN1_TIME_free
 
 
 withASN1Time :: UTCTime -> (Ptr ASN1_TIME -> IO a) -> IO a
 withASN1Time utc m
     = allocaASN1Time $ \ time ->
-      do _ASN1_TIME_set time (fromIntegral $ (round $ utcTimeToPOSIXSeconds utc :: Integer))
+      do _ASN1_TIME_set time (fromIntegral (round $ utcTimeToPOSIXSeconds utc :: Integer))
               >>= failIfNull_
          m time

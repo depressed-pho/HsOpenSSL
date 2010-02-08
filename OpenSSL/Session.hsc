@@ -41,6 +41,7 @@ import Prelude hiding (read, ioError)
 import Control.Concurrent (threadWaitWrite, threadWaitRead)
 import Control.Concurrent.QSem
 import Control.Exception (finally)
+import Control.Monad
 import Foreign
 import Foreign.C
 import qualified Data.ByteString as B
@@ -101,9 +102,8 @@ contextLoadFile f context path =
   withContext context $ \ctx ->
     withCString path $ \cpath -> do
       result <- f ctx cpath (#const SSL_FILETYPE_PEM)
-      if result == 1
-         then return ()
-         else f ctx cpath (#const SSL_FILETYPE_ASN1) >>= failIf (/= 1) >> return ()
+      unless (result == 1)
+          $ f ctx cpath (#const SSL_FILETYPE_ASN1) >>= failIf_ (/= 1)
 
 foreign import ccall unsafe "SSL_CTX_use_PrivateKey"
     _ssl_ctx_use_privatekey :: Ptr SSLContext_ -> Ptr EVP_PKEY -> IO CInt
@@ -116,8 +116,7 @@ contextSetPrivateKey context key
     = withContext context $ \ ctx    ->
       withPKeyPtr' key    $ \ keyPtr ->
           _ssl_ctx_use_privatekey ctx keyPtr
-               >>= failIf (/= 1)
-               >>  return ()
+               >>= failIf_ (/= 1)
 
 -- | Install a certificate (public key) into a context.
 contextSetCertificate :: SSLContext -> X509 -> IO ()
@@ -125,8 +124,7 @@ contextSetCertificate context cert
     = withContext context $ \ ctx     ->
       withX509Ptr cert    $ \ certPtr ->
           _ssl_ctx_use_certificate ctx certPtr
-               >>= failIf (/= 1)
-               >>  return ()
+               >>= failIf_ (/= 1)
 
 foreign import ccall unsafe "SSL_CTX_use_PrivateKey_file"
    _ssl_ctx_use_privatekey_file :: Ptr SSLContext_ -> CString -> CInt -> IO CInt
@@ -158,7 +156,7 @@ contextSetCiphers :: SSLContext -> String -> IO ()
 contextSetCiphers context list =
   withContext context $ \ctx ->
     withCString list $ \cpath ->
-      _ssl_ctx_set_cipher_list ctx cpath >>= failIf (/= 1) >> return ()
+      _ssl_ctx_set_cipher_list ctx cpath >>= failIf_ (/= 1)
 
 contextSetDefaultCiphers :: SSLContext -> IO ()
 contextSetDefaultCiphers = flip contextSetCiphers "DEFAULT"
@@ -171,7 +169,7 @@ foreign import ccall unsafe "SSL_CTX_check_private_key"
 contextCheckPrivateKey :: SSLContext -> IO Bool
 contextCheckPrivateKey context =
   withContext context $ \ctx ->
-    _ssl_ctx_check_private_key ctx >>= return . (==) 1
+    fmap (== 1) (_ssl_ctx_check_private_key ctx)
 
 -- | See <http://www.openssl.org/docs/ssl/SSL_CTX_set_verify.html>
 data VerificationMode = VerifyNone
@@ -184,7 +182,7 @@ foreign import ccall unsafe "SSL_CTX_set_verify"
    _ssl_set_verify_mode :: Ptr SSLContext_ -> CInt -> Ptr () -> IO ()
 
 contextSetVerificationMode :: SSLContext -> VerificationMode -> IO ()
-contextSetVerificationMode context VerifyNone = do
+contextSetVerificationMode context VerifyNone =
   withContext context $ \ctx ->
     _ssl_set_verify_mode ctx (#const SSL_VERIFY_NONE) nullPtr >> return ()
 
@@ -201,7 +199,7 @@ foreign import ccall unsafe "SSL_CTX_load_verify_locations"
 -- | Set the location of a PEM encoded list of CA certificates to be used when
 --   verifying a server's certificate
 contextSetCAFile :: SSLContext -> FilePath -> IO ()
-contextSetCAFile context path = do
+contextSetCAFile context path =
   withContext context $ \ctx ->
     withCString path $ \cpath ->
         _ssl_load_verify_locations ctx cpath nullPtr >>= failIf_ (/= 1)
@@ -211,7 +209,7 @@ contextSetCAFile context path = do
 --   <http://www.openssl.org/docs/ssl/SSL_CTX_load_verify_locations.html> for
 --   details of the file naming scheme
 contextSetCADirectory :: SSLContext -> FilePath -> IO ()
-contextSetCADirectory context path = do
+contextSetCADirectory context path =
   withContext context $ \ctx ->
     withCString path $ \cpath ->
         _ssl_load_verify_locations ctx nullPtr cpath >>= failIf_ (/= 1)
@@ -312,11 +310,11 @@ sslDoHandshake action ssl@(SSL (_, _, fd, _)) = do
 
 -- | Perform an SSL server handshake
 accept :: SSL -> IO ()
-accept ssl = sslDoHandshake _ssl_accept ssl >>= failIf (/= 1) >> return ()
+accept ssl = sslDoHandshake _ssl_accept ssl >>= failIf_ (/= 1)
 
 -- | Perform an SSL client handshake
 connect :: SSL -> IO ()
-connect ssl = sslDoHandshake _ssl_connect ssl >>= failIf (/= 1) >> return ()
+connect ssl = sslDoHandshake _ssl_connect ssl >>= failIf_ (/= 1)
 
 foreign import ccall "SSL_read" _ssl_read :: Ptr SSL_ -> Ptr Word8 -> CInt -> IO CInt
 foreign import ccall unsafe "SSL_get_shutdown" _ssl_get_shutdown :: Ptr SSL_ -> IO CInt
@@ -386,7 +384,7 @@ write ssl@(SSL (_, _, fd, _)) bs = B.unsafeUseAsCStringLen bs $ f ssl where
 -- | Lazily read all data until reaching EOF. If the connection dies
 --   without a graceful SSL shutdown, an exception is raised.
 lazyRead :: SSL -> IO L.ByteString
-lazyRead ssl = lazyRead' >>= return . L.fromChunks
+lazyRead ssl = fmap L.fromChunks lazyRead'
     where
       chunkSize = L.defaultChunkSize
 
@@ -424,10 +422,8 @@ shutdown ssl ty = do
   n <- sslDoHandshake _ssl_shutdown ssl
   case ty of
        Unidirectional -> return ()
-       Bidirectional -> do
-         if n == 1
-            then return ()
-            else shutdown ssl ty
+       Bidirectional  -> unless (n == 1)
+                             $ shutdown ssl ty
 
 foreign import ccall "SSL_get_peer_certificate" _ssl_get_peer_cert :: Ptr SSL_ -> IO (Ptr X509_)
 
@@ -440,7 +436,7 @@ getPeerCertificate ssl =
     cert <- _ssl_get_peer_cert ssl
     if cert == nullPtr
        then return Nothing
-       else wrapX509 cert >>= return . Just
+       else fmap Just (wrapX509 cert)
 
 foreign import ccall "SSL_get_verify_result" _ssl_get_verify_result :: Ptr SSL_ -> IO CLong
 
@@ -453,7 +449,7 @@ foreign import ccall "SSL_get_verify_result" _ssl_get_verify_result :: Ptr SSL_ 
 --   to a root CA. You also need to check that the certificate is correct (i.e.
 --   has the correct hostname in it) with getPeerCertificate.
 getVerifyResult :: SSL -> IO Bool
-getVerifyResult ssl = do
+getVerifyResult ssl =
   withSSL ssl $ \ssl -> do
     r <- _ssl_get_verify_result ssl
     return $ r == (#const X509_V_OK)

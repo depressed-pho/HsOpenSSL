@@ -1,7 +1,7 @@
 -- | Tests for the non-EVP ciphers
 module Main where
 
-import           Control.Monad (when)
+import           Control.Monad (unless)
 import qualified Data.ByteString as BS
 
 import           OpenSSL.Cipher
@@ -83,9 +83,9 @@ runCtrTest (CTRTest key iv plaintext ciphertext) = do
   return (ct == ciphertext)
 
 runCtrTests :: IO Bool
-runCtrTests = mapM runCtrTest ctrTests >>= return . all ((==) True)
+runCtrTests = fmap (all (== True)) (mapM runCtrTest ctrTests)
 
 main = do
   r <- runCtrTests
-  when (r == False) $ fail "CTR tests failed"
+  unless r $ fail "CTR tests failed"
   putStrLn "PASS"
