@@ -5,17 +5,17 @@ Description:
         can generate RSA and DSA keys, read and write PEM files,
         generate message digests, sign and verify messages, encrypt
         and decrypt messages.
-Version: 0.8
+Version: 0.8.0.1
 License: PublicDomain
 License-File: COPYING
 Author: Adam Langley <agl at imperialviolet dot org>,
         PHO <pho at cielonegro dot org>,
         Taru Karttunen <taruti at taruti dot net>
 Maintainer: PHO <pho at cielonegro dot org>
-Stability: experimental
+Stability: stable
 Homepage: http://cielonegro.org/HsOpenSSL.html
 Category: Cryptography
-Tested-With: GHC == 6.10.1
+Tested-With: GHC == 6.12.3
 Cabal-Version: >= 1.6
 Build-Type: Simple
 Extra-Source-Files:
@@ -45,7 +45,7 @@ Library
       Build-Depends:      integer
 
   if os(mingw32)
-      Extra-Libraries: eay32
+      Extra-Libraries: eay32 ssl2
       C-Sources:          cbits/mutex-win.c
       CC-Options:         -D MINGW32
       CPP-Options:        -DCALLCONV=stdcall

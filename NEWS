@@ -1,5 +1,12 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.8 to 0.8.0.1
+---------------------------
+* Fix Windows support as suggested in this page:
+  http://hackage.haskell.org/trac/ghc/wiki/Builder
+  (Thanks Edward Z. Yang for notifying me.)
+
+
 Changes from 0.7 to 0.8
 -----------------------
 * Applied 7 patches by Taru Karttunen:
