@@ -45,7 +45,7 @@ Library
       Build-Depends:      integer
 
   if os(mingw32)
-      Extra-Libraries: eay32 ssl2
+      Extra-Libraries: eay32 ssl32
       C-Sources:          cbits/mutex-win.c
       CC-Options:         -D MINGW32
       CPP-Options:        -DCALLCONV=stdcall
