@@ -1,7 +1,9 @@
 -*- coding: utf-8 -*-
 
-Changes from 0.8 to 0.8.0.1
+Changes from 0.8 to 0.8.0.2
 ---------------------------
+* 0.8.0.1 was broken so it's invalidated.
+
 * Fix Windows support as suggested in this page:
   http://hackage.haskell.org/trac/ghc/wiki/Builder
   (Thanks Edward Z. Yang for notifying me.)
