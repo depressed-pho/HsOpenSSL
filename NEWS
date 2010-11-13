@@ -1,5 +1,21 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.8.0.2 to 0.9
+---------------------------
+* (Suggested by Arthur Chan) Operations in OpenSSL.Session now throw
+  exceptions of individual exception types instead of plain
+  strings. The following exception types are defined:
+
+    - ConnectionCleanlyClosed
+    - ConnectionAbruptlyTerminated
+    - WantConnect
+    - WantAccept
+    - WantX509Lookup
+    - SSLIOError
+    - ProtocolError
+    - UnknownError(..)
+
+
 Changes from 0.8 to 0.8.0.2
 ---------------------------
 * 0.8.0.1 was broken so it's invalidated.

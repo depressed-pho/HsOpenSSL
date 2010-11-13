@@ -33,15 +33,27 @@ module OpenSSL.Session
   , getPeerCertificate
   , getVerifyResult
   , sslSocket
+
+    -- * SSL Exceptions
+  , SomeSSLException
+  , ConnectionCleanlyClosed
+  , ConnectionAbruptlyTerminated
+  , WantConnect
+  , WantAccept
+  , WantX509Lookup
+  , SSLIOError
+  , ProtocolError
+  , UnknownError(..)
   ) where
 
 #include "openssl/ssl.h"
 
-import Prelude hiding (read, ioError)
+import Prelude hiding (catch, read, ioError)
 import Control.Concurrent (threadWaitWrite, threadWaitRead)
 import Control.Concurrent.QSem
-import Control.Exception (finally)
+import Control.Exception
 import Control.Monad
+import Data.Typeable
 import Foreign
 import Foreign.C
 import qualified Data.ByteString as B
@@ -49,7 +61,7 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Internal as L
-import System.IO.Error (mkIOError, ioError, eofErrorType, isEOFError)
+import System.IO.Error (mkIOError, eofErrorType, isEOFError)
 import System.IO.Unsafe
 import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
@@ -268,15 +280,14 @@ foreign import ccall "SSL_accept" _ssl_accept :: Ptr SSL_ -> IO CInt
 foreign import ccall "SSL_connect" _ssl_connect :: Ptr SSL_ -> IO CInt
 foreign import ccall unsafe "SSL_get_error" _ssl_get_error :: Ptr SSL_ -> CInt -> IO CInt
 
-sslErrorToString :: CInt -> String
-sslErrorToString (#const SSL_ERROR_NONE) = "SSL: No error"
-sslErrorToString (#const SSL_ERROR_ZERO_RETURN) = "SSL: connection cleanly closed"
-sslErrorToString (#const SSL_ERROR_WANT_CONNECT) = "SSL: want connect"
-sslErrorToString (#const SSL_ERROR_WANT_ACCEPT) = "SSL: want accept"
-sslErrorToString (#const SSL_ERROR_WANT_X509_LOOKUP) = "SSL: want X509 lookup"
-sslErrorToString (#const SSL_ERROR_SYSCALL) = "SSL: syscall error"
-sslErrorToString (#const SSL_ERROR_SSL) = "SSL: ssl protocol error"
-sslErrorToString x = "SSL: unknown error " ++ show x
+throwSSLException :: CInt -> IO a
+throwSSLException (#const SSL_ERROR_ZERO_RETURN     ) = throw ConnectionCleanlyClosed
+throwSSLException (#const SSL_ERROR_WANT_CONNECT    ) = throw WantConnect
+throwSSLException (#const SSL_ERROR_WANT_ACCEPT     ) = throw WantAccept
+throwSSLException (#const SSL_ERROR_WANT_X509_LOOKUP) = throw WantX509Lookup
+throwSSLException (#const SSL_ERROR_SYSCALL         ) = throw SSLIOError
+throwSSLException (#const SSL_ERROR_SSL             ) = throw ProtocolError
+throwSSLException x = throw (UnknownError (fromIntegral x))
 
 -- | This is the type of an SSL IO operation. EOF and termination are handled
 --   by exceptions while everything else is one of these. Note that reading
@@ -301,7 +312,7 @@ sslDoHandshake action ssl@(SSL (_, _, fd, _)) = do
                case err of
                     (#const SSL_ERROR_WANT_READ) -> return WantRead
                     (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
-                    _ -> fail $ sslErrorToString err
+                    _ -> throwSSLException err
   result <- withSSL ssl f
   case result of
        Done n -> return n
@@ -340,14 +351,14 @@ sslIOInner f ptr nbytes ssl = do
          | n == 0 -> do
            shutdown <- _ssl_get_shutdown ssl
            if shutdown .&. (#const SSL_RECEIVED_SHUTDOWN) == 0
-              then fail "SSL connection abruptly terminated"
+              then throw ConnectionAbruptlyTerminated
               else ioError $ mkIOError eofErrorType  "" Nothing Nothing
        _ -> do
            err <- _ssl_get_error ssl n
            case err of
                 (#const SSL_ERROR_WANT_READ) -> return WantRead
                 (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
-                _ -> fail $ sslErrorToString err
+                _ -> throwSSLException err
 
 -- | Try the read the given number of bytes from an SSL connection. On EOF an
 --   empty ByteString is returned. If the connection dies without a graceful
@@ -457,3 +468,120 @@ getVerifyResult ssl =
 -- | Get the socket underlying an SSL connection
 sslSocket :: SSL -> Socket
 sslSocket (SSL (_, _, _, socket)) = socket
+
+
+-- | The root exception type for all SSL exceptions.
+data SomeSSLException
+    = forall e. Exception e => SomeSSLException e
+      deriving Typeable
+
+instance Show SomeSSLException where
+    show (SomeSSLException e) = show e
+
+instance Exception SomeSSLException
+
+sslExceptionToException :: Exception e => e -> SomeException
+sslExceptionToException = toException . SomeSSLException
+
+sslExceptionFromException :: Exception e => SomeException -> Maybe e
+sslExceptionFromException x
+    = do SomeSSLException a <- fromException x
+         cast a
+
+-- | The TLS\/SSL connection has been closed. If the protocol version
+-- is SSL 3.0 or TLS 1.0, this result code is returned only if a
+-- closure alert has occurred in the protocol, i.e. if the connection
+-- has been closed cleanly. Note that in this case
+-- 'ConnectionCleanlyClosed' does not necessarily indicate that the
+-- underlying transport has been closed.
+data ConnectionCleanlyClosed
+    = ConnectionCleanlyClosed
+      deriving (Typeable, Show, Eq)
+
+instance Exception ConnectionCleanlyClosed where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | The peer uncleanly terminated the connection without sending the
+-- \"close notify\" alert.
+data ConnectionAbruptlyTerminated
+    = ConnectionAbruptlyTerminated
+      deriving (Typeable, Show, Eq)
+
+instance Exception ConnectionAbruptlyTerminated where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | The operation did not complete; the same TLS\/SSL I\/O function
+-- should be called again later. The underlying socket was not
+-- connected yet to the peer and the call would block in
+-- 'connect'. The SSL function should be called again when the
+-- connection is established. This message can only appear with
+-- 'connect'.
+data WantConnect
+    = WantConnect
+      deriving (Typeable, Show, Eq)
+
+instance Exception WantConnect where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | The operation did not complete; the same TLS\/SSL I\/O function
+-- should be called again later. The underlying socket was not
+-- connected yet to the peer and the call would block in 'accept'. The
+-- SSL function should be called again when the connection is
+-- established. This message can only appear with 'accept'.
+data WantAccept
+    = WantAccept
+      deriving (Typeable, Show, Eq)
+
+instance Exception WantAccept where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | The operation did not complete because an application callback
+-- set by SSL_CTX_set_client_cert_cb() has asked to be called
+-- again. The TLS\/SSL I\/O function should be called again
+-- later. Details depend on the application.
+data WantX509Lookup
+    = WantX509Lookup
+      deriving (Typeable, Show, Eq)
+
+instance Exception WantX509Lookup where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | Some I\/O error occurred. The OpenSSL error queue may contain
+-- more information on the error. If the error queue is empty
+-- (i.e. ERR_get_error() returns 0), ret can be used to find out more
+-- about the error: If ret == 0, an EOF was observed that violates the
+-- protocol. If ret == -1, the underlying BIO reported an I\/O error
+-- (for socket I\/O on Unix systems, consult errno for details).
+data SSLIOError
+    = SSLIOError
+      deriving (Typeable, Show, Eq)
+
+instance Exception SSLIOError where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | A failure in the SSL library occurred, usually a protocol
+-- error. The OpenSSL error queue contains more information on the
+-- error.
+data ProtocolError
+    = ProtocolError
+      deriving (Typeable, Show, Eq)
+
+instance Exception ProtocolError where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
+
+-- | SSL_get_error() returned an error code which is unknown to this
+-- library.
+data UnknownError
+    = UnknownError !Int
+      deriving (Typeable, Show, Eq)
+
+instance Exception UnknownError where
+    toException   = sslExceptionToException
+    fromException = sslExceptionFromException
