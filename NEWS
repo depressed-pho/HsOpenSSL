@@ -1,5 +1,13 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.9 to 0.9.0.1
+---------------------------
+* Applied a patch by Mikhail Vorozhtsov
+
+  - Added missing BangPatterns pragma to OpenSSL/BN.hsc. It was
+    failing to build on GHC 7.1 without this.
+
+
 Changes from 0.8.0.2 to 0.9
 ---------------------------
 * (Suggested by Arthur Chan) Operations in OpenSSL.Session now throw
