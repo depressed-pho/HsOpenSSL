@@ -22,6 +22,7 @@ module OpenSSL.Session
     -- * SSL connections
   , SSL
   , connection
+  , fdConnection
   , accept
   , connect
   , read
@@ -33,6 +34,7 @@ module OpenSSL.Session
   , getPeerCertificate
   , getVerifyResult
   , sslSocket
+  , sslFd
 
     -- * SSL Exceptions
   , SomeSSLException
@@ -251,25 +253,33 @@ data SSL_
 --   times. Thus multiple OS threads can be 'blocked' inside IO in the same SSL
 --   object at a time, because they aren't really in the SSL object, they are
 --   waiting for the RTS to wake the Haskell thread.
-newtype SSL = SSL (QSem, ForeignPtr SSL_, Fd, Socket)
+newtype SSL = SSL (QSem, ForeignPtr SSL_, Fd, Maybe Socket)
 
 foreign import ccall unsafe "SSL_new" _ssl_new :: Ptr SSLContext_ -> IO (Ptr SSL_)
 foreign import ccall unsafe "&SSL_free" _ssl_free :: FunPtr (Ptr SSL_ -> IO ())
 foreign import ccall unsafe "SSL_set_fd" _ssl_set_fd :: Ptr SSL_ -> CInt -> IO ()
+
+connection' :: SSLContext -> Fd -> Maybe Socket -> IO SSL
+connection' context fd@(Fd fdInt) sock = do
+  sem <- newQSem 1
+  ssl <- withContext context $ \ctx -> do
+    ssl <- _ssl_new ctx >>= failIfNull
+    _ssl_set_fd ssl fdInt
+    return ssl
+  fpssl <- newForeignPtr _ssl_free ssl
+  return $ SSL (sem, fpssl, fd, sock)
 
 -- | Wrap a Socket in an SSL connection. Reading and writing to the Socket
 --   after this will cause weird errors in the SSL code. The SSL object
 --   carries a handle to the Socket so you need not worry about the garbage
 --   collector closing the file descriptor out from under you.
 connection :: SSLContext -> Socket -> IO SSL
-connection context sock@(MkSocket fd _ _ _ _) = do
-  sem <- newQSem 1
-  ssl <- withContext context (\ctx -> do
-    ssl <- _ssl_new ctx >>= failIfNull
-    _ssl_set_fd ssl fd
-    return ssl)
-  fpssl <- newForeignPtr _ssl_free ssl
-  return $ SSL (sem, fpssl, Fd fd, sock)
+connection context sock@(MkSocket fd _ _ _ _) =
+  connection' context (Fd fd) (Just sock)
+
+-- | Wrap a socket Fd in an SSL connection.
+fdConnection :: SSLContext -> Fd -> IO SSL
+fdConnection context fd = connection' context fd Nothing
 
 withSSL :: SSL -> (Ptr SSL_ -> IO a) -> IO a
 withSSL (SSL (sem, ssl, _, _)) action = do
@@ -466,9 +476,12 @@ getVerifyResult ssl =
     return $ r == (#const X509_V_OK)
 
 -- | Get the socket underlying an SSL connection
-sslSocket :: SSL -> Socket
+sslSocket :: SSL -> Maybe Socket
 sslSocket (SSL (_, _, _, socket)) = socket
 
+-- | Get the underlying socket Fd
+sslFd :: SSL -> Fd
+sslFd (SSL (_, _, fd, _)) = fd
 
 -- | The root exception type for all SSL exceptions.
 data SomeSSLException
