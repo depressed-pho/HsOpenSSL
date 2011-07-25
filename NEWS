@@ -1,5 +1,20 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.9.0.1 to 0.10
+----------------------------
+
+* Applied a patch by Mikhail Vorozhtsov to support wrapping plain file
+  descriptors in SSL connections.
+
+  - New function:
+      fdConnection :: SSLContext -> Socket -> IO SSL
+      sslFd :: SSL -> Fd
+
+  - Function signature change:
+      sslSocket :: SSL -> Maybe Socket
+      (It was "SSL -> Socket" before.)
+
+
 Changes from 0.9 to 0.9.0.1
 ---------------------------
 * Applied a patch by Mikhail Vorozhtsov
