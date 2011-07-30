@@ -60,17 +60,20 @@ module OpenSSL.Session
 
 #include "openssl/ssl.h"
 
-import Prelude hiding (catch, read, ioError, mapM)
+import Prelude hiding (catch, read, ioError, mapM, mapM_)
 import Control.Concurrent (threadWaitWrite, threadWaitRead)
 import Control.Concurrent.QSem
 import Control.Exception
 import Control.Applicative ((<$>), (<$))
 import Control.Monad (void, unless)
 import Data.Typeable
-import Data.Foldable (Foldable)
-import Data.Traversable (Traversable, forM)
+import Data.Foldable (Foldable, mapM_, forM_)
+import Data.Traversable (Traversable, mapM, forM)
+import Data.Maybe (fromMaybe)
+import Data.IORef
 import Foreign hiding (void)
 import Foreign.C
+import qualified Foreign.Concurrent as FC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
@@ -86,6 +89,10 @@ import OpenSSL.Utils
 import OpenSSL.X509 (X509, X509_, wrapX509, withX509Ptr)
 import OpenSSL.X509.Store
 
+type VerifyCb = Bool -> Ptr X509_STORE_CTX -> IO Bool
+
+foreign import ccall "wrapper" mkVerifyCb :: VerifyCb -> IO (FunPtr VerifyCb)
+
 data SSLContext_
 -- | An SSL context. Contexts carry configuration such as a server's private
 --   key, root CA certiifcates etc. Contexts are stateful IO objects; they
@@ -96,32 +103,37 @@ data SSLContext_
 --   Contexts are not thread safe so they carry a QSem with them which only
 --   lets a single thread work inside them at a time. Thus, one must always use
 --   withContext, not withForeignPtr directly.
-newtype SSLContext = SSLContext (QSem, ForeignPtr SSLContext_)
+data SSLContext = SSLContext { ctxSem  :: QSem
+                             , ctxPtr  :: ForeignPtr SSLContext_
+                             , ctxVfCb :: IORef (Maybe (FunPtr VerifyCb))
+                             }
 
 data SSLMethod_
 
 foreign import ccall unsafe "SSL_CTX_new" _ssl_ctx_new :: Ptr SSLMethod_ -> IO (Ptr SSLContext_)
-foreign import ccall unsafe "&SSL_CTX_free" _ssl_ctx_free :: FunPtr (Ptr SSLContext_ -> IO ())
+foreign import ccall unsafe "SSL_CTX_free" _ssl_ctx_free :: Ptr SSLContext_ -> IO ()
 foreign import ccall unsafe "SSLv23_method" _ssl_method :: IO (Ptr SSLMethod_)
 
 -- | Create a new SSL context.
 context :: IO SSLContext
 context = do
-  ctx <- _ssl_method >>= _ssl_ctx_new
-  context <- newForeignPtr _ssl_ctx_free ctx
-  sem <- newQSem 1
-  return $ SSLContext (sem, context)
+  ctx   <- _ssl_method >>= _ssl_ctx_new
+  cbRef <- newIORef Nothing
+  ptr   <- FC.newForeignPtr ctx $ do
+    _ssl_ctx_free ctx
+    readIORef cbRef >>= mapM_ freeHaskellFunPtr
+  sem   <- newQSem 1
+  return $ SSLContext { ctxSem = sem, ctxPtr = ptr, ctxVfCb = cbRef }
 
 -- | Run the given action with the raw context pointer and obtain the lock
 --   while doing so.
 withContext :: SSLContext -> (Ptr SSLContext_ -> IO a) -> IO a
-withContext (SSLContext (sem, ctxfp)) action = do
-  waitQSem sem
-  finally (withForeignPtr ctxfp action) $ signalQSem sem
+withContext (SSLContext {ctxSem, ctxPtr}) action = do
+  waitQSem ctxSem
+  finally (withForeignPtr ctxPtr action) $ signalQSem ctxSem
 
 touchContext :: SSLContext -> IO ()
-touchContext (SSLContext (_, fp))
-    = touchForeignPtr fp
+touchContext = touchForeignPtr . ctxPtr
 
 contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO CInt)
                 -> SSLContext -> String -> IO ()
@@ -203,22 +215,29 @@ data VerificationMode = VerifyNone
                       | VerifyPeer {
                           vpFailIfNoPeerCert :: Bool  -- ^ is a certificate required
                         , vpClientOnce       :: Bool  -- ^ only request once per connection
+                        , vpCallback         :: Maybe (Bool -> X509StoreCtx -> IO Bool) -- ^ optional callback
                         }
 
 foreign import ccall unsafe "SSL_CTX_set_verify"
-   _ssl_set_verify_mode :: Ptr SSLContext_ -> CInt -> Ptr () -> IO ()
+   _ssl_set_verify_mode :: Ptr SSLContext_ -> CInt -> FunPtr VerifyCb -> IO ()
 
 contextSetVerificationMode :: SSLContext -> VerificationMode -> IO ()
 contextSetVerificationMode context VerifyNone =
   withContext context $ \ctx ->
-    _ssl_set_verify_mode ctx (#const SSL_VERIFY_NONE) nullPtr >> return ()
+    void $ _ssl_set_verify_mode ctx (#const SSL_VERIFY_NONE) nullFunPtr
 
-contextSetVerificationMode context (VerifyPeer reqp oncep) = do
+contextSetVerificationMode context (VerifyPeer reqp oncep cbp) = do
   let mode = (#const SSL_VERIFY_PEER) .|.
              (if reqp then (#const SSL_VERIFY_FAIL_IF_NO_PEER_CERT) else 0) .|.
              (if oncep then (#const SSL_VERIFY_CLIENT_ONCE) else 0)
-  withContext context $ \ctx ->
-    _ssl_set_verify_mode ctx mode nullPtr >> return ()
+  withContext context $ \ctx -> do
+    let cbRef = ctxVfCb context
+    newCb <- mapM mkVerifyCb $ (<$> cbp) $ \cb pvf pStoreCtx ->
+      cb pvf =<< wrapX509StoreCtx (return ()) pStoreCtx
+    oldCb <- readIORef cbRef
+    writeIORef cbRef newCb
+    forM_ oldCb freeHaskellFunPtr
+    void $ _ssl_set_verify_mode ctx mode $ fromMaybe nullFunPtr newCb
 
 foreign import ccall unsafe "SSL_CTX_load_verify_locations"
   _ssl_load_verify_locations :: Ptr SSLContext_ -> Ptr CChar -> Ptr CChar -> IO CInt

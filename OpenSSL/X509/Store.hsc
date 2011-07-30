@@ -15,15 +15,22 @@ module OpenSSL.X509.Store
 
     , addCertToStore
     , addCRLToStore
+
+    , X509StoreCtx
+    , X509_STORE_CTX -- private
+
+    , withX509StoreCtxPtr -- private
+    , wrapX509StoreCtx -- private
     )
     where
 
-import           Foreign
-import           Foreign.C
-import           Foreign.Concurrent as FC
-import           OpenSSL.X509
-import           OpenSSL.X509.Revocation
-import           OpenSSL.Utils
+import Control.Applicative ((<$>))
+import Foreign
+import Foreign.C
+import Foreign.Concurrent as FC
+import OpenSSL.X509
+import OpenSSL.X509.Revocation
+import OpenSSL.Utils
 
 -- |@'X509Store'@ is an opaque object that represents X.509
 -- certificate store. The certificate store is usually used for chain
@@ -77,3 +84,14 @@ addCRLToStore store crl
       _add_crl storePtr crlPtr
            >>= failIf (/= 1)
            >>  return ()
+
+data    X509_STORE_CTX
+newtype X509StoreCtx = X509StoreCtx (ForeignPtr X509_STORE_CTX)
+
+withX509StoreCtxPtr :: X509StoreCtx -> (Ptr X509_STORE_CTX -> IO a) -> IO a
+withX509StoreCtxPtr (X509StoreCtx fp) = withForeignPtr fp
+
+wrapX509StoreCtx :: IO () -> Ptr X509_STORE_CTX -> IO X509StoreCtx
+wrapX509StoreCtx finaliser ptr =
+  X509StoreCtx <$> FC.newForeignPtr ptr finaliser
+
