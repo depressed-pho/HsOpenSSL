@@ -8,9 +8,7 @@ Description:
 Version: 0.10
 License: PublicDomain
 License-File: COPYING
-Author: Adam Langley <agl at imperialviolet dot org>,
-        PHO <pho at cielonegro dot org>,
-        Taru Karttunen <taruti at taruti dot net>
+Author: Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
 Maintainer: PHO <pho at cielonegro dot org>
 Stability: stable
 Homepage: http://cielonegro.org/HsOpenSSL.html
