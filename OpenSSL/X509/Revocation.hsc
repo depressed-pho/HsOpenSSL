@@ -39,6 +39,7 @@ module OpenSSL.X509.Revocation
 
     , getRevokedList
     , addRevoked
+    , getRevoked
     )
     where
 
@@ -118,6 +119,10 @@ foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_REVOKED"
 
 foreign import ccall unsafe "X509_CRL_add0_revoked"
         _add0_revoked :: Ptr X509_CRL -> Ptr X509_REVOKED -> IO CInt
+
+foreign import ccall unsafe "X509_CRL_get0_by_serial"
+        _get0_by_serial :: Ptr X509_CRL -> Ptr (Ptr X509_REVOKED)
+                        -> Ptr ASN1_INTEGER -> IO CInt
 
 foreign import ccall unsafe "X509_CRL_sort"
         _sort :: Ptr X509_CRL -> IO CInt
@@ -278,16 +283,15 @@ setIssuerName crl issuer
 getRevokedList :: CRL -> IO [RevokedCertificate]
 getRevokedList crl
     = withCRLPtr crl $ \ crlPtr ->
-      (_get_REVOKED crlPtr >>= mapStack peekRevoked)
-    where
-      peekRevoked :: Ptr X509_REVOKED -> IO RevokedCertificate
-      peekRevoked rev
-          = do serial <- peekASN1Integer =<< (#peek X509_REVOKED, serialNumber  ) rev
-               date   <- peekASN1Time    =<< (#peek X509_REVOKED, revocationDate) rev
-               return RevokedCertificate {
-                            revSerialNumber   = serial
-                          , revRevocationDate = date
-                          }
+        _get_REVOKED crlPtr >>= mapStack peekRevoked
+
+peekRevoked :: Ptr X509_REVOKED -> IO RevokedCertificate
+peekRevoked rev = do
+  serial <- peekASN1Integer =<< (#peek X509_REVOKED, serialNumber  ) rev
+  date   <- peekASN1Time    =<< (#peek X509_REVOKED, revocationDate) rev
+  return RevokedCertificate { revSerialNumber   = serial
+                            , revRevocationDate = date
+                            }
 
 newRevoked :: RevokedCertificate -> IO (Ptr X509_REVOKED)
 newRevoked revoked
@@ -315,10 +319,19 @@ addRevoked crl revoked
            1 -> return ()
            _ -> freeRevoked revPtr >> raiseOpenSSLError
 
+-- |@'getRevoked' crl serial@ looks up the corresponding revocation.
+getRevoked :: CRL -> Integer -> IO (Maybe RevokedCertificate)
+getRevoked crl serial =
+  withCRLPtr crl  $ \crlPtr ->
+  alloca          $ \revPtr ->
+  withASN1Integer serial $ \serialPtr -> do
+    r <- _get0_by_serial crlPtr revPtr serialPtr
+    if r == 1
+      then fmap Just $ peek revPtr >>= peekRevoked
+      else return Nothing
+
 -- |@'sortCRL' crl@ sorts the certificates in the revocation list.
 sortCRL :: CRL -> IO ()
 sortCRL crl
     = withCRLPtr crl $ \ crlPtr ->
-      _sort crlPtr
-           >>= failIf (/= 1)
-           >>  return ()
+        _sort crlPtr >>= failIf_ (/= 1)
