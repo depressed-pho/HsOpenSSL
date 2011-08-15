@@ -32,6 +32,10 @@ module OpenSSL.PEM
       -- * PKCS#7 structure
     , writePkcs7
     , readPkcs7
+
+      -- * DH parameters
+    , writeDHParams
+    , readDHParams
     )
     where
 
@@ -49,6 +53,7 @@ import           OpenSSL.Utils
 import           OpenSSL.X509
 import           OpenSSL.X509.Request
 import           OpenSSL.X509.Revocation
+import           Internal.DH
 import           Prelude hiding (catch)
 import           System.IO
 
@@ -464,6 +469,47 @@ readPkcs7' bio
 readPkcs7 :: String -> IO Pkcs7
 readPkcs7 pemStr
     = newConstMem pemStr >>= readPkcs7'
+
+{- DH parameters ------------------------------------------------------------- -}
+
+foreign import ccall unsafe "PEM_write_bio_DHparams"
+        _write_bio_DH :: Ptr BIO_
+                      -> Ptr DH_
+                      -> IO CInt
+
+foreign import ccall safe "PEM_read_bio_DHparams"
+        _read_bio_DH :: Ptr BIO_
+                     -> Ptr (Ptr DH_)
+                     -> FunPtr PemPasswordCallback'
+                     -> Ptr ()
+                     -> IO (Ptr DH_)
+
+writeDHParams' :: BIO -> DHP -> IO ()
+writeDHParams' bio dh
+    = withBioPtr bio $ \ bioPtr ->
+      withDHPPtr dh  $ \ dhPtr ->
+        _write_bio_DH bioPtr dhPtr >>= failIf_ (/= 1)
+
+-- |@'writeDHParams' dh@ writes DH parameters to PEM string.
+writeDHParams :: DHP -> IO String
+writeDHParams dh
+    = do mem <- newMem
+         writeDHParams' mem dh
+         bioRead mem
+
+readDHParams' :: BIO -> IO DHP
+readDHParams' bio
+    = withBioPtr bio $ \ bioPtr ->
+      withCString "" $ \ passPtr ->
+        _read_bio_DH bioPtr nullPtr nullFunPtr (castPtr passPtr)
+          >>= failIfNull
+          >>= wrapDHPPtr
+
+-- |@'readDHParams' pem@ reads DH parameters in PEM string.
+readDHParams :: String -> IO DHP
+readDHParams pemStr
+    = newConstMem pemStr >>= readDHParams'
+
 
 withBS :: B8.ByteString -> ((Ptr CChar, Int) -> IO t) -> IO t
 withBS passStr act =

@@ -105,6 +105,16 @@ long HsOpenSSL_PKCS7_is_detached(PKCS7* pkcs7) {
 }
 
 
+/* DH *************************************************************************/
+BIGNUM *HsOpenSSL_DH_get_pub_key(DH *dh) {
+    return dh->pub_key;
+}
+
+int HsOpenSSL_DH_length(DH *dh) {
+    return BN_num_bits(dh->p);
+}
+
+
 /* ASN1 ***********************************************************************/
 ASN1_INTEGER* HsOpenSSL_M_ASN1_INTEGER_new() {
     return M_ASN1_INTEGER_new();

@@ -75,6 +75,7 @@ Library
           OpenSSL.X509.Request
           OpenSSL.X509.Store
           OpenSSL.Session
+          OpenSSL.DH
   Other-Modules:
           OpenSSL.ASN1
           OpenSSL.BIO
@@ -84,6 +85,7 @@ Library
           OpenSSL.Stack
           OpenSSL.Utils
           OpenSSL.X509.Name
+          Internal.DH
   Extensions:
           ForeignFunctionInterface, EmptyDataDecls, MagicHash,
           UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable,
