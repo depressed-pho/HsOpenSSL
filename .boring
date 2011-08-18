@@ -48,6 +48,8 @@
 ^\.darcs-temp-mail$
 ^\.depend$
 
+^\.ditz-config$
+
 ^\.installed-pkg-config$
 ^\.setup-config$
 \.buildinfo$
