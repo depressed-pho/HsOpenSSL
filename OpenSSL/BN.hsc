@@ -153,8 +153,8 @@ foreign import ccall unsafe "memcpy"
         _copy_out :: Ptr () -> ByteArray## -> CSize -> IO ()
 
 -- These are taken from Data.Binary's disabled fast Integer support
-data ByteArray = BA  {-# UNPACK #-} !ByteArray##
-data MBA       = MBA {-# UNPACK #-} !(MutableByteArray## RealWorld)
+data ByteArray = BA  !ByteArray##
+data MBA       = MBA !(MutableByteArray## RealWorld)
 
 newByteArray :: Int## -> IO MBA
 newByteArray sz = IO $ \s ->
