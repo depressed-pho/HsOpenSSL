@@ -1,6 +1,6 @@
 --- !ditz.rubyforge.org,2008-03-06/issue 
-title: Expose low-level asynchronous versions of accept, connect, read, write and s
-desc: hutdown.
+title: Expose low-level asynchronous versions of accept, connect, read, write and shutdown.
+desc: ""
 type: :feature
 component: HsOpenSSL
 release: HsOpenSSL-0.10.1
