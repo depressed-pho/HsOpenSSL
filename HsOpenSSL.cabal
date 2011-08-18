@@ -5,13 +5,14 @@ Description:
         can generate RSA and DSA keys, read and write PEM files,
         generate message digests, sign and verify messages, encrypt
         and decrypt messages.
-Version: 0.10
+Version: 0.10.1
 License: PublicDomain
 License-File: COPYING
 Author: Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
 Maintainer: PHO <pho at cielonegro dot org>
 Stability: stable
 Homepage: http://cielonegro.org/HsOpenSSL.html
+Bug-Reports: http://static.cielonegro.org/ditz/HsOpenSSL/
 Category: Cryptography
 Tested-With: GHC == 7.0.3
 Cabal-Version: >= 1.6

@@ -13,11 +13,15 @@ FIND     ?= find
 RM_RF    ?= rm -rf
 SUDO     ?= sudo
 AUTOCONF ?= autoconf
+HLINT    ?= hlint
+HPC      ?= hpc
+DITZ     ?= ditz
 
 CONFIGURE_ARGS ?= --disable-optimization
 
 SETUP_FILE := $(wildcard Setup.*hs)
 CABAL_FILE := $(wildcard *.cabal)
+PKG_NAME   := $(CABAL_FILE:.cabal=)
 
 ifeq ($(shell ls configure.ac 2>/dev/null),configure.ac)
   AUTOCONF_AC_FILE := configure.ac
@@ -39,6 +43,7 @@ all: build
 
 build: setup-config build-hook
 	./Setup build
+	$(RM_RF) *.tix
 
 build-hook:
 
@@ -69,7 +74,7 @@ Setup: $(SETUP_FILE)
 	$(GHC) --make Setup
 
 clean: clean-hook
-	$(RM_RF) dist Setup *.o *.hi .setup-config *.buildinfo
+	$(RM_RF) dist Setup *.o *.hi .setup-config *.buildinfo *.tix .hpc
 	$(FIND) . -name '*~' -exec rm -f {} \;
 
 clean-hook:
@@ -84,6 +89,42 @@ sdist: setup-config
 	./Setup sdist
 
 test: build
+	$(RM_RF) dist/test
 	./Setup test
+	if ls *.tix >/dev/null 2>&1; then \
+		$(HPC) sum --output="merged.tix" --union --exclude=Main *.tix; \
+		$(HPC) markup --destdir="dist/hpc" --fun-entry-count "merged.tix"; \
+	fi
 
-.PHONY: build build-hook setup-config setup-config-hook run clean clean-hook install doc sdist test
+ditz:
+	$(DITZ) html dist/ditz
+
+fixme:
+	@$(FIND) . \
+		\( -name 'dist' -or -name '.git' -or -name '_darcs' \) -prune \
+		-or \
+		\( -name '*.c'   -or -name '*.h'   -or \
+		   -name '*.hs'  -or -name '*.lhs' -or \
+		   -name '*.hsc' -or -name '*.cabal' \) \
+		-exec egrep -i '(fixme|thinkme)' {} \+ \
+		|| echo 'No FIXME or THINKME found.'
+
+lint:
+	$(HLINT) . --report
+
+push: doc ditz
+	if [ -d "_darcs" ]; then \
+		darcs push; \
+	elif [ -d ".git" ]; then \
+		git push --all && git push --tags; \
+	fi
+	if [ -d "dist/doc" ]; then \
+		rsync -av --delete \
+			dist/doc/html/$(PKG_NAME)/ \
+			www@nem.cielonegro.org:static.cielonegro.org/htdocs/doc/$(PKG_NAME); \
+	fi
+	rsync -av --delete \
+		dist/ditz/ \
+		www@nem.cielonegro.org:static.cielonegro.org/htdocs/ditz/$(PKG_NAME)
+
+.PHONY: build build-hook setup-config setup-config-hook run clean clean-hook install doc sdist test lint push
