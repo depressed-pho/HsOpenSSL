@@ -85,7 +85,7 @@ Library
           OpenSSL.Stack
           OpenSSL.Utils
           OpenSSL.X509.Name
-          Internal.DH
+          OpenSSL.DH.Internal
   Extensions:
           ForeignFunctionInterface, EmptyDataDecls, MagicHash,
           UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable,

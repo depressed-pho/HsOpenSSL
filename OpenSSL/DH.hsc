@@ -20,8 +20,8 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.C.Types (CInt)
 import Foreign.Marshal.Alloc (alloca)
 import OpenSSL.BN
+import OpenSSL.DH.Internal
 import OpenSSL.Utils
-import Internal.DH
 
 data DHGen = DHGen2
            | DHGen5

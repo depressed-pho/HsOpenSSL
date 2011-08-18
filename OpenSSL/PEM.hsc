@@ -48,12 +48,12 @@ import           Foreign.C
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
+import           OpenSSL.DH.Internal
 import           OpenSSL.PKCS7
 import           OpenSSL.Utils
 import           OpenSSL.X509
 import           OpenSSL.X509.Request
 import           OpenSSL.X509.Revocation
-import           Internal.DH
 import           Prelude hiding (catch)
 import           System.IO
 

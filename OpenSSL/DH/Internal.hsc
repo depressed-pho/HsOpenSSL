@@ -1,4 +1,4 @@
-module Internal.DH (
+module OpenSSL.DH.Internal (
     DH_,
     DHP,
     withDHPPtr,
