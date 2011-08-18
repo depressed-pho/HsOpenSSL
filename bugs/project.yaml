@@ -14,7 +14,4 @@ releases:
     - PHO <pho@cielonegro.org>
     - created
     - |-
-      This release will include the following patches from Mikhail Vorozhtsov:
-      * Added optional verification callback to VerifyPeer.
-      * Expose low-level asynchronous versions of accept, connect, read, write and s
-      hutdown.
+      This release will include several patches from Mikhail Vorozhtsov.
