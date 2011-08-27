@@ -32,8 +32,8 @@ Extra-Source-Files:
     tests/Makefile
 
 Source-Repository head
-    Type: darcs
-    Location: http://darcs.cielonegro.org/HsOpenSSL/
+    Type: git
+    Location: git://github.com/phonohawk/HsOpenSSL.git
 
 Library
   Build-Depends: base >= 4 && < 5, bytestring, ghc-prim, time >= 1.1.1, old-locale, network>=2.1.0.0
