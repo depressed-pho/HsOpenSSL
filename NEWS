@@ -1,8 +1,20 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10 to 0.10.1
+---------------------------
+* Applied patches by Mikhail Vorozhtsov:
+  - Added optional verification callback to VerifyPeer.
+  - Added revocation lookup function.
+  - Added bindings to Diffie-Hellman functions.
+  - Expose low-level asynchronous versions of accept, connect, read,
+    write and shutdown.
+
+* Moved the repository to GitHub:
+  git://github.com/phonohawk/HsOpenSSL.git
+
+
 Changes from 0.9.0.1 to 0.10
 ----------------------------
-
 * Applied a patch by Mikhail Vorozhtsov to support wrapping plain file
   descriptors in SSL connections.
 
