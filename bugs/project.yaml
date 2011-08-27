@@ -7,11 +7,14 @@ components:
 releases: 
 - !ditz.rubyforge.org,2008-03-06/release 
   name: HsOpenSSL-0.10.1
-  status: :unreleased
-  release_time: 
+  status: :released
+  release_time: 2011-08-27 14:02:31.854882 Z
   log_events: 
   - - 2011-08-05 08:08:53.735865 Z
     - PHO <pho@cielonegro.org>
     - created
-    - |-
-      This release will include several patches from Mikhail Vorozhtsov.
+    - This release will include several patches from Mikhail Vorozhtsov.
+  - - 2011-08-27 14:02:31.854903 Z
+    - PHO <pho@cielonegro.org>
+    - released
+    - Done.
