@@ -65,7 +65,7 @@ import Control.Concurrent (threadWaitWrite, threadWaitRead)
 import Control.Concurrent.QSem
 import Control.Exception
 import Control.Applicative ((<$>), (<$))
-import Control.Monad (void, unless)
+import Control.Monad (unless)
 import Data.Typeable
 import Data.Foldable (Foldable, mapM_, forM_)
 import Data.Traversable (Traversable, mapM, forM)
@@ -224,7 +224,7 @@ foreign import ccall unsafe "SSL_CTX_set_verify"
 contextSetVerificationMode :: SSLContext -> VerificationMode -> IO ()
 contextSetVerificationMode context VerifyNone =
   withContext context $ \ctx ->
-    void $ _ssl_set_verify_mode ctx (#const SSL_VERIFY_NONE) nullFunPtr
+    _ssl_set_verify_mode ctx (#const SSL_VERIFY_NONE) nullFunPtr >> return ()
 
 contextSetVerificationMode context (VerifyPeer reqp oncep cbp) = do
   let mode = (#const SSL_VERIFY_PEER) .|.
@@ -237,7 +237,8 @@ contextSetVerificationMode context (VerifyPeer reqp oncep cbp) = do
     oldCb <- readIORef cbRef
     writeIORef cbRef newCb
     forM_ oldCb freeHaskellFunPtr
-    void $ _ssl_set_verify_mode ctx mode $ fromMaybe nullFunPtr newCb
+    _ssl_set_verify_mode ctx mode $ fromMaybe nullFunPtr newCb
+    return ()
 
 foreign import ccall unsafe "SSL_CTX_load_verify_locations"
   _ssl_load_verify_locations :: Ptr SSLContext_ -> Ptr CChar -> Ptr CChar -> IO CInt
@@ -287,8 +288,8 @@ data SSL_
 --   waiting for the RTS to wake the Haskell thread.
 data SSL = SSL { sslSem    :: QSem
                , sslPtr    :: ForeignPtr SSL_
-               , sslFd     :: Fd
-               , sslSocket :: Maybe Socket
+               , sslFd     :: Fd -- ^ Get the underlying socket Fd
+               , sslSocket :: Maybe Socket -- ^ Get the socket underlying an SSL connection
                }
 
 foreign import ccall unsafe "SSL_new" _ssl_new :: Ptr SSLContext_ -> IO (Ptr SSL_)
@@ -453,7 +454,7 @@ foreign import ccall "SSL_write" _ssl_write :: Ptr SSL_ -> Ptr Word8 -> CInt -> 
 -- | Write a given ByteString to the SSL connection. Either all the data is
 --   written or an exception is raised because of an error
 write :: SSL -> B.ByteString -> IO ()
-write ssl bs = void $ sslBlock (`tryWrite` bs) ssl
+write ssl bs = sslBlock (`tryWrite` bs) ssl >> return ()
 
 -- | Try to write a given ByteString to the SSL connection without blocking.
 tryWrite :: SSL -> B.ByteString -> IO (SSLResult ())
@@ -539,12 +540,6 @@ getVerifyResult ssl =
   withSSL ssl $ \ssl -> do
     r <- _ssl_get_verify_result ssl
     return $ r == (#const X509_V_OK)
-
--- | Get the socket underlying an SSL connection
-sslSocket :: SSL -> Maybe Socket
-
--- | Get the underlying socket Fd
-sslFd :: SSL -> Fd
 
 -- | The root exception type for all SSL exceptions.
 data SomeSSLException
