@@ -1,5 +1,11 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.1 to (unreleased)
+-----------------------------------
+* Applied a patch by Peter Gammie:
+  - GHC 6.12.3 friendliness: don't use Control.Monad.void
+
+
 Changes from 0.10 to 0.10.1
 ---------------------------
 * Applied patches by Mikhail Vorozhtsov:
