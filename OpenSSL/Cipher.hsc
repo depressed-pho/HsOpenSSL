@@ -43,7 +43,7 @@ data AESCtx = AESCtx
                 Mode
 
 foreign import ccall unsafe "memcpy"
-        _memcpy :: Ptr CUChar -> Ptr CChar -> CSize -> IO ()
+        _memcpy :: Ptr CUChar -> Ptr CChar -> CSize -> IO (Ptr ())
 
 foreign import ccall unsafe "memset"
         _memset :: Ptr CUChar -> CChar -> CSize -> IO ()
@@ -83,7 +83,7 @@ newAESCtx mode key iv = do
   withForeignPtr ecounter (\ecptr -> _memset ecptr 0 16)
   withForeignPtr ivbytes $ \ivPtr ->
     BS.useAsCStringLen iv $ \(ptr, _) ->
-    do _memcpy ivPtr ptr 16
+    do _ <- _memcpy ivPtr ptr 16
        return $ AESCtx ctx ivbytes ecounter nref mode
 
 -- | Encrypt some number of blocks using CBC. This is an IO function because

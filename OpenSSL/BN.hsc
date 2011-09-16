@@ -147,10 +147,10 @@ newBN i = do
 -- to
 
 foreign import ccall unsafe "memcpy"
-        _copy_in :: ByteArray## -> Ptr () -> CSize -> IO ()
+        _copy_in :: ByteArray## -> Ptr () -> CSize -> IO (Ptr ())
 
 foreign import ccall unsafe "memcpy"
-        _copy_out :: Ptr () -> ByteArray## -> CSize -> IO ()
+        _copy_out :: Ptr () -> ByteArray## -> CSize -> IO (Ptr ())
 
 -- These are taken from Data.Binary's disabled fast Integer support
 data ByteArray = BA  !ByteArray##
@@ -183,7 +183,7 @@ bnToInteger bn = do
       (MBA arr) <- newByteArray (nlimbsi *## limbsize)
       (BA ba) <- freezeByteArray arr
       limbs <- (#peek BIGNUM, d) (unwrapBN bn)
-      _copy_in ba limbs $ fromIntegral $ nlimbs * (#size unsigned long)
+      _ <- _copy_in ba limbs $ fromIntegral $ nlimbs * (#size unsigned long)
       negative <- (#peek BIGNUM, neg) (unwrapBN bn) :: IO CInt
       if negative == 0
          then return $ J## nlimbsi ba
@@ -228,7 +228,7 @@ integerToBN v@(J## nlimbs_ bytearray)
       limbs <- mallocBytes ((#size unsigned long) * nlimbs)
       (#poke BIGNUM, d) bnptr limbs
       (#poke BIGNUM, flags) bnptr (1 :: CInt)
-      _copy_out limbs bytearray (fromIntegral $ (#size unsigned long) * nlimbs)
+      _ <- _copy_out limbs bytearray (fromIntegral $ (#size unsigned long) * nlimbs)
       (#poke BIGNUM, top) bnptr ((fromIntegral nlimbs) :: CInt)
       (#poke BIGNUM, dmax) bnptr ((fromIntegral nlimbs) :: CInt)
       (#poke BIGNUM, neg) bnptr (0 :: CInt)
