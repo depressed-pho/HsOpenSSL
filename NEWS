@@ -5,6 +5,10 @@ Changes from 0.10.1 to (unreleased)
 * Applied a patch by Peter Gammie:
   - GHC 6.12.3 friendliness: don't use Control.Monad.void
 
+* Applied a patch by Peter Gammie and David Terei:
+  - Placate LLVM in GHC 7.3.x HEAD: give memcpy the right
+    type. Courtesy of David Terei.
+
 
 Changes from 0.10 to 0.10.1
 ---------------------------
