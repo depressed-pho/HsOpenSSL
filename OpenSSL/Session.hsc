@@ -332,13 +332,13 @@ foreign import ccall "SSL_connect" _ssl_connect :: Ptr SSL_ -> IO CInt
 foreign import ccall unsafe "SSL_get_error" _ssl_get_error :: Ptr SSL_ -> CInt -> IO CInt
 
 throwSSLException :: CInt -> IO a
-throwSSLException (#const SSL_ERROR_ZERO_RETURN     ) = throw ConnectionCleanlyClosed
-throwSSLException (#const SSL_ERROR_WANT_CONNECT    ) = throw WantConnect
-throwSSLException (#const SSL_ERROR_WANT_ACCEPT     ) = throw WantAccept
-throwSSLException (#const SSL_ERROR_WANT_X509_LOOKUP) = throw WantX509Lookup
-throwSSLException (#const SSL_ERROR_SYSCALL         ) = throw SSLIOError
-throwSSLException (#const SSL_ERROR_SSL             ) = throw ProtocolError
-throwSSLException x = throw (UnknownError (fromIntegral x))
+throwSSLException (#const SSL_ERROR_ZERO_RETURN     ) = throwIO ConnectionCleanlyClosed
+throwSSLException (#const SSL_ERROR_WANT_CONNECT    ) = throwIO WantConnect
+throwSSLException (#const SSL_ERROR_WANT_ACCEPT     ) = throwIO WantAccept
+throwSSLException (#const SSL_ERROR_WANT_X509_LOOKUP) = throwIO WantX509Lookup
+throwSSLException (#const SSL_ERROR_SYSCALL         ) = throwIO SSLIOError
+throwSSLException (#const SSL_ERROR_SSL             ) = throwIO ProtocolError
+throwSSLException x = throwIO (UnknownError (fromIntegral x))
 
 -- | This is the type of an SSL IO operation. EOF and termination are handled
 --   by exceptions while everything else is one of these. Note that reading
