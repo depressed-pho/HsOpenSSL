@@ -9,6 +9,9 @@ Changes from 0.10.1 to (unreleased)
   - Placate LLVM in GHC 7.3.x HEAD: give memcpy the right
     type. Courtesy of David Terei.
 
+* Applied a patch by Mikhail Vorozhtsov:
+  - Use throwIO instead of throw to raise SSL exceptions.
+
 
 Changes from 0.10 to 0.10.1
 ---------------------------
