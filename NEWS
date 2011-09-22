@@ -1,6 +1,6 @@
 -*- coding: utf-8 -*-
 
-Changes from 0.10.1 to (unreleased)
+Changes from 0.10.1 to 0.10.1.1
 -----------------------------------
 * Applied a patch by Peter Gammie:
   - GHC 6.12.3 friendliness: don't use Control.Monad.void
@@ -11,6 +11,10 @@ Changes from 0.10.1 to (unreleased)
 
 * Applied a patch by Mikhail Vorozhtsov:
   - Use throwIO instead of throw to raise SSL exceptions.
+
+* Fixed breakage on OpenSSL 0.9.8:
+  - DHparams_dup() is a function in OpenSSL 1.0.0 but is a macro in 0.9.8.
+  - OpenSSL 0.9.8 doesn't provide X509_CRL_get0_by_serial().
 
 
 Changes from 0.10 to 0.10.1

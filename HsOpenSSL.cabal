@@ -6,7 +6,7 @@ Description:
         generate message digests, sign and verify messages, encrypt
         and decrypt messages. It also has some capabilities of
         creating SSL clients and servers.
-Version: 0.10.1
+Version: 0.10.1.1
 License: PublicDomain
 License-File: COPYING
 Author: Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
