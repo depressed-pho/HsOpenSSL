@@ -39,7 +39,9 @@ module OpenSSL.X509.Revocation
 
     , getRevokedList
     , addRevoked
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
     , getRevoked
+#endif
     )
     where
 
@@ -120,9 +122,11 @@ foreign import ccall unsafe "HsOpenSSL_X509_CRL_get_REVOKED"
 foreign import ccall unsafe "X509_CRL_add0_revoked"
         _add0_revoked :: Ptr X509_CRL -> Ptr X509_REVOKED -> IO CInt
 
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
 foreign import ccall unsafe "X509_CRL_get0_by_serial"
         _get0_by_serial :: Ptr X509_CRL -> Ptr (Ptr X509_REVOKED)
                         -> Ptr ASN1_INTEGER -> IO CInt
+#endif
 
 foreign import ccall unsafe "X509_CRL_sort"
         _sort :: Ptr X509_CRL -> IO CInt
@@ -319,7 +323,11 @@ addRevoked crl revoked
            1 -> return ()
            _ -> freeRevoked revPtr >> raiseOpenSSLError
 
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
 -- |@'getRevoked' crl serial@ looks up the corresponding revocation.
+--
+-- Note that this function is only available on OpenSSL 1.0.0 or
+-- later.
 getRevoked :: CRL -> Integer -> IO (Maybe RevokedCertificate)
 getRevoked crl serial =
   withCRLPtr crl  $ \crlPtr ->
@@ -329,6 +337,7 @@ getRevoked crl serial =
     if r == 1
       then fmap Just $ peek revPtr >>= peekRevoked
       else return Nothing
+#endif
 
 -- |@'sortCRL' crl@ sorts the certificates in the revocation list.
 sortCRL :: CRL -> IO ()

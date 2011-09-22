@@ -10,6 +10,7 @@
 #include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
+#include <openssl/opensslv.h>
 #include <openssl/pem.h>
 #include <openssl/pkcs7.h>
 #include <openssl/ssl.h>
