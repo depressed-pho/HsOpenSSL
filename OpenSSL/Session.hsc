@@ -71,7 +71,7 @@ import Data.Foldable (Foldable, mapM_, forM_)
 import Data.Traversable (Traversable, mapM, forM)
 import Data.Maybe (fromMaybe)
 import Data.IORef
-import Foreign hiding (void)
+import Foreign
 import Foreign.C
 import qualified Foreign.Concurrent as FC
 import qualified Data.ByteString as B
