@@ -84,7 +84,7 @@ foreign import ccall "DH_check"
   _DH_check :: Ptr DH_ -> Ptr CInt -> IO Bool
 foreign import ccall unsafe "DH_size"
   _DH_size :: Ptr DH_ -> IO CInt
-foreign import ccall unsafe "DHparams_dup"
+foreign import ccall unsafe "HsOpenSSL_DHparams_dup"
   _DH_dup :: Ptr DH_ -> IO (Ptr DH_)
 foreign import ccall unsafe "HsOpenSSL_DH_get_pub_key"
   _DH_get_pub_key :: Ptr DH_ -> IO (Ptr BIGNUM)

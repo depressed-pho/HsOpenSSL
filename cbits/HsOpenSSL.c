@@ -44,6 +44,11 @@ int HsOpenSSL_BIO_FLAGS_BASE64_NO_NL() {
     return BIO_FLAGS_BASE64_NO_NL;
 }
 
+/* DH *************************************************************************/
+DH* HsOpenSSL_DHparams_dup(DH* dh) {
+    return DHparams_dup(dh);
+}
+
 /* EVP ************************************************************************/
 int HsOpenSSL_EVP_MD_size(EVP_MD* md) {
     return EVP_MD_size(md);
