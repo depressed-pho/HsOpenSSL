@@ -41,6 +41,7 @@ import           OpenSSL.BIO
 import           OpenSSL.EVP.Digest hiding (digest)
 import           OpenSSL.EVP.PKey
 import           OpenSSL.EVP.Verify
+import           OpenSSL.EVP.Internal
 import           OpenSSL.Utils
 import           OpenSSL.X509 (X509)
 import qualified OpenSSL.X509 as Cert

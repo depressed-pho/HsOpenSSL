@@ -8,18 +8,8 @@
 
 module OpenSSL.EVP.Digest
     ( Digest
-    , EVP_MD -- private
-    , withMDPtr -- private
-
     , getDigestByName
     , getDigestNames
-
-    , DigestCtx -- private
-    , EVP_MD_CTX -- private
-    , withDigestCtxPtr -- private
-
-    , digestStrictly -- private
-    , digestLazily   -- private
 
     , digest
     , digestBS
@@ -31,31 +21,18 @@ module OpenSSL.EVP.Digest
     )
     where
 
-import           Control.Monad
-import           Data.ByteString.Internal (createAndTrim, create)
+import           Data.ByteString.Internal (create)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import           Control.Applicative ((<$>))
 import           Foreign
 import           Foreign.C
+import           OpenSSL.EVP.Internal
 import           OpenSSL.Objects
-import           OpenSSL.Utils
-
-
-{- EVP_MD -------------------------------------------------------------------- -}
-
--- |@Digest@ is an opaque object that represents an algorithm of
--- message digest.
-newtype Digest  = Digest (Ptr EVP_MD)
-data    EVP_MD
-
 
 foreign import ccall unsafe "EVP_get_digestbyname"
         _get_digestbyname :: CString -> IO (Ptr EVP_MD)
-
-
-withMDPtr :: Digest -> (Ptr EVP_MD -> IO a) -> IO a
-withMDPtr (Digest mdPtr) f = f mdPtr
 
 -- |@'getDigestByName' name@ returns a message digest algorithm whose
 -- name is @name@. If no algorithms are found, the result is
@@ -74,88 +51,7 @@ getDigestByName name
 getDigestNames :: IO [String]
 getDigestNames = getObjNames MDMethodType True
 
-
-{- EVP_MD_CTX ---------------------------------------------------------------- -}
-
-newtype DigestCtx  = DigestCtx (ForeignPtr EVP_MD_CTX)
-data    EVP_MD_CTX
-
-
-foreign import ccall unsafe "EVP_MD_CTX_init"
-        _ctx_init :: Ptr EVP_MD_CTX -> IO ()
-
-foreign import ccall unsafe "&EVP_MD_CTX_cleanup"
-        _ctx_cleanup :: FunPtr (Ptr EVP_MD_CTX -> IO ())
-
-
-newCtx :: IO DigestCtx
-newCtx = do ctx <- mallocForeignPtrBytes (#size EVP_MD_CTX)
-            withForeignPtr ctx _ctx_init
-            addForeignPtrFinalizer _ctx_cleanup ctx
-            return $ DigestCtx ctx
-
-
-withDigestCtxPtr :: DigestCtx -> (Ptr EVP_MD_CTX -> IO a) -> IO a
-withDigestCtxPtr (DigestCtx ctx) = withForeignPtr ctx
-
-
 {- digest -------------------------------------------------------------------- -}
-
-foreign import ccall unsafe "EVP_DigestInit"
-        _DigestInit :: Ptr EVP_MD_CTX -> Ptr EVP_MD -> IO CInt
-
-foreign import ccall unsafe "EVP_DigestUpdate"
-        _DigestUpdate :: Ptr EVP_MD_CTX -> Ptr CChar -> CSize -> IO CInt
-
-foreign import ccall unsafe "EVP_DigestFinal"
-        _DigestFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> Ptr CUInt -> IO CInt
-
-
-digestInit :: Digest -> IO DigestCtx
-digestInit (Digest md)
-    = do ctx <- newCtx
-         withDigestCtxPtr ctx $ \ ctxPtr ->
-             _DigestInit ctxPtr md >>= failIf_ (/= 1)
-         return ctx   
-
-
-digestUpdateBS :: DigestCtx -> B8.ByteString -> IO ()
-digestUpdateBS ctx bs
-    = withDigestCtxPtr ctx $ \ ctxPtr ->
-      unsafeUseAsCStringLen bs $ \ (buf, len) ->
-      _DigestUpdate ctxPtr buf (fromIntegral len) >>= failIf (/= 1) >> return ()
-
-
-digestFinal :: DigestCtx -> IO String
-digestFinal ctx
-    = withDigestCtxPtr ctx $ \ ctxPtr ->
-      allocaArray (#const EVP_MAX_MD_SIZE) $ \ bufPtr ->
-      alloca $ \ bufLenPtr ->
-      do _DigestFinal ctxPtr bufPtr bufLenPtr >>= failIf_ (/= 1)
-         bufLen <- liftM fromIntegral $ peek bufLenPtr
-         peekCStringLen (bufPtr, bufLen)
-
-digestFinalBS :: DigestCtx -> IO B8.ByteString
-digestFinalBS ctx =
-  withDigestCtxPtr ctx $ \ctxPtr ->
-  createAndTrim (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
-  alloca $ \bufLenPtr ->
-  do _DigestFinal ctxPtr (castPtr bufPtr) bufLenPtr >>= failIf_ (/= 1)
-     liftM fromIntegral $ peek bufLenPtr
-
-
-digestStrictly :: Digest -> B8.ByteString -> IO DigestCtx
-digestStrictly md input
-    = do ctx <- digestInit md
-         digestUpdateBS ctx input
-         return ctx
-
-
-digestLazily :: Digest -> L8.ByteString -> IO DigestCtx
-digestLazily md lbs
-    = do ctx <- digestInit md
-         mapM_ (digestUpdateBS ctx) $ L8.toChunks lbs
-         return ctx
 
 -- |@'digest'@ digests a stream of data. The string must
 -- not contain any letters which aren't in the range of U+0000 -
@@ -167,19 +63,16 @@ digest md input
 -- |@'digestBS'@ digests a chunk of data.
 digestBS :: Digest -> B8.ByteString -> String
 digestBS md input
-    = unsafePerformIO
-      (digestStrictly md input >>= digestFinal)
+    = unsafePerformIO $ digestStrictly md input >>= digestFinal
 
 digestBS' :: Digest -> B8.ByteString -> B8.ByteString
 digestBS' md input
-    = unsafePerformIO
-      (digestStrictly md input >>= digestFinalBS)
+    = unsafePerformIO $ digestStrictly md input >>= digestFinalBS
 
 -- |@'digestLBS'@ digests a stream of data.
 digestLBS :: Digest -> L8.ByteString -> String
 digestLBS md input
-    = unsafePerformIO
-      (digestLazily md input >>= digestFinal)
+    = unsafePerformIO $ digestLazily md input >>= digestFinal
 
 {- HMAC ---------------------------------------------------------------------- -}
 
@@ -197,9 +90,11 @@ hmacBS (Digest md) key input =
   allocaArray (#const EVP_MAX_MD_SIZE) $ \bufPtr ->
   alloca $ \bufLenPtr ->
   unsafeUseAsCStringLen key $ \(keydata, keylen) ->
-  unsafeUseAsCStringLen input $ \(inputdata, inputlen) ->
-  do _HMAC md keydata (fromIntegral keylen) inputdata (fromIntegral inputlen) bufPtr bufLenPtr
-     bufLen <- liftM fromIntegral $ peek bufLenPtr
+  unsafeUseAsCStringLen input $ \(inputdata, inputlen) -> do
+     _HMAC md
+       keydata (fromIntegral keylen) inputdata (fromIntegral inputlen)
+       bufPtr bufLenPtr
+     bufLen <- fromIntegral <$> peek bufLenPtr
      B8.packCStringLen (bufPtr, bufLen)
 
 -- | Calculate a PKCS5-PBKDF2 SHA1-HMAC suitable for password hashing.
@@ -219,7 +114,9 @@ pkcs5_pbkdf2_hmac_sha1 pass salt iter dkeylen =
            (fromIntegral iter) (fromIntegral dkeylen) (castPtr dkeydata)
       >> return ()
 
-foreign import ccall unsafe "PKCS5_PBKDF2_HMAC_SHA1" _PKCS5_PBKDF2_HMAC_SHA1 :: Ptr CChar -> CInt
-                                                                             -> Ptr CChar -> CInt
-                                                                             -> CInt -> CInt -> Ptr CChar
-                                                                             -> IO CInt
+foreign import ccall unsafe "PKCS5_PBKDF2_HMAC_SHA1"
+  _PKCS5_PBKDF2_HMAC_SHA1 :: Ptr CChar -> CInt
+                          -> Ptr CChar -> CInt
+                          -> CInt -> CInt -> Ptr CChar
+                          -> IO CInt
+

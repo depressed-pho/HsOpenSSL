@@ -18,6 +18,7 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.EVP.Digest
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Internal
 import           OpenSSL.Utils
 
 -- |@'VerifyStatus'@ represents a result of verification.
