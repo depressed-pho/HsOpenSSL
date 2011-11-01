@@ -1,5 +1,6 @@
 {- -*- haskell -*- -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_HADDOCK prune #-}
 
 -- |An interface to asymmetric cipher keypair.
@@ -7,21 +8,12 @@
 #include "HsOpenSSL.h"
 
 module OpenSSL.EVP.PKey
-    ( PublicKey(..)
+    ( PKey
+    , PublicKey(..)
     , KeyPair(..)
     , SomePublicKey
     , SomeKeyPair
-
-    -- private
-    , PKey(..)
-    , EVP_PKEY
-    , withPKeyPtr
-    , withPKeyPtr'
-    , wrapPKeyPtr
-    , unsafePKeyToPtr
-    , touchPKey
-    )
-    where
+    ) where
 
 import           Data.Typeable
 import           Data.Maybe
@@ -29,29 +21,9 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.DSA
 import           OpenSSL.EVP.Digest hiding (digest)
+import           OpenSSL.EVP.Internal
 import           OpenSSL.RSA
 import           OpenSSL.Utils
-
--- VaguePKey is a ForeignPtr to EVP_PKEY, that is either public key or
--- a ker pair. We can't tell which at compile time.
-newtype VaguePKey = VaguePKey (ForeignPtr EVP_PKEY)
-data    EVP_PKEY
-
--- Instances of class PKey can be converted back and forth to
--- VaguePKey.
-class PKey k where
-    -- Wrap the key (i.g. RSA) into EVP_PKEY.
-    toPKey        :: k -> IO VaguePKey
-
-    -- Extract the concrete key from the EVP_PKEY. Returns Nothing if
-    -- the type mismatches.
-    fromPKey      :: VaguePKey -> IO (Maybe k)
-
-    -- Do the same as EVP_PKEY_size().
-    pkeySize      :: k -> Int
-
-    -- Return the default digesting algorithm for the key.
-    pkeyDefaultMD :: k -> IO Digest
 
 -- |Instances of this class has at least public portion of a
 -- keypair. They might or might not have the private key.
@@ -175,35 +147,6 @@ instance PKey SomeKeyPair where
         = withConcreteKeyPair pk (return . Just . SomeKeyPair)
 
 
-foreign import ccall unsafe "EVP_PKEY_new"
-        _pkey_new :: IO (Ptr EVP_PKEY)
-
-foreign import ccall unsafe "&EVP_PKEY_free"
-        _pkey_free :: FunPtr (Ptr EVP_PKEY -> IO ())
-
-
-wrapPKeyPtr :: Ptr EVP_PKEY -> IO VaguePKey
-wrapPKeyPtr
-    = fmap VaguePKey . newForeignPtr _pkey_free
-
-
-withPKeyPtr' :: PKey k => k -> (Ptr EVP_PKEY -> IO a) -> IO a
-withPKeyPtr' k f = do pk <- toPKey k
-                      withPKeyPtr pk f
-
-
-withPKeyPtr :: VaguePKey -> (Ptr EVP_PKEY -> IO a) -> IO a
-withPKeyPtr (VaguePKey pkey) = withForeignPtr pkey
-
-
-unsafePKeyToPtr :: VaguePKey -> Ptr EVP_PKEY
-unsafePKeyToPtr (VaguePKey pkey) = unsafeForeignPtrToPtr pkey
-
-
-touchPKey :: VaguePKey -> IO ()
-touchPKey (VaguePKey pkey) = touchForeignPtr pkey
-
-
 #ifndef OPENSSL_NO_RSA
 -- The resulting Ptr RSA must be freed by caller.
 foreign import ccall unsafe "EVP_PKEY_get1_RSA"
@@ -215,10 +158,9 @@ foreign import ccall unsafe "EVP_PKEY_set1_RSA"
 
 rsaToPKey :: RSAKey k => k -> IO VaguePKey
 rsaToPKey rsa
-    = withRSAPtr rsa $ \ rsaPtr ->
-      do pkeyPtr <- _pkey_new >>= failIfNull
-         _set1_RSA pkeyPtr rsaPtr >>= failIf_ (/= 1)
-         wrapPKeyPtr pkeyPtr
+    = withRSAPtr rsa $ \rsaPtr ->
+        createPKey $ \pkeyPtr ->
+          _set1_RSA pkeyPtr rsaPtr >>= failIf_ (/= 1)
 
 rsaFromPKey :: RSAKey k => VaguePKey -> IO (Maybe k)
 rsaFromPKey pk
@@ -255,10 +197,9 @@ foreign import ccall unsafe "EVP_PKEY_set1_DSA"
 
 dsaToPKey :: DSAKey k => k -> IO VaguePKey
 dsaToPKey dsa
-    = withDSAPtr dsa $ \ dsaPtr ->
-      do pkeyPtr <- _pkey_new >>= failIfNull
-         _set1_DSA pkeyPtr dsaPtr >>= failIf_ (/= 1)
-         wrapPKeyPtr pkeyPtr
+    = withDSAPtr dsa $ \dsaPtr ->
+        createPKey $ \pkeyPtr ->
+          _set1_DSA pkeyPtr dsaPtr >>= failIf_ (/= 1)
 
 dsaFromPKey :: DSAKey k => VaguePKey -> IO (Maybe k)
 dsaFromPKey pk

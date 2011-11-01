@@ -16,6 +16,7 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Internal
 import           OpenSSL.Utils
 
 
@@ -31,7 +32,7 @@ foreign import ccall unsafe "EVP_OpenInit"
 
 openInit :: KeyPair key => Cipher -> String -> String -> key -> IO CipherCtx
 openInit cipher encKey iv pkey
-    = do ctx <- newCtx
+    = do ctx <- newCipherCtx
          withCipherCtxPtr ctx $ \ ctxPtr ->
              withCStringLen encKey $ \ (encKeyPtr, encKeyLen) ->
                  withCString iv $ \ ivPtr ->

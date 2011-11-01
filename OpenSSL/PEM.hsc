@@ -48,6 +48,7 @@ import           Foreign.C
 import           OpenSSL.BIO
 import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Internal
 import           OpenSSL.DH.Internal
 import           OpenSSL.PKCS7
 import           OpenSSL.Utils

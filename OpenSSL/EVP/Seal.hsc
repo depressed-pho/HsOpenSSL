@@ -16,6 +16,7 @@ import           Foreign
 import           Foreign.C
 import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey
+import           OpenSSL.EVP.Internal
 import           OpenSSL.Utils
 
 
@@ -36,7 +37,7 @@ sealInit _ []
     = fail "sealInit: at least one public key is required"
 
 sealInit cipher pubKeys
-    = do ctx <- newCtx
+    = do ctx <- newCipherCtx
 
          -- Allocate a list of buffers to write encrypted symmetric
          -- keys. Each keys will be at most pkeySize bytes long.

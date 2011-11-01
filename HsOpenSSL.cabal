@@ -87,6 +87,7 @@ Library
           OpenSSL.Stack
           OpenSSL.Utils
           OpenSSL.X509.Name
+          OpenSSL.EVP.Internal
           OpenSSL.DH.Internal
   Extensions:
           ForeignFunctionInterface, EmptyDataDecls, MagicHash,

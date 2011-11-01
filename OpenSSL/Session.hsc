@@ -85,6 +85,7 @@ import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
 
 import OpenSSL.EVP.PKey
+import OpenSSL.EVP.Internal
 import OpenSSL.Utils
 import OpenSSL.X509 (X509, X509_, wrapX509, withX509Ptr)
 import OpenSSL.X509.Store

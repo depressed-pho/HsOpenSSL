@@ -17,7 +17,11 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 import Control.Applicative ((<$>))
 import Foreign.Ptr (Ptr, nullPtr)
+#if __GLASGOW_HASKELL__ >= 703
+import Foreign.C.Types (CInt(..))
+#else
 import Foreign.C.Types (CInt)
+#endif
 import Foreign.Marshal.Alloc (alloca)
 import OpenSSL.BN
 import OpenSSL.DH.Internal
