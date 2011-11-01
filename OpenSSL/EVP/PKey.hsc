@@ -1,7 +1,6 @@
 {- -*- haskell -*- -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# OPTIONS_HADDOCK prune #-}
 
 -- |An interface to asymmetric cipher keypair.
 
@@ -13,17 +12,17 @@ module OpenSSL.EVP.PKey
     , KeyPair(..)
     , SomePublicKey
     , SomeKeyPair
-    ) where
-
-import           Data.Typeable
-import           Data.Maybe
-import           Foreign
-import           Foreign.C
-import           OpenSSL.DSA
-import           OpenSSL.EVP.Digest hiding (digest)
-import           OpenSSL.EVP.Internal
-import           OpenSSL.RSA
-import           OpenSSL.Utils
+    )
+    where
+import Data.Typeable
+import Data.Maybe
+import Foreign
+import Foreign.C
+import OpenSSL.DSA
+import OpenSSL.EVP.Digest
+import OpenSSL.EVP.Internal
+import OpenSSL.RSA
+import OpenSSL.Utils
 
 -- |Instances of this class has at least public portion of a
 -- keypair. They might or might not have the private key.

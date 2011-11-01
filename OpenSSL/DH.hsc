@@ -1,17 +1,17 @@
 -- | Diffie-Hellman key exchange
-module OpenSSL.DH (
-    DHP,
-    DH,
-    DHGen(..),
-    genDHParams,
-    getDHLength,
-    checkDHParams,
-    genDH,
-    getDHParams,
-    getDHPublicKey,
-    computeDHKey,
-  ) where
-
+module OpenSSL.DH
+    ( DHP
+    , DH
+    , DHGen(..)
+    , genDHParams
+    , getDHLength
+    , checkDHParams
+    , genDH
+    , getDHParams
+    , getDHPublicKey
+    , computeDHKey
+    )
+    where
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS

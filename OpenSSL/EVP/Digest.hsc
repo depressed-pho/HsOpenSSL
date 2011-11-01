@@ -1,7 +1,5 @@
 {- -*- haskell -*- -}
 
-{-# OPTIONS_HADDOCK prune #-}
-
 -- |An interface to message digest algorithms.
 
 #include "HsOpenSSL.h"
@@ -65,6 +63,7 @@ digestBS :: Digest -> B8.ByteString -> String
 digestBS md input
     = unsafePerformIO $ digestStrictly md input >>= digestFinal
 
+-- |Same as 'digestBS' but returns 'B8.ByteString' instead.
 digestBS' :: Digest -> B8.ByteString -> B8.ByteString
 digestBS' md input
     = unsafePerformIO $ digestStrictly md input >>= digestFinalBS

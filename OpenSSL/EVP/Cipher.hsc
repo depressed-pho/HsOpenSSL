@@ -1,7 +1,5 @@
 {- -*- haskell -*- -}
 
-{-# OPTIONS_HADDOCK prune #-}
-
 -- |An interface to symmetric cipher algorithms.
 
 #include "HsOpenSSL.h"
@@ -19,15 +17,14 @@ module OpenSSL.EVP.Cipher
     , cipherStrictLBS
     )
     where
-
-import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
+import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Foreign
-import           Foreign.C
-import           OpenSSL.Objects
-import           OpenSSL.Utils
-import           OpenSSL.EVP.Internal
+import Foreign
+import Foreign.C
+import OpenSSL.Objects
+import OpenSSL.Utils
+import OpenSSL.EVP.Internal
 
 foreign import ccall unsafe "EVP_get_cipherbyname"
         _get_cipherbyname :: CString -> IO (Ptr EVP_CIPHER)
