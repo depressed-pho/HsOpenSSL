@@ -1,7 +1,13 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.1.1 to ?
+--------------------------
+* Applied a patch by Mikhail Vorozhtsov:
+  - Moved all EVP-related private functions to OpenSSL.EVP.Internal.
+
+
 Changes from 0.10.1 to 0.10.1.1
------------------------------------
+-------------------------------
 * Applied a patch by Peter Gammie:
   - GHC 6.12.3 friendliness: don't use Control.Monad.void
 
