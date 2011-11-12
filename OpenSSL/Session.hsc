@@ -53,7 +53,6 @@ module OpenSSL.Session
   , WantConnect
   , WantAccept
   , WantX509Lookup
-  , SSLIOError
   , ProtocolError
   , UnknownError(..)
   ) where
@@ -61,7 +60,7 @@ module OpenSSL.Session
 #include "openssl/ssl.h"
 
 import Prelude hiding (catch, read, ioError, mapM, mapM_)
-import Control.Concurrent (threadWaitWrite, threadWaitRead)
+import Control.Concurrent (threadWaitWrite, threadWaitRead, runInBoundThread)
 import Control.Concurrent.QSem
 import Control.Exception
 import Control.Applicative ((<$>), (<$))
@@ -84,6 +83,7 @@ import System.IO.Unsafe
 import System.Posix.Types (Fd(..))
 import Network.Socket (Socket(..))
 
+import OpenSSL.ERR
 import OpenSSL.EVP.PKey
 import OpenSSL.EVP.Internal
 import OpenSSL.Utils
@@ -337,9 +337,23 @@ throwSSLException (#const SSL_ERROR_ZERO_RETURN     ) = throwIO ConnectionCleanl
 throwSSLException (#const SSL_ERROR_WANT_CONNECT    ) = throwIO WantConnect
 throwSSLException (#const SSL_ERROR_WANT_ACCEPT     ) = throwIO WantAccept
 throwSSLException (#const SSL_ERROR_WANT_X509_LOOKUP) = throwIO WantX509Lookup
-throwSSLException (#const SSL_ERROR_SYSCALL         ) = throwIO SSLIOError
 throwSSLException (#const SSL_ERROR_SSL             ) = throwIO ProtocolError
 throwSSLException x = throwIO (UnknownError (fromIntegral x))
+
+inspectSyscallError :: String -> CInt -> IO a
+inspectSyscallError loc ret
+    = do e <- getError
+         if e == 0 then
+             if ret == 0 then
+                 throwIO ConnectionAbruptlyTerminated
+             else
+                 do errno <- getErrno
+                    if errno == ePIPE then
+                        throwIO ConnectionAbruptlyTerminated
+                      else
+                        ioError (errnoToIOError loc errno Nothing Nothing)
+           else
+             errorString e >>= fail
 
 -- | This is the type of an SSL IO operation. EOF and termination are handled
 --   by exceptions while everything else is one of these. Note that reading
@@ -361,17 +375,23 @@ sslBlock action ssl = do
 -- | Perform an SSL operation which can return non-blocking error codes, thus
 --   requesting that the operation be performed when data or buffer space is
 --   availible.
-sslTryHandshake :: (Ptr SSL_ -> IO CInt) -> SSL -> IO (SSLResult CInt)
-sslTryHandshake action = flip withSSL $ \pSsl -> do
-  n <- action pSsl
-  if n >= 0
-    then return $ SSLDone n
-    else do
-      err <- _ssl_get_error pSsl n
-      case err of
-        (#const SSL_ERROR_WANT_READ)  -> return WantRead
-        (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
-        _ -> throwSSLException err
+sslTryHandshake :: (Ptr SSL_ -> IO CInt)
+                -> (CInt -> Bool)
+                -> SSL
+                -> IO (SSLResult CInt)
+sslTryHandshake action isSuccess
+    = flip withSSL $ \pSsl ->
+      runInBoundThread $
+      do n <- action pSsl
+         if isSuccess n then
+             return $ SSLDone n
+           else
+             do err <- _ssl_get_error pSsl n
+                case err of
+                  (#const SSL_ERROR_WANT_READ ) -> return WantRead
+                  (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
+                  (#const SSL_ERROR_SYSCALL   ) -> inspectSyscallError "sslTryHandshake" n
+                  _ -> throwSSLException err
 
 -- | Perform an SSL server handshake
 accept :: SSL -> IO ()
@@ -380,7 +400,7 @@ accept = sslBlock tryAccept
 -- | Try to perform an SSL server handshake without blocking
 tryAccept :: SSL -> IO (SSLResult ())
 tryAccept ssl = do
-  result <- sslTryHandshake _ssl_accept ssl
+  result <- sslTryHandshake _ssl_accept (== 1) ssl
   forM result $ failIf_ (/= 1)
 
 -- | Perform an SSL client handshake
@@ -390,7 +410,7 @@ connect = sslBlock tryConnect
 -- | Try to perform an SSL client handshake without blocking
 tryConnect :: SSL -> IO (SSLResult ())
 tryConnect ssl = do
-  result <- sslTryHandshake _ssl_connect ssl
+  result <- sslTryHandshake _ssl_connect (== 1) ssl
   forM result $ failIf_ (/= 1)
 
 foreign import ccall "SSL_read" _ssl_read :: Ptr SSL_ -> Ptr Word8 -> CInt -> IO CInt
@@ -410,21 +430,23 @@ sslIOInner :: (Ptr SSL_ -> Ptr Word8 -> CInt -> IO CInt)  -- ^ the SSL IO functi
            -> Int  -- ^ the length to pass
            -> Ptr SSL_
            -> IO (SSLResult CInt)
-sslIOInner f ptr nbytes ssl = do
-  n <- f ssl (castPtr ptr) $ fromIntegral nbytes
-  case n of
-       n | n > 0 -> return $ SSLDone $ fromIntegral n
-         | n == 0 -> do
-           shutdown <- _ssl_get_shutdown ssl
-           if shutdown .&. (#const SSL_RECEIVED_SHUTDOWN) == 0
-              then throw ConnectionAbruptlyTerminated
-              else ioError $ mkIOError eofErrorType  "" Nothing Nothing
-       _ -> do
-           err <- _ssl_get_error ssl n
-           case err of
-                (#const SSL_ERROR_WANT_READ) -> return WantRead
-                (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
-                _ -> throwSSLException err
+sslIOInner f ptr nbytes ssl
+    = runInBoundThread $
+      do n <- f ssl (castPtr ptr) $ fromIntegral nbytes
+         case n of
+           n | n > 0  -> return $ SSLDone $ fromIntegral n
+             | n == 0 ->
+                 do shutdown <- _ssl_get_shutdown ssl
+                    if shutdown .&. (#const SSL_RECEIVED_SHUTDOWN) == 0 then
+                        throwIO ConnectionAbruptlyTerminated
+                      else
+                        ioError $ mkIOError eofErrorType  "" Nothing Nothing
+           _ -> do err <- _ssl_get_error ssl n
+                   case err of
+                     (#const SSL_ERROR_WANT_READ ) -> return WantRead
+                     (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
+                     (#const SSL_ERROR_SYSCALL   ) -> inspectSyscallError "sslIOInner" n
+                     _ -> throwSSLException err
 
 catchEOF :: a -> IO a -> IO a
 catchEOF x m = m `catch` \e -> if isEOFError e then return x else throwIO e
@@ -505,7 +527,7 @@ shutdown ssl ty = sslBlock (`tryShutdown` ty) ssl
 -- | Try to cleanly shutdown an SSL connection without blocking.
 tryShutdown :: SSL -> ShutdownType -> IO (SSLResult ())
 tryShutdown ssl ty = do
-  result <- sslTryHandshake _ssl_shutdown ssl
+  result <- sslTryHandshake _ssl_shutdown (>= 0) ssl
   case result of
     SSLDone n -> case ty of
       Bidirectional | n /= 1 -> tryShutdown ssl ty
@@ -620,20 +642,6 @@ data WantX509Lookup
       deriving (Typeable, Show, Eq)
 
 instance Exception WantX509Lookup where
-    toException   = sslExceptionToException
-    fromException = sslExceptionFromException
-
--- | Some I\/O error occurred. The OpenSSL error queue may contain
--- more information on the error. If the error queue is empty
--- (i.e. ERR_get_error() returns 0), ret can be used to find out more
--- about the error: If ret == 0, an EOF was observed that violates the
--- protocol. If ret == -1, the underlying BIO reported an I\/O error
--- (for socket I\/O on Unix systems, consult errno for details).
-data SSLIOError
-    = SSLIOError
-      deriving (Typeable, Show, Eq)
-
-instance Exception SSLIOError where
     toException   = sslExceptionToException
     fromException = sslExceptionFromException
 

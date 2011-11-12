@@ -5,6 +5,10 @@ Changes from 0.10.1.1 to ?
 * Applied a patch by Mikhail Vorozhtsov:
   - Moved all EVP-related private functions to OpenSSL.EVP.Internal.
 
+* Fixed erroneous error handling in OpenSSL.Session:
+  - SSL_get_error() must be called within the OS thread which caused
+    the failed operation as it inspects the thread-local storage.
+
 
 Changes from 0.10.1 to 0.10.1.1
 -------------------------------
