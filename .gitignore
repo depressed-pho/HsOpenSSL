@@ -1,7 +1,6 @@
 *.hi
 *.o
 
-.ditz-config
 Setup
 dist
 examples/GenRSAKey

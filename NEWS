@@ -1,7 +1,7 @@
 -*- coding: utf-8 -*-
 
-Changes from 0.10.1.1 to ?
---------------------------
+Changes from 0.10.1.1 to 0.10.1.2
+---------------------------------
 * Applied a patch by Mikhail Vorozhtsov:
   - Moved all EVP-related private functions to OpenSSL.EVP.Internal.
 

@@ -1,26 +1,27 @@
-Name: HsOpenSSL
-Synopsis: (Incomplete) OpenSSL binding for Haskell
+Name:         HsOpenSSL
+Synopsis:     (Incomplete) OpenSSL binding for Haskell
 Description:
-        HsOpenSSL is an (incomplete) OpenSSL binding for Haskell. It
-        can generate RSA and DSA keys, read and write PEM files,
-        generate message digests, sign and verify messages, encrypt
-        and decrypt messages. It also has some capabilities of
-        creating SSL clients and servers.
-Version: 0.10.1.1
-License: PublicDomain
-License-File: COPYING
-Author: Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
-Maintainer: PHO <pho at cielonegro dot org>
-Stability: stable
-Homepage: http://cielonegro.org/HsOpenSSL.html
-Bug-Reports: http://static.cielonegro.org/ditz/HsOpenSSL/
-Category: Cryptography
-Tested-With: GHC == 7.0.3
+    HsOpenSSL is an (incomplete) OpenSSL binding for Haskell. It can
+    generate RSA and DSA keys, read and write PEM files, generate
+    message digests, sign and verify messages, encrypt and decrypt
+    messages. It has also some capabilities of creating SSL clients
+    and servers.
+Version:       0.10.1.2
+License:       PublicDomain
+License-File:  COPYING
+Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
+Maintainer:    PHO <pho at cielonegro dot org>
+Stability:     stable
+Homepage:      https://github.com/phonohawk/HsOpenSSL
+Bug-Reports:   https://github.com/phonohawk/HsOpenSSL/issues
+Category:      Cryptography
+Tested-With:   GHC == 7.0.3
 Cabal-Version: >= 1.6
-Build-Type: Simple
+Build-Type:    Simple
 Extra-Source-Files:
     AUTHORS
     NEWS
+    README.rst
     cbits/HsOpenSSL.h
     cbits/mutex.h
     examples/Makefile
