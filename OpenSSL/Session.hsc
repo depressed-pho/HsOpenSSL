@@ -451,13 +451,15 @@ write ssl bs = sslBlock (`tryWrite` bs) ssl >> return ()
 -- | Try to write a given ByteString to the SSL connection without blocking.
 tryWrite :: SSL -> B.ByteString -> IO (SSLResult ())
 tryWrite ssl bs
-    = B.unsafeUseAsCStringLen bs $ \(ptr, len) ->
-      do result <- sslIOInner "SSL_write" _ssl_write ptr len ssl
-         case result of
-           SSLDone 0 -> ioError $ errnoToIOError "SSL_write" ePIPE Nothing Nothing
-           SSLDone _ -> return $ SSLDone ()
-           WantRead  -> return WantRead
-           WantWrite -> return WantWrite
+    | B.null bs = return $ SSLDone ()
+    | otherwise
+        = B.unsafeUseAsCStringLen bs $ \(ptr, len) ->
+          do result <- sslIOInner "SSL_write" _ssl_write ptr len ssl
+             case result of
+               SSLDone 0 -> ioError $ errnoToIOError "SSL_write" ePIPE Nothing Nothing
+               SSLDone _ -> return $ SSLDone ()
+               WantRead  -> return WantRead
+               WantWrite -> return WantWrite
 
 -- | Lazily read all data until reaching EOF. If the connection dies
 --   without a graceful SSL shutdown, an exception is raised.
