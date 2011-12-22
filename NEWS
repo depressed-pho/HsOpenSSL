@@ -1,5 +1,12 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.1.2 to (unreleased)
+-------------------------------------
+* OpenSSL.Session:
+  - SSL, SSLContext, SSLResult, ShutdownType and VerificationMode are
+    now instances of Typeable.
+
+
 Changes from 0.10.1.1 to 0.10.1.2
 ---------------------------------
 * Applied a patch by Mikhail Vorozhtsov:

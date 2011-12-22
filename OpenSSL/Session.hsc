@@ -102,6 +102,7 @@ data SSLContext = SSLContext { ctxSem  :: QSem
                              , ctxPtr  :: ForeignPtr SSLContext_
                              , ctxVfCb :: IORef (Maybe (FunPtr VerifyCb))
                              }
+                deriving Typeable
 
 data SSLMethod_
 
@@ -212,6 +213,7 @@ data VerificationMode = VerifyNone
                         , vpClientOnce       :: Bool  -- ^ only request once per connection
                         , vpCallback         :: Maybe (Bool -> X509StoreCtx -> IO Bool) -- ^ optional callback
                         }
+                      deriving Typeable
 
 foreign import ccall unsafe "SSL_CTX_set_verify"
    _ssl_set_verify_mode :: Ptr SSLContext_ -> CInt -> FunPtr VerifyCb -> IO ()
@@ -286,6 +288,7 @@ data SSL = SSL { sslSem    :: QSem
                , sslFd     :: Fd -- ^ Get the underlying socket Fd
                , sslSocket :: Maybe Socket -- ^ Get the socket underlying an SSL connection
                }
+           deriving Typeable
 
 foreign import ccall unsafe "SSL_new" _ssl_new :: Ptr SSLContext_ -> IO (Ptr SSL_)
 foreign import ccall unsafe "&SSL_free" _ssl_free :: FunPtr (Ptr SSL_ -> IO ())
@@ -342,7 +345,7 @@ throwSSLException loc ret
 data SSLResult a = SSLDone a  -- ^ operation finished successfully
                  | WantRead   -- ^ needs more data from the network
                  | WantWrite  -- ^ needs more outgoing buffer space
-                 deriving (Eq, Show, Functor, Foldable, Traversable)
+                 deriving (Eq, Show, Functor, Foldable, Traversable, Typeable)
 
 -- | Block until the operation is finished.
 sslBlock :: (SSL -> IO (SSLResult a)) -> SSL -> IO a
@@ -490,7 +493,7 @@ foreign import ccall "SSL_shutdown" _ssl_shutdown :: Ptr SSL_ -> IO CInt
 
 data ShutdownType = Bidirectional  -- ^ wait for the peer to also shutdown
                   | Unidirectional  -- ^ only send our shutdown
-                    deriving (Eq, Show)
+                  deriving (Eq, Show, Typeable)
 
 -- | Cleanly shutdown an SSL connection. Note that SSL has a concept of a
 --   secure shutdown, which is distinct from just closing the TCP connection.
