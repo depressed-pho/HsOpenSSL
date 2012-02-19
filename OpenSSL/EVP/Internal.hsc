@@ -61,7 +61,8 @@ import Foreign.Ptr (Ptr, castPtr, FunPtr)
 import Foreign.C.String (peekCStringLen)
 import Foreign.ForeignPtr (
          ForeignPtr, newForeignPtr, withForeignPtr, addForeignPtrFinalizer,
-         mallocForeignPtrBytes, touchForeignPtr, unsafeForeignPtrToPtr)
+         mallocForeignPtrBytes, touchForeignPtr)
+import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Alloc (alloca, allocaBytes)
 import Foreign.Marshal.Array (allocaArray)
