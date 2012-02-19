@@ -45,7 +45,7 @@ raiseOpenSSLError :: IO a
 raiseOpenSSLError = getError >>= errorString >>= fail
 
 -- | Convert an integer to a hex string
-toHex :: (Bits i) => i -> String
+toHex :: (Num i, Bits i) => i -> String
 toHex = reverse . map hexByte . unfoldr step where
   step 0 = Nothing
   step i = Just (i .&. 0xf, i `shiftR` 4)
@@ -69,7 +69,7 @@ toHex = reverse . map hexByte . unfoldr step where
   hexByte _  = undefined
 
 -- | Convert a hex string to an integer
-fromHex :: (Bits i) => String -> i
+fromHex :: (Num i, Bits i) => String -> i
 fromHex = foldl step 0 where
   step acc hexchar = (acc `shiftL` 4) .|. byteHex hexchar
 
