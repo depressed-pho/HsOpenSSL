@@ -12,7 +12,8 @@ module OpenSSL.EVP.Open
 
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Foreign
+import           Foreign hiding (unsafePerformIO)
+import           System.IO.Unsafe (unsafePerformIO)
 import           Foreign.C
 import           OpenSSL.EVP.Cipher hiding (cipher)
 import           OpenSSL.EVP.PKey

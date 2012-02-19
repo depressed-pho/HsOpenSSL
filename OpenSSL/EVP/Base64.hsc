@@ -22,8 +22,9 @@ import qualified Data.ByteString.Lazy.Internal as L8Internal
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.List
-import           Foreign
+import           Foreign hiding (unsafePerformIO)
 import           Foreign.C
+import           System.IO.Unsafe (unsafePerformIO)
 
 
 -- On encoding, we keep fetching the next block until we get at least
