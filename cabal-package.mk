@@ -18,6 +18,12 @@ HPC      ?= hpc
 DITZ     ?= ditz
 
 CONFIGURE_ARGS ?= --disable-optimization
+HADDOCK_OPTS   ?= --hyperlink-source
+HLINT_OPTS     ?= \
+	--hint=Default --hint=Dollar --hint=Generalise \
+	--cross \
+	--ignore="Parse error" \
+	--report=dist/report.html
 
 SETUP_FILE := $(wildcard Setup.*hs)
 CABAL_FILE := $(wildcard *.cabal)
@@ -73,6 +79,10 @@ $(BUILDINFO_FILE): $(BUILDINFO_IN_FILE) configure
 Setup: $(SETUP_FILE)
 	$(GHC) --make Setup
 
+reconfigure:
+	rm -f dist/setup-config
+	$(MAKE) setup-config
+
 clean: clean-hook
 	$(RM_RF) dist Setup *.o *.hi .setup-config *.buildinfo *.tix .hpc
 	$(FIND) . -name '*~' -exec rm -f {} \;
@@ -80,7 +90,7 @@ clean: clean-hook
 clean-hook:
 
 doc: setup-config
-	./Setup haddock
+	./Setup haddock $(HADDOCK_OPTS)
 
 install: build
 	$(SUDO) ./Setup install
@@ -96,9 +106,7 @@ test: build
 		$(HPC) markup --destdir="dist/hpc" --fun-entry-count "merged.tix"; \
 	fi
 
-ditz:
-	$(DITZ) html dist/ditz
-
+# -- Find FIXME Tags ----------------------------------------------------------
 fixme:
 	@$(FIND) . \
 		\( -name 'dist' -or -name '.git' -or -name '_darcs' \) -prune \
@@ -106,25 +114,54 @@ fixme:
 		\( -name '*.c'   -or -name '*.h'   -or \
 		   -name '*.hs'  -or -name '*.lhs' -or \
 		   -name '*.hsc' -or -name '*.cabal' \) \
-		-exec egrep -i '(fixme|thinkme)' {} \+ \
-		|| echo 'No FIXME or THINKME found.'
+		-exec egrep 'FIXME|THINKME|TODO' {} \+ \
+		|| echo 'No FIXME, THINKME, nor TODO found.'
 
+# -- HLint --------------------------------------------------------------------
+HLINT_TARGETS ?= $$(find -E . -type d -name dist -prune -o -regex '.*\.(hsc?|lhs)' -print)
 lint:
-	$(HLINT) . --report
+	$(HLINT) $(HLINT_TARGETS) $(HLINT_OPTS)
 
-push: doc ditz
+# -- Ditz the Distributed Issue Tracker ---------------------------------------
+ifeq (,$(wildcard .ditz-config))
+ditz:
+else
+ditz:
+	$(DITZ) html dist/ditz
+
+ChangeLog:
+	rm -f $@
+	$(DITZ) releases | awk '{print $$1}' | sort --reverse | while read i; do \
+		$(DITZ) changelog $$i >> $@; \
+	done
+	head $@
+endif
+
+# -- Pushing to remote hosts --------------------------------------------------
+push: push-repo push-ditz push-doc
+
+push-repo:
 	if [ -d "_darcs" ]; then \
 		darcs push; \
 	elif [ -d ".git" ]; then \
 		git push --all && git push --tags; \
 	fi
+
+push-ditz: ditz
+	if [ -d "dist/ditz" ]; then \
+		rsync -av --delete \
+			dist/ditz/ \
+			www@nem.cielonegro.org:static.cielonegro.org/htdocs/ditz/$(PKG_NAME); \
+	fi
+
+push-doc: doc
 	if [ -d "dist/doc" ]; then \
 		rsync -av --delete \
 			dist/doc/html/$(PKG_NAME)/ \
 			www@nem.cielonegro.org:static.cielonegro.org/htdocs/doc/$(PKG_NAME); \
 	fi
-	rsync -av --delete \
-		dist/ditz/ \
-		www@nem.cielonegro.org:static.cielonegro.org/htdocs/ditz/$(PKG_NAME)
 
-.PHONY: build build-hook setup-config setup-config-hook run clean clean-hook install doc sdist test lint push
+# -- Phony Targets ------------------------------------------------------------
+.PHONY: build build-hook setup-config setup-config-hook run clean clean-hook \
+		install doc sdist test lint push push-repo push-ditz push-doc \
+		ChangeLog
