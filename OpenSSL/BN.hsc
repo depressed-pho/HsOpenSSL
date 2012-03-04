@@ -43,9 +43,12 @@ module OpenSSL.BN
     where
 
 import           Control.Exception hiding (try)
-import           Foreign
 import qualified Data.ByteString as BS
+import           Foreign.Marshal
+import           Foreign.Ptr
+import           Foreign.Storable
 import           OpenSSL.Utils
+import           System.IO.Unsafe
 
 #ifndef __GLASGOW_HASKELL__
 import           Control.Monad
