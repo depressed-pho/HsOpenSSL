@@ -24,7 +24,8 @@ import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Control.Applicative ((<$>))
-import           Foreign
+import           Foreign hiding (unsafePerformIO)
+import           System.IO.Unsafe (unsafePerformIO)
 import           Foreign.C
 import           OpenSSL.EVP.Internal
 import           OpenSSL.Objects

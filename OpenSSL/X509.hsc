@@ -53,7 +53,8 @@ module OpenSSL.X509
 import           Control.Monad
 import           Data.Time.Clock
 import           Data.Maybe
-import           Foreign
+import           Foreign hiding (unsafeForeignPtrToPtr)
+import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import           Foreign.C
 import           OpenSSL.ASN1
 import           OpenSSL.BIO

@@ -32,7 +32,8 @@ module OpenSSL.RSA
 
 import           Control.Monad
 import           Data.Typeable
-import           Foreign
+import           Foreign hiding (unsafePerformIO)
+import           System.IO.Unsafe (unsafePerformIO)
 import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils

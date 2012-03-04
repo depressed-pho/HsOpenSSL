@@ -34,7 +34,8 @@ module OpenSSL.DSA
 import           Control.Monad
 import qualified Data.ByteString as BS
 import           Data.Typeable
-import           Foreign
+import           Foreign hiding (unsafePerformIO)
+import           System.IO.Unsafe (unsafePerformIO)
 import           Foreign.C (CString)
 import           Foreign.C.Types
 import           OpenSSL.BN
