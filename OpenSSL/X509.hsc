@@ -1,5 +1,3 @@
-{- -*- haskell -*- -}
-
 {-# OPTIONS_HADDOCK prune #-}
 
 -- |An interface to X.509 certificate.
@@ -49,22 +47,26 @@ module OpenSSL.X509
     , getSubjectEmail
     )
     where
-
-import           Control.Monad
-import           Data.Time.Clock
-import           Data.Maybe
-import           Foreign hiding (unsafeForeignPtrToPtr)
-import           Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
-import           Foreign.C
-import           OpenSSL.ASN1
-import           OpenSSL.BIO
-import           OpenSSL.EVP.Digest hiding (digest)
-import           OpenSSL.EVP.PKey
-import           OpenSSL.EVP.Verify
-import           OpenSSL.EVP.Internal
-import           OpenSSL.Utils
-import           OpenSSL.Stack
-import           OpenSSL.X509.Name
+import Control.Monad
+import Data.Time.Clock
+import Data.Maybe
+import Foreign.ForeignPtr
+#if MIN_VERSION_base(4,4,0)
+import Foreign.ForeignPtr.Unsafe as Unsafe
+#else
+import Foreign.ForeignPtr as Unsafe
+#endif
+import Foreign.Ptr
+import Foreign.C
+import OpenSSL.ASN1
+import OpenSSL.BIO
+import OpenSSL.EVP.Digest
+import OpenSSL.EVP.PKey
+import OpenSSL.EVP.Verify
+import OpenSSL.EVP.Internal
+import OpenSSL.Utils
+import OpenSSL.Stack
+import OpenSSL.X509.Name
 
 -- |@'X509'@ is an opaque object that represents X.509 certificate.
 newtype X509  = X509 (ForeignPtr X509_)
@@ -170,7 +172,7 @@ withX509Stack = withForeignStack unsafeX509ToPtr touchX509
 
 
 unsafeX509ToPtr :: X509 -> Ptr X509_
-unsafeX509ToPtr (X509 x509) = unsafeForeignPtrToPtr x509
+unsafeX509ToPtr (X509 x509) = Unsafe.unsafeForeignPtrToPtr x509
 
 
 touchX509 :: X509 -> IO ()
@@ -200,10 +202,10 @@ signX509 :: KeyPair key =>
 signX509 x509 key mDigest
     = withX509Ptr x509 $ \ x509Ptr ->
       withPKeyPtr' key $ \ pkeyPtr ->
-      do digest <- case mDigest of
-                     Just md -> return md
-                     Nothing -> pkeyDefaultMD key
-         withMDPtr digest $ \ digestPtr ->
+      do dig <- case mDigest of
+                  Just md -> return md
+                  Nothing -> pkeyDefaultMD key
+         withMDPtr dig $ \ digestPtr ->
              _sign x509Ptr pkeyPtr digestPtr
                   >>= failIf_ (== 0)
          return ()

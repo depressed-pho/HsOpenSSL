@@ -1,4 +1,3 @@
-
 module OpenSSL.EVP.Internal ( 
     Cipher(..),
     EVP_CIPHER,
@@ -59,10 +58,12 @@ import Foreign.C.Types (CInt, CUInt, CSize)
 #endif
 import Foreign.Ptr (Ptr, castPtr, FunPtr)
 import Foreign.C.String (peekCStringLen)
-import Foreign.ForeignPtr (
-         ForeignPtr, newForeignPtr, withForeignPtr, addForeignPtrFinalizer,
-         mallocForeignPtrBytes, touchForeignPtr)
-import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
+import Foreign.ForeignPtr
+#if MIN_VERSION_base(4,4,0)
+import Foreign.ForeignPtr.Unsafe as Unsafe
+#else
+import Foreign.ForeignPtr as Unsafe
+#endif
 import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Alloc (alloca, allocaBytes)
 import Foreign.Marshal.Array (allocaArray)
@@ -301,7 +302,7 @@ withPKeyPtr' k f = do
   withPKeyPtr pk f
 
 unsafePKeyToPtr :: VaguePKey -> Ptr EVP_PKEY
-unsafePKeyToPtr (VaguePKey pkey) = unsafeForeignPtrToPtr pkey
+unsafePKeyToPtr (VaguePKey pkey) = Unsafe.unsafeForeignPtrToPtr pkey
 
 touchPKey :: VaguePKey -> IO ()
 touchPKey (VaguePKey pkey) = touchForeignPtr pkey
