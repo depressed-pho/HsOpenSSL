@@ -12,10 +12,10 @@ Description:
     package (<http://hackage.haskell.org/package/tls>), which looks
     pretty saner than HsOpenSSL especially for initialisation and
     error handlings. So PHO (the initial author of HsOpenSSL) highly
-    recommends you to use and improve the tls package instead of this
-    as long as possible.
+    encourages you to use and improve the tls package instead as long
+    as possible.
     .
-Version:       0.10.1.3
+Version:       0.10.1.4
 License:       PublicDomain
 License-File:  COPYING
 Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen

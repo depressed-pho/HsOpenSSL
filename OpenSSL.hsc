@@ -1,10 +1,16 @@
 {- -*- haskell -*- -}
 
--- |HsOpenSSL is an (incomplete) OpenSSL binding for Haskell. It can
--- generate RSA and DSA keys, read and write PEM files, generate
--- message digests, sign and verify messages, encrypt and decrypt
--- messages.  But since OpenSSL is a very large library, it is uneasy
--- to cover every parts of it.
+-- |HsOpenSSL is an OpenSSL binding for Haskell. It can generate RSA
+-- and DSA keys, read and write PEM files, generate message digests,
+-- sign and verify messages, encrypt and decrypt messages.
+--
+-- Please note that this project has started at the time when there
+-- were no pure-Haskell implementations of TLS. Now there is tls
+-- package (<http://hackage.haskell.org/package/tls>), which looks
+-- pretty saner than HsOpenSSL especially for initialisation and error
+-- handlings. So PHO (the initial author of HsOpenSSL) highly
+-- encourages you to use and improve the tls package instead as long
+-- as possible.
 --
 -- Features that aren't (yet) supported:
 --
@@ -35,10 +41,6 @@
 --
 --   [/ENGINE cryptographic module/] The default implementations work
 --   very well, don't they?
---
--- So if you find out any features you want aren't supported, you must
--- write your own patch (or take over the HsOpenSSL project). Happy
--- hacking.
 
 #include "HsOpenSSL.h"
 

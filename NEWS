@@ -1,5 +1,11 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.1.3 to 0.10.1.4
+---------------------------------
+* Fixed #7 "Haskell Platform 2011.4 Support", reported by stepcut:
+  - Foreign.ForeignPtr.Unsafe does not exist prior to base-4.4
+
+
 Changes from 0.10.1.2 to 0.10.1.3
 ---------------------------------
 * OpenSSL.Session:
