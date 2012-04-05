@@ -40,9 +40,6 @@ import           Foreign.C (CString)
 import           Foreign.C.Types
 import           OpenSSL.BN
 import           OpenSSL.Utils
-#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 612)
-import           System.IO.Unsafe
-#endif
 
 -- | The type of a DSA public key, includes parameters p, q, g and public.
 newtype DSAPubKey = DSAPubKey (ForeignPtr DSA)

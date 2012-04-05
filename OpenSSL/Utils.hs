@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 module OpenSSL.Utils
     ( failIfNull
     , failIfNull_
@@ -10,14 +9,12 @@ module OpenSSL.Utils
     , peekCStringCLen
     )
     where
-
-import           Foreign
-import           Foreign.C
-import           OpenSSL.ERR
-import           Data.List (unfoldr)
-#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__)
-import           Data.Bits ((.&.), (.|.), shiftR, shiftL)
-#endif
+import Foreign.C.String
+import Foreign.C.Types
+import Foreign.Ptr
+import OpenSSL.ERR
+import Data.Bits
+import Data.List
 
 failIfNull :: Ptr a -> IO (Ptr a)
 failIfNull ptr
@@ -96,7 +93,6 @@ fromHex = foldl step 0 where
   byteHex 'E' = 14
   byteHex 'F' = 15
   byteHex _   = undefined
-
 
 peekCStringCLen :: (Ptr CChar, CInt) -> IO String
 peekCStringCLen (p, n)

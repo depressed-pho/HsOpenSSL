@@ -1,4 +1,4 @@
-module OpenSSL.EVP.Internal ( 
+module OpenSSL.EVP.Internal (
     Cipher(..),
     EVP_CIPHER,
     withCipherPtr,
@@ -51,7 +51,7 @@ import qualified Data.ByteString.Lazy.Internal as L8
 import Control.Applicative ((<$>))
 import Control.Exception (mask, mask_, bracket_, onException)
 import Foreign.C.Types (CChar)
-#if __GLASGOW_HASKELL__ >= 703
+#if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types (CInt(..), CUInt(..), CSize(..))
 #else
 import Foreign.C.Types (CInt, CUInt, CSize)
@@ -306,4 +306,3 @@ unsafePKeyToPtr (VaguePKey pkey) = Unsafe.unsafeForeignPtrToPtr pkey
 
 touchPKey :: VaguePKey -> IO ()
 touchPKey (VaguePKey pkey) = touchForeignPtr pkey
-

@@ -1,5 +1,21 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.1.4 to 0.10.2
+-------------------------------
+* Merged #9 "Add raw pointer read/write operations" by Iavor
+  S. Diatchki:
+
+  - OpenSSL.Session.readPtr
+  - OpenSSL.Session.tryReadPtr
+  - OpenSSL.Session.writePtr
+  - OpenSSL.Session.tryWritePtr
+
+* Fixed #8 "HsOpenSSL 0.10.1.4 won't build" reported by vcxp:
+
+  - Workaround for broken versions of Cabal, including one that comes
+    with ghc-7.0.4.
+
+
 Changes from 0.10.1.3 to 0.10.1.4
 ---------------------------------
 * Fixed #7 "Haskell Platform 2011.4 Support", reported by stepcut:

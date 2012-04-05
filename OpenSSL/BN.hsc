@@ -50,20 +50,20 @@ import           Foreign.Storable
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
-#ifndef __GLASGOW_HASKELL__
-import           Control.Monad
-import           Foreign.C
-#else
+#ifdef __GLASGOW_HASKELL__
 import           Foreign.C.Types
 import           GHC.Base
-#if __GLASGOW_HASKELL__ < 612
+#  if MIN_VERSION_integer_gmp(0,2,0)
+import           GHC.Integer.GMP.Internals
+#  else
 import           GHC.Num
 import           GHC.Prim
 import           GHC.Integer.Internals
 import           GHC.IOBase (IO(..))
+#  endif
 #else
-import           GHC.Integer.GMP.Internals
-#endif
+import           Control.Monad
+import           Foreign.C
 #endif
 
 -- |'BigNum' is an opaque object representing a big number.
@@ -282,11 +282,11 @@ mpiToBN mpi = do
   BS.useAsCStringLen mpi (\(ptr, len) -> do
     _mpi2bn ptr (fromIntegral len) nullPtr) >>= return . wrapBN
 
--- | Convert an Integer to an MPI. SEe bnToMPI for the format
+-- | Convert an Integer to an MPI. See bnToMPI for the format
 integerToMPI :: Integer -> IO BS.ByteString
 integerToMPI v = bracket (integerToBN v) (_free . unwrapBN) bnToMPI
 
--- | Convert an MPI to an Integer. SEe bnToMPI for the format
+-- | Convert an MPI to an Integer. See bnToMPI for the format
 mpiToInteger :: BS.ByteString -> IO Integer
 mpiToInteger mpi = do
   bn <- mpiToBN mpi

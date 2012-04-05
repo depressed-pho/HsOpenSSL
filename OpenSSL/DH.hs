@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -- | Diffie-Hellman key exchange
 module OpenSSL.DH
     ( DHP
@@ -17,7 +18,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 import Control.Applicative ((<$>))
 import Foreign.Ptr (Ptr, nullPtr)
-#if __GLASGOW_HASKELL__ >= 703
+#if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types (CInt(..))
 #else
 import Foreign.C.Types (CInt)

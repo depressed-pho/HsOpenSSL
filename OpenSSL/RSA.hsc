@@ -37,9 +37,6 @@ import           System.IO.Unsafe (unsafePerformIO)
 import           Foreign.C
 import           OpenSSL.BN
 import           OpenSSL.Utils
-#if !(defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__)
-import           System.IO.Unsafe
-#endif
 
 -- |@'RSAPubKey'@ is an opaque object that represents RSA public key.
 newtype RSAPubKey  = RSAPubKey (ForeignPtr RSA)

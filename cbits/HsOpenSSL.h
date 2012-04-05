@@ -20,6 +20,16 @@
 #include <openssl/x509v3.h>
 #include <openssl/dsa.h>
 
+/* A dirty hack to work around for broken versions of Cabal:
+ * https://github.com/phonohawk/HsOpenSSL/issues/8
+ *
+ * The trick is to abuse the fact that -Icbits is always passed to
+ * hsc2hs so we can reach the cabal_macros.h from cbits.
+ */
+#if !defined(MIN_VERSION_base)
+#  include "../dist/build/autogen/cabal_macros.h"
+#endif
+
 /* OpenSSL ********************************************************************/
 void HsOpenSSL_OpenSSL_add_all_algorithms();
 void HsOpenSSL_OPENSSL_free(void* ptr);
