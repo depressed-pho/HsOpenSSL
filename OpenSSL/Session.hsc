@@ -34,8 +34,12 @@ module OpenSSL.Session
   , tryConnect
   , read
   , tryRead
+  , readPtr
+  , tryReadPtr
   , write
   , tryWrite
+  , writePtr
+  , tryWritePtr
   , lazyRead
   , lazyWrite
   , shutdown
@@ -444,6 +448,17 @@ tryRead ssl nBytes
                               WantWrite -> return (0,              0, WantWrite )
          return $ bs <$ result
 
+-- | Read some data into a raw pointer buffer.
+-- Retrns the number of bytes read.
+readPtr :: SSL -> Ptr a -> Int -> IO Int
+readPtr ssl ptr len = sslBlock (\h -> tryReadPtr h ptr len) ssl
+
+-- | Try to read some data into a raw pointer buffer, without blocking.
+tryReadPtr :: SSL -> Ptr a -> Int -> IO (SSLResult Int)
+tryReadPtr ssl bufPtr nBytes =
+  fmap (fmap fromIntegral) (sslIOInner "SSL_read" _ssl_read (castPtr bufPtr) nBytes ssl)
+
+
 foreign import ccall "SSL_write" _ssl_write :: Ptr SSL_ -> Ptr Word8 -> CInt -> IO CInt
 
 -- | Write a given ByteString to the SSL connection. Either all the data is
@@ -456,13 +471,24 @@ tryWrite :: SSL -> B.ByteString -> IO (SSLResult ())
 tryWrite ssl bs
     | B.null bs = return $ SSLDone ()
     | otherwise
-        = B.unsafeUseAsCStringLen bs $ \(ptr, len) ->
-          do result <- sslIOInner "SSL_write" _ssl_write ptr len ssl
-             case result of
-               SSLDone 0 -> ioError $ errnoToIOError "SSL_write" ePIPE Nothing Nothing
-               SSLDone _ -> return $ SSLDone ()
-               WantRead  -> return WantRead
-               WantWrite -> return WantWrite
+        = B.unsafeUseAsCStringLen bs $ \(ptr, len) -> tryWritePtr ssl ptr len
+
+-- | Send some data from a raw pointer buffer.
+writePtr :: SSL -> Ptr a -> Int -> IO ()
+writePtr ssl ptr len = sslBlock (\h -> tryWritePtr h ptr len) ssl >> return ()
+
+-- | Send some data from a raw pointer buffer, without blocking.
+tryWritePtr :: SSL -> Ptr a -> Int -> IO (SSLResult ())
+tryWritePtr ssl ptr len =
+  do result <- sslIOInner "SSL_write" _ssl_write (castPtr ptr) len ssl
+     case result of
+       SSLDone 0 -> ioError $ errnoToIOError "SSL_write" ePIPE Nothing Nothing
+       SSLDone _ -> return $ SSLDone ()
+       WantRead  -> return WantRead
+       WantWrite -> return WantWrite
+
+
+
 
 -- | Lazily read all data until reaching EOF. If the connection dies
 --   without a graceful SSL shutdown, an exception is raised.
