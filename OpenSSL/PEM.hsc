@@ -273,23 +273,23 @@ readPublicKey pemStr
 
 {- X.509 certificate --------------------------------------------------------- -}
 
-foreign import ccall unsafe "PEM_write_bio_X509_AUX"
-        _write_bio_X509_AUX :: Ptr BIO_
-                            -> Ptr X509_
-                            -> IO CInt
+foreign import ccall unsafe "PEM_write_bio_X509"
+        _write_bio_X509 :: Ptr BIO_
+                        -> Ptr X509_
+                        -> IO CInt
 
-foreign import ccall safe "PEM_read_bio_X509_AUX"
-        _read_bio_X509_AUX :: Ptr BIO_
-                           -> Ptr (Ptr X509_)
-                           -> FunPtr PemPasswordCallback'
-                           -> Ptr ()
-                           -> IO (Ptr X509_)
+foreign import ccall safe "PEM_read_bio_X509"
+        _read_bio_X509 :: Ptr BIO_
+                       -> Ptr (Ptr X509_)
+                       -> FunPtr PemPasswordCallback'
+                       -> Ptr ()
+                       -> IO (Ptr X509_)
 
 writeX509' :: BIO -> X509 -> IO ()
 writeX509' bio x509
     = withBioPtr bio   $ \ bioPtr  ->
       withX509Ptr x509 $ \ x509Ptr ->
-      _write_bio_X509_AUX bioPtr x509Ptr
+      _write_bio_X509 bioPtr x509Ptr
            >>= failIf (/= 1)
            >>  return ()
 
@@ -306,7 +306,7 @@ readX509' :: BIO -> IO X509
 readX509' bio
     = withBioPtr bio $ \ bioPtr ->
       withCString "" $ \ passPtr ->
-      _read_bio_X509_AUX bioPtr nullPtr nullFunPtr (castPtr passPtr)
+      _read_bio_X509 bioPtr nullPtr nullFunPtr (castPtr passPtr)
            >>= failIfNull
            >>= wrapX509
 
