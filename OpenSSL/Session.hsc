@@ -231,7 +231,7 @@ contextSetVerificationMode context (VerifyPeer reqp oncep cbp) = do
   let mode = (#const SSL_VERIFY_PEER) .|.
              (if reqp then (#const SSL_VERIFY_FAIL_IF_NO_PEER_CERT) else 0) .|.
              (if oncep then (#const SSL_VERIFY_CLIENT_ONCE) else 0)
-  withContext context $ \ctx -> do
+  withContext context $ \ctx -> mask_ $ do
     let cbRef = ctxVfCb context
     newCb <- mapM mkVerifyCb $ (<$> cbp) $ \cb pvf pStoreCtx ->
       cb pvf =<< wrapX509StoreCtx (return ()) pStoreCtx

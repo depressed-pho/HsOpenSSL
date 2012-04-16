@@ -21,15 +21,22 @@ module OpenSSL.X509.Store
 
     , withX509StoreCtxPtr -- private
     , wrapX509StoreCtx -- private
+
+    , getStoreCtxCert
+    , getStoreCtxIssuer
+    , getStoreCtxCRL
+    , getStoreCtxChain
     )
     where
 
 import Control.Applicative ((<$>))
+import Control.Exception (throwIO, mask_)
 import Foreign
 import Foreign.C
 import Foreign.Concurrent as FC
 import OpenSSL.X509
 import OpenSSL.X509.Revocation
+import OpenSSL.Stack
 import OpenSSL.Utils
 
 -- |@'X509Store'@ is an opaque object that represents X.509
@@ -88,10 +95,54 @@ addCRLToStore store crl
 data    X509_STORE_CTX
 newtype X509StoreCtx = X509StoreCtx (ForeignPtr X509_STORE_CTX)
 
+foreign import ccall unsafe "X509_STORE_CTX_get_current_cert"
+  _store_ctx_get_current_cert :: Ptr X509_STORE_CTX -> IO (Ptr X509_)
+
+foreign import ccall unsafe "X509_STORE_CTX_get0_current_issuer"
+  _store_ctx_get0_current_issuer :: Ptr X509_STORE_CTX -> IO (Ptr X509_)
+
+foreign import ccall unsafe "X509_STORE_CTX_get0_current_crl"
+  _store_ctx_get0_current_crl :: Ptr X509_STORE_CTX -> IO (Ptr X509_CRL)
+
+foreign import ccall unsafe "X509_STORE_CTX_get_chain"
+  _store_ctx_get_chain :: Ptr X509_STORE_CTX -> IO (Ptr STACK)
+
+foreign import ccall unsafe "HsOpenSSL_X509_ref"
+  _x509_ref :: Ptr X509_ -> IO ()
+
+foreign import ccall unsafe "HsOpenSSL_X509_CRL_ref"
+  _crl_ref :: Ptr X509_CRL -> IO ()
+
 withX509StoreCtxPtr :: X509StoreCtx -> (Ptr X509_STORE_CTX -> IO a) -> IO a
 withX509StoreCtxPtr (X509StoreCtx fp) = withForeignPtr fp
 
 wrapX509StoreCtx :: IO () -> Ptr X509_STORE_CTX -> IO X509StoreCtx
 wrapX509StoreCtx finaliser ptr =
   X509StoreCtx <$> FC.newForeignPtr ptr finaliser
+
+getStoreCtxCert :: X509StoreCtx -> IO X509
+getStoreCtxCert ctx = withX509StoreCtxPtr ctx $ \pCtx -> do
+  pCert <- _store_ctx_get_current_cert pCtx
+  if pCert == nullPtr
+    then throwIO $ userError "BUG: NULL certificate in X509_STORE_CTX"
+    else mask_ $ _x509_ref pCert >> wrapX509 pCert
+
+getStoreCtxIssuer :: X509StoreCtx -> IO (Maybe X509)
+getStoreCtxIssuer ctx = withX509StoreCtxPtr ctx $ \pCtx -> do
+  pCert <- _store_ctx_get0_current_issuer pCtx
+  if pCert == nullPtr
+    then return Nothing
+    else fmap Just $ mask_ $ _x509_ref pCert >> wrapX509 pCert
+
+getStoreCtxCRL :: X509StoreCtx -> IO (Maybe CRL)
+getStoreCtxCRL ctx = withX509StoreCtxPtr ctx $ \pCtx -> do
+  pCrl <- _store_ctx_get0_current_crl pCtx
+  if pCrl == nullPtr
+    then return Nothing
+    else fmap Just $ mask_ $ _crl_ref pCrl >> wrapCRL pCrl
+
+getStoreCtxChain :: X509StoreCtx -> IO [X509]
+getStoreCtxChain ctx = withX509StoreCtxPtr ctx $ \pCtx -> do
+  stack <- _store_ctx_get_chain pCtx
+  (`mapStack` stack) $ \pCert -> mask_ $ _x509_ref pCert >> wrapX509 pCert
 
