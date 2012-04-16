@@ -103,6 +103,13 @@ STACK_OF(X509_REVOKED)* HsOpenSSL_X509_CRL_get_REVOKED(X509_CRL* crl) {
     return X509_CRL_get_REVOKED(crl);
 }
 
+void HsOpenSSL_X509_ref(X509* x509) {
+    CRYPTO_add(&x509->references, 1, CRYPTO_LOCK_X509);
+}
+
+void HsOpenSSL_X509_CRL_ref(X509_CRL* crl) {
+    CRYPTO_add(&crl->references, 1, CRYPTO_LOCK_X509_CRL);
+}
 
 /* PKCS#7 *********************************************************************/
 long HsOpenSSL_PKCS7_is_detached(PKCS7* pkcs7) {
