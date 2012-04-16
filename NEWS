@@ -1,5 +1,20 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.2.1 to 0.10.3
+-------------------------------
+* Merged #12 "Bindings to some of the X509_STORE_CTX functions" by
+  Mikhail Vorozhtsov:
+
+  - New functions in OpenSSL.X509.Store:
+    - getStoreCtxCert
+    - getStoreCtxIssuer
+    - getStoreCtxCRL
+    - getStoreCtxChain
+
+* Merged #13 "Fixed early verification callback deallocation crash" by
+  Mikhail Vorozhtsov.
+
+
 Changes from 0.10.2 to 0.10.2.1
 -------------------------------
 * Merged #10 "Fix X509 PEM reading/writing" by Mikhail Vorozhtsov:
