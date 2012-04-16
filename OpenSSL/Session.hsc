@@ -288,6 +288,7 @@ data SSL_
 --   object at a time, because they aren't really in the SSL object, they are
 --   waiting for the RTS to wake the Haskell thread.
 data SSL = SSL { sslSem    :: QSem
+               , sslCtx    :: SSLContext
                , sslPtr    :: ForeignPtr SSL_
                , sslFd     :: Fd -- ^ Get the underlying socket Fd
                , sslSocket :: Maybe Socket -- ^ Get the socket underlying an SSL connection
@@ -301,12 +302,14 @@ foreign import ccall unsafe "SSL_set_fd" _ssl_set_fd :: Ptr SSL_ -> CInt -> IO (
 connection' :: SSLContext -> Fd -> Maybe Socket -> IO SSL
 connection' context fd@(Fd fdInt) sock = do
   sem <- newQSem 1
-  ssl <- withContext context $ \ctx -> do
-    ssl <- _ssl_new ctx >>= failIfNull
-    _ssl_set_fd ssl fdInt
-    return ssl
-  fpssl <- newForeignPtr _ssl_free ssl
+  fpssl <- mask_ $ do
+    ssl <- withContext context $ \ctx -> do
+      ssl <- _ssl_new ctx >>= failIfNull
+      _ssl_set_fd ssl fdInt
+      return ssl
+    newForeignPtr _ssl_free ssl
   return $ SSL { sslSem    = sem
+               , sslCtx    = context
                , sslPtr    = fpssl
                , sslFd     = fd
                , sslSocket = sock
