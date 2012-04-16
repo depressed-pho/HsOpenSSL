@@ -1,5 +1,16 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.2 to 0.10.2.1
+-------------------------------
+* Merged #10 "Fix X509 PEM reading/writing" by Mikhail Vorozhtsov:
+
+  - OpenSSL.PEM.readX509 now uses PEM_read_bio_X509() instead of
+    PEM_read_bio_X509_AUX().
+
+  - OpenSSL.PEM.writeX509 now uses PEM_write_bio_X509() instead of
+    PEM_write_bio_X509_AUX().
+
+
 Changes from 0.10.1.4 to 0.10.2
 -------------------------------
 * Merged #9 "Add raw pointer read/write operations" by Iavor

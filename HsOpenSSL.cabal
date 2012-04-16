@@ -15,7 +15,7 @@ Description:
     encourages you to use and improve the tls package instead as long
     as possible.
     .
-Version:       0.10.2
+Version:       0.10.2.1
 License:       PublicDomain
 License-File:  COPYING
 Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
@@ -47,7 +47,13 @@ Source-Repository head
     Location: git://github.com/phonohawk/HsOpenSSL.git
 
 Library
-  Build-Depends: base >= 4 && < 5, bytestring, ghc-prim, time >= 1.1.1, old-locale, network>=2.1.0.0
+  Build-Depends:
+      base       >= 4 && < 5,
+      bytestring,
+      ghc-prim,
+      network    >= 2.1.0.0,
+      old-locale,
+      time       >= 1.1.1
 
   if impl(ghc >= 6.11)
       Build-Depends:      integer-gmp
