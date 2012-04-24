@@ -98,10 +98,10 @@ newtype X509StoreCtx = X509StoreCtx (ForeignPtr X509_STORE_CTX)
 foreign import ccall unsafe "X509_STORE_CTX_get_current_cert"
   _store_ctx_get_current_cert :: Ptr X509_STORE_CTX -> IO (Ptr X509_)
 
-foreign import ccall unsafe "X509_STORE_CTX_get0_current_issuer"
+foreign import ccall unsafe "HsOpenSSL_X509_STORE_CTX_get0_current_issuer"
   _store_ctx_get0_current_issuer :: Ptr X509_STORE_CTX -> IO (Ptr X509_)
 
-foreign import ccall unsafe "X509_STORE_CTX_get0_current_crl"
+foreign import ccall unsafe "HsOpenSSL_X509_STORE_CTX_get0_current_crl"
   _store_ctx_get0_current_crl :: Ptr X509_STORE_CTX -> IO (Ptr X509_CRL)
 
 foreign import ccall unsafe "X509_STORE_CTX_get_chain"

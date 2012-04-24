@@ -111,6 +111,22 @@ void HsOpenSSL_X509_CRL_ref(X509_CRL* crl) {
     CRYPTO_add(&crl->references, 1, CRYPTO_LOCK_X509_CRL);
 }
 
+X509* HsOpenSSL_X509_STORE_CTX_get0_current_issuer(X509_STORE_CTX *ctx) {
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+    return X509_STORE_CTX_get0_current_issuer(ctx);
+#else
+    return ctx->current_issuer;
+#endif
+}
+
+X509_CRL* HsOpenSSL_X509_STORE_CTX_get0_current_crl(X509_STORE_CTX *ctx) {
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+    return X509_STORE_CTX_get0_current_crl(ctx);
+#else
+    return ctx->current_crl;
+#endif
+}
+
 /* PKCS#7 *********************************************************************/
 long HsOpenSSL_PKCS7_is_detached(PKCS7* pkcs7) {
     return PKCS7_is_detached(pkcs7);
