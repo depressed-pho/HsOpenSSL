@@ -15,7 +15,7 @@ Description:
     encourages you to use and improve the tls package instead as long
     as possible.
     .
-Version:       0.10.3
+Version:       0.10.3.1
 License:       PublicDomain
 License-File:  COPYING
 Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
