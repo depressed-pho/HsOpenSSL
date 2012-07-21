@@ -58,7 +58,11 @@ module OpenSSL.Session
 
 #include "openssl/ssl.h"
 
-import Prelude hiding (catch, read, ioError, mapM, mapM_)
+import Prelude hiding (
+#if !MIN_VERSION_base(4,6,0)
+  catch,
+#endif
+  read, ioError, mapM, mapM_)
 import Control.Concurrent (threadWaitWrite, threadWaitRead, runInBoundThread)
 import Control.Concurrent.QSem
 import Control.Exception

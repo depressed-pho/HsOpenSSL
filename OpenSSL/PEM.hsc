@@ -55,7 +55,9 @@ import           OpenSSL.Utils
 import           OpenSSL.X509
 import           OpenSSL.X509.Request
 import           OpenSSL.X509.Revocation
+#if !MIN_VERSION_base(4,6,0)
 import           Prelude hiding (catch)
+#endif
 import           System.IO
 
 
