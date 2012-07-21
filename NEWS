@@ -1,9 +1,14 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.3.1 to 0.10.3.2
+---------------------------------
+* Merged #15 "Fixed build with base-4.6" by Mikhail Vorozhtsov.
+
+
 Changes from 0.10.3 to 0.10.3.1
 -------------------------------
 * Merged #14 "Fixed X509_STORE_CTX bindings vs OpenSSL 0.9.x" by
-  Mikhail Vorozhtsov
+  Mikhail Vorozhtsov.
 
 
 Changes from 0.10.2.1 to 0.10.3
