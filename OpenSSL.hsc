@@ -8,9 +8,11 @@
 -- were no pure-Haskell implementations of TLS. Now there is tls
 -- package (<http://hackage.haskell.org/package/tls>), which looks
 -- pretty saner than HsOpenSSL especially for initialisation and error
--- handlings. So PHO (the initial author of HsOpenSSL) highly
--- encourages you to use and improve the tls package instead as long
--- as possible.
+-- handlings. So PHO (the initial author of HsOpenSSL) wants to
+-- encourage you to use and improve the tls package instead as long as
+-- possible. The only problem is that the tls package has not received
+-- as much review as OpenSSL from cryptography specialists yet, thus
+-- we can't assume it's secure enough.
 --
 -- Features that aren't (yet) supported:
 --
