@@ -22,10 +22,8 @@ module OpenSSL.BN
 
       -- * Conversion from\/to Integer
     , peekBN
-#ifdef __GLASGOW_HASKELL__
     , integerToBN
     , bnToInteger
-#endif
     , integerToMPI
     , mpiToInteger
 
@@ -50,7 +48,7 @@ import           Foreign.Storable
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
-#ifdef __GLASGOW_HASKELL__
+#ifdef FAST_BIGNUM
 import           Foreign.C.Types
 import           GHC.Base
 #  if MIN_VERSION_integer_gmp(0,2,0)
@@ -92,7 +90,7 @@ wrapBN :: Ptr BIGNUM -> BigNum
 wrapBN = BigNum
 
 
-#ifndef __GLASGOW_HASKELL__
+#ifndef FAST_BIGNUM
 
 {- slow, safe functions ----------------------------------------------------- -}
 
@@ -105,36 +103,23 @@ foreign import ccall unsafe "BN_dec2bn"
 foreign import ccall unsafe "HsOpenSSL_OPENSSL_free"
         _openssl_free :: Ptr a -> IO ()
 
--- |@'withBN' n f@ converts n to a 'BigNum' and computes @f@. Then it
--- frees the 'BigNum'.
-withBN :: Integer -> (BigNum -> IO a) -> IO a
-withBN dec m
-    = withCString (show dec) $ \ strPtr ->
-      alloca $ \ bnPtr ->
-      do poke bnPtr nullPtr
-         _dec2bn bnPtr strPtr
-              >>= failIf (== 0)
-         bracket (peek bnPtr) _free m
+-- |Convert a BIGNUM to an 'Integer'.
+bnToInteger :: BigNum -> IO Integer
+bnToInteger bn
+    = bracket (do strPtr <- _bn2dec (unwrapBN bn)
+                  when (strPtr == nullPtr) $ fail "BN_bn2dec failed"
+                  return strPtr)
+              _openssl_free
+              ((read `fmap`) . peekCString)
 
--- |@'peekBN' bn@ converts a 'BigNum' to an 'Prelude.Integer'.
-peekBN :: BigNum -> IO Integer
-peekBN bn
-    = do strPtr <- _bn2dec bn
-         when (strPtr == nullPtr) $ fail "BN_bn2dec failed"
-         str <- peekCString strPtr
-         _openssl_free strPtr
-
-         return $ read str
-
-
--- | Return a new, alloced bignum
-newBN :: Integer -> IO BigNum
-newBN i = do
+-- |Return a new, alloced BIGNUM.
+integerToBN :: Integer -> IO BigNum
+integerToBN i = do
   withCString (show i) (\str -> do
     alloca (\bnptr -> do
       poke bnptr nullPtr
-      _dec2bn bnptr str >>= failIf (== 0)
-      peek bnptr))
+      _ <- _dec2bn bnptr str >>= failIf (== 0)
+      wrapBN `fmap` peek bnptr))
 
 #else
 
@@ -240,6 +225,8 @@ integerToBN v@(J## nlimbs_ bytearray)
                    (#poke BIGNUM, neg) (unwrapBN bnptr) (1 :: CInt)
                    return bnptr
 
+#endif
+
 -- TODO: we could make a function which doesn't even allocate BN data if we
 -- wanted to be very fast and dangerout. The BIGNUM could point right into the
 -- Integer's data. However, I'm not sure about the semantics of the GC; which
@@ -250,6 +237,12 @@ integerToBN v@(J## nlimbs_ bytearray)
 withBN :: Integer -> (BigNum -> IO a) -> IO a
 withBN dec m = bracket (integerToBN dec) (_free . unwrapBN) m
 
+foreign import ccall unsafe "BN_bn2mpi"
+        _bn2mpi :: Ptr BIGNUM -> Ptr CChar -> IO CInt
+
+foreign import ccall unsafe "BN_mpi2bn"
+        _mpi2bn :: Ptr CChar -> CInt -> Ptr BIGNUM -> IO (Ptr BIGNUM)
+
 -- |This is an alias to 'bnToInteger'.
 peekBN :: BigNum -> IO Integer
 peekBN = bnToInteger
@@ -257,14 +250,6 @@ peekBN = bnToInteger
 -- |This is an alias to 'integerToBN'.
 newBN :: Integer -> IO BigNum
 newBN = integerToBN
-
-foreign import ccall unsafe "BN_bn2mpi"
-        _bn2mpi :: Ptr BIGNUM -> Ptr CChar -> IO CInt
-
-foreign import ccall unsafe "BN_mpi2bn"
-        _mpi2bn :: Ptr CChar -> CInt -> Ptr BIGNUM -> IO (Ptr BIGNUM)
-
-#endif
 
 -- | Convert a BigNum to an MPI: a serialisation of large ints which has a
 --   4-byte, big endian length followed by the bytes of the number in

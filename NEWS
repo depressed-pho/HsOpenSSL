@@ -3,6 +3,7 @@
 Changes from 0.10.3.1 to 0.10.3.2
 ---------------------------------
 * Merged #15 "Fixed build with base-4.6" by Mikhail Vorozhtsov.
+* Added a configuration flag 'fast-bignum', fixes #16.
 
 
 Changes from 0.10.3 to 0.10.3.1
