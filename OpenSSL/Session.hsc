@@ -64,7 +64,7 @@ import Prelude hiding (
 #endif
   read, ioError, mapM, mapM_)
 import Control.Concurrent (threadWaitWrite, threadWaitRead, runInBoundThread)
-import Control.Concurrent.QSem
+import Control.Concurrent.MVar
 import Control.Exception
 import Control.Applicative ((<$>), (<$))
 import Control.Monad (unless)
@@ -75,7 +75,6 @@ import Data.Maybe (fromMaybe)
 import Data.IORef
 import Foreign
 import Foreign.C
-import qualified Foreign.Concurrent as FC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
@@ -102,12 +101,7 @@ data SSLContext_
 --   start empty and various options are set on them by the functions in this
 --   module. Note that an empty context will pretty much cause any operation to
 --   fail since it doesn't even have any ciphers enabled.
---
---   Contexts are not thread safe so they carry a QSem with them which only
---   lets a single thread work inside them at a time. Thus, one must always use
---   withContext, not withForeignPtr directly.
-data SSLContext = SSLContext { ctxSem  :: QSem
-                             , ctxPtr  :: ForeignPtr SSLContext_
+data SSLContext = SSLContext { ctxMVar :: MVar (Ptr SSLContext_)
                              , ctxVfCb :: IORef (Maybe (FunPtr VerifyCb))
                              }
                 deriving Typeable
@@ -120,24 +114,22 @@ foreign import ccall unsafe "SSLv23_method" _ssl_method :: IO (Ptr SSLMethod_)
 
 -- | Create a new SSL context.
 context :: IO SSLContext
-context = do
+context = mask_ $ do
   ctx   <- _ssl_method >>= _ssl_ctx_new
   cbRef <- newIORef Nothing
-  ptr   <- FC.newForeignPtr ctx $ do
+  mvar  <- newMVar ctx
+  addMVarFinalizer mvar $ do
     _ssl_ctx_free ctx
     readIORef cbRef >>= mapM_ freeHaskellFunPtr
-  sem   <- newQSem 1
-  return $ SSLContext { ctxSem = sem, ctxPtr = ptr, ctxVfCb = cbRef }
+  return $ SSLContext { ctxMVar = mvar, ctxVfCb = cbRef }
 
 -- | Run the given action with the raw context pointer and obtain the lock
 --   while doing so.
 withContext :: SSLContext -> (Ptr SSLContext_ -> IO a) -> IO a
-withContext (SSLContext {ctxSem, ctxPtr}) action = do
-  waitQSem ctxSem
-  finally (withForeignPtr ctxPtr action) $ signalQSem ctxSem
+withContext = withMVar . ctxMVar
 
 touchContext :: SSLContext -> IO ()
-touchContext = touchForeignPtr . ctxPtr
+touchContext = (>> return ()) . isEmptyMVar . ctxMVar
 
 contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO CInt)
                 -> SSLContext -> String -> IO ()
@@ -281,40 +273,35 @@ contextGetCAStore context
 data SSL_
 -- | This is the type of an SSL connection
 --
---   SSL objects are not thread safe, so they carry a QSem around with them
---   which only lets a single thread work inside them at a time. Thus, one must
---   always use withSSL, rather than withForeignPtr directly.
---
 --   IO with SSL objects is non-blocking and many SSL functions return a error
 --   code which signifies that it needs to read or write more data. We handle
 --   these calls and call threadWaitRead and threadWaitWrite at the correct
 --   times. Thus multiple OS threads can be 'blocked' inside IO in the same SSL
 --   object at a time, because they aren't really in the SSL object, they are
 --   waiting for the RTS to wake the Haskell thread.
-data SSL = SSL { sslSem    :: QSem
-               , sslCtx    :: SSLContext
-               , sslPtr    :: ForeignPtr SSL_
+data SSL = SSL { sslCtx    :: SSLContext
+               , sslMVar   :: MVar (Ptr SSL_)
                , sslFd     :: Fd -- ^ Get the underlying socket Fd
                , sslSocket :: Maybe Socket -- ^ Get the socket underlying an SSL connection
                }
            deriving Typeable
 
 foreign import ccall unsafe "SSL_new" _ssl_new :: Ptr SSLContext_ -> IO (Ptr SSL_)
-foreign import ccall unsafe "&SSL_free" _ssl_free :: FunPtr (Ptr SSL_ -> IO ())
+foreign import ccall unsafe "SSL_free" _ssl_free :: Ptr SSL_ -> IO ()
 foreign import ccall unsafe "SSL_set_fd" _ssl_set_fd :: Ptr SSL_ -> CInt -> IO ()
 
 connection' :: SSLContext -> Fd -> Maybe Socket -> IO SSL
 connection' context fd@(Fd fdInt) sock = do
-  sem <- newQSem 1
-  fpssl <- mask_ $ do
+  mvar <- mask_ $ do
     ssl <- withContext context $ \ctx -> do
       ssl <- _ssl_new ctx >>= failIfNull
       _ssl_set_fd ssl fdInt
       return ssl
-    newForeignPtr _ssl_free ssl
-  return $ SSL { sslSem    = sem
-               , sslCtx    = context
-               , sslPtr    = fpssl
+    mvar <- newMVar ssl
+    addMVarFinalizer mvar $ _ssl_free ssl
+    return mvar
+  return $ SSL { sslCtx    = context
+               , sslMVar   = mvar
                , sslFd     = fd
                , sslSocket = sock
                }
@@ -332,9 +319,7 @@ fdConnection :: SSLContext -> Fd -> IO SSL
 fdConnection context fd = connection' context fd Nothing
 
 withSSL :: SSL -> (Ptr SSL_ -> IO a) -> IO a
-withSSL (SSL {sslSem, sslPtr}) action = do
-  waitQSem sslSem
-  finally (withForeignPtr sslPtr action) $ signalQSem sslSem
+withSSL = withMVar . sslMVar
 
 foreign import ccall "SSL_accept" _ssl_accept :: Ptr SSL_ -> IO CInt
 foreign import ccall "SSL_connect" _ssl_connect :: Ptr SSL_ -> IO CInt
