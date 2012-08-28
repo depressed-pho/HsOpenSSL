@@ -17,7 +17,7 @@ Description:
     received as much review as OpenSSL from cryptography specialists
     yet, thus we can't assume it's secure enough.
     .
-Version:       0.10.3.2
+Version:       0.10.3.3
 License:       PublicDomain
 License-File:  COPYING
 Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen

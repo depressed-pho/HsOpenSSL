@@ -1,5 +1,11 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.3.2 to 0.10.3.3
+---------------------------------
+* Merged #17 "Use MVar instead of QSem in OpenSSL.Session" by Mikhail
+  Vorozhtsov.
+
+
 Changes from 0.10.3.1 to 0.10.3.2
 ---------------------------------
 * Merged #15 "Fixed build with base-4.6" by Mikhail Vorozhtsov.
