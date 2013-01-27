@@ -1,5 +1,5 @@
 Name:         HsOpenSSL
-Synopsis:     (Incomplete) OpenSSL binding for Haskell
+Synopsis:     Partial OpenSSL binding for Haskell
 Description:
     .
     HsOpenSSL is an OpenSSL binding for Haskell. It can generate RSA
@@ -7,15 +7,10 @@ Description:
     sign and verify messages, encrypt and decrypt messages. It has
     also some capabilities of creating SSL clients and servers.
     .
-    Please note that this project has started at the time when there
-    were no pure-Haskell implementations of TLS. Now there is tls
-    package (<http://hackage.haskell.org/package/tls>), which looks
-    pretty saner than HsOpenSSL especially for initialisation and
-    error handlings. So PHO (the initial author of HsOpenSSL) wants to
-    encourage you to use and improve the tls package instead as long
-    as possible. The only problem is that the tls package has not
-    received as much review as OpenSSL from cryptography specialists
-    yet, thus we can't assume it's secure enough.
+    This package is in production use by a number of Haskell based
+    systems and stable. You may also be interested in the @tls@ package,
+    <http://hackage.haskell.org/package/tls>, which is a pure Haskell
+    implementation of SSL. 
     .
 Version:       0.10.3.3
 License:       PublicDomain
