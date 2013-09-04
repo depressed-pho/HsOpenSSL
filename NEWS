@@ -1,5 +1,12 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.3.3 to 0.10.3.4
+---------------------------------
+* Fix a compilation issue that occurs when using a different builddir
+  with "cabal build --builddir=DIR", reported by Bit Connor (#23),
+  Gregory Collins (#24) and Bas van Dijk (#25).
+
+
 Changes from 0.10.3.2 to 0.10.3.3
 ---------------------------------
 * Merged #17 "Use MVar instead of QSem in OpenSSL.Session" by Mikhail

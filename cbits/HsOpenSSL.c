@@ -1,3 +1,4 @@
+#define HSOPENSSL_NEED_NOT_INCLUDE_CABAL_MACROS_H 1
 #include "HsOpenSSL.h"
 #include <stdint.h>
 #include "mutex.h"
@@ -205,7 +206,7 @@ static void HsOpenSSL_dynlockDestroyCallback(struct CRYPTO_dynlock_value* val, c
 
 void HsOpenSSL_setupMutex() {
     int i;
-    
+
     mutex_at = OPENSSL_malloc(CRYPTO_num_locks() * sizeof(*mutex_at));
 
     for (i = 0; i < CRYPTO_num_locks(); i++) {
@@ -214,7 +215,7 @@ void HsOpenSSL_setupMutex() {
 
     CRYPTO_set_locking_callback(HsOpenSSL_lockingCallback);
     CRYPTO_set_id_callback(HsOpenSSL_idCallback);
-    
+
     CRYPTO_set_dynlock_create_callback(HsOpenSSL_dynlockCreateCallback);
     CRYPTO_set_dynlock_lock_callback(HsOpenSSL_dynlockLockCallback);
     CRYPTO_set_dynlock_destroy_callback(HsOpenSSL_dynlockDestroyCallback);

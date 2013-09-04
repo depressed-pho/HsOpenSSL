@@ -10,9 +10,9 @@ Description:
     This package is in production use by a number of Haskell based
     systems and stable. You may also be interested in the @tls@ package,
     <http://hackage.haskell.org/package/tls>, which is a pure Haskell
-    implementation of SSL. 
+    implementation of SSL.
     .
-Version:       0.10.3.3
+Version:       0.10.3.4
 License:       PublicDomain
 License-File:  COPYING
 Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
@@ -21,7 +21,7 @@ Stability:     stable
 Homepage:      https://github.com/phonohawk/HsOpenSSL
 Bug-Reports:   https://github.com/phonohawk/HsOpenSSL/issues
 Category:      Cryptography
-Tested-With:   GHC == 7.0.3
+Tested-With:   GHC == 7.6.2
 Cabal-Version: >= 1.6
 Build-Type:    Simple
 Extra-Source-Files:

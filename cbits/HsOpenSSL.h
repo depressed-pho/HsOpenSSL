@@ -23,10 +23,12 @@
 /* A dirty hack to work around for broken versions of Cabal:
  * https://github.com/phonohawk/HsOpenSSL/issues/8
  *
- * The trick is to abuse the fact that -Icbits is always passed to
- * hsc2hs so we can reach the cabal_macros.h from cbits.
+ * The trick is to abuse the fact that -Icbits is (almost) always
+ * passed to hsc2hs so we can reach the cabal_macros.h from cbits, but
+ * see #23, #24 and #25...
  */
-#if !defined(MIN_VERSION_base)
+#if !defined(MIN_VERSION_base) && \
+    !defined(HSOPENSSL_NEED_NOT_INCLUDE_CABAL_MACROS_H)
 #  include "../dist/build/autogen/cabal_macros.h"
 #endif
 
