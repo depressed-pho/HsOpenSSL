@@ -5,6 +5,10 @@ Changes from 0.10.3.4 to 0.10.3.5
 * OpenSSL.withOpenSSL is now safe to be applied redundantly, suggested
   by Andrew Cowie (#26).
 
+* COPYING: Update the license to CC0: copyright waiver with a public
+  license fallback. See
+  http://creativecommons.org/publicdomain/zero/1.0/
+
 
 Changes from 0.10.3.3 to 0.10.3.4
 ---------------------------------
