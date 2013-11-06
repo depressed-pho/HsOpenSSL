@@ -50,8 +50,10 @@ module OpenSSL
     ( withOpenSSL
     )
     where
-
+import Control.Concurrent.MVar
+import Control.Monad
 import OpenSSL.SSL
+import System.IO.Unsafe
 
 
 foreign import ccall "HsOpenSSL_setupMutex"
@@ -59,9 +61,9 @@ foreign import ccall "HsOpenSSL_setupMutex"
 
 
 -- |Computation of @'withOpenSSL' action@ initializes the OpenSSL
--- library and computes @action@. Every applications that use
--- HsOpenSSL must wrap any operations related to OpenSSL with
--- 'withOpenSSL', or they might crash.
+-- library as necessary, and computes @action@. Every application that
+-- uses HsOpenSSL must wrap any operations involving OpenSSL with
+-- 'withOpenSSL', or they might crash:
 --
 -- > module Main where
 -- > import OpenSSL
@@ -70,10 +72,29 @@ foreign import ccall "HsOpenSSL_setupMutex"
 -- > main = withOpenSSL $
 -- >        do ...
 --
+-- Since 0.10.3.5, 'withOpenSSL' is safe to be applied
+-- redundantly. Library authors may wish to wrap their functions not
+-- to force their users to think about initialization:
+--
+-- > get :: URI -> IO Response
+-- > get uri = withOpenSSL $ internalImplementationOfGet uri
+--
 withOpenSSL :: IO a -> IO a
-withOpenSSL act
-    = do loadErrorStrings
-         addAllAlgorithms
-         libraryInit
-         setupMutex
-         act
+withOpenSSL io
+    -- We don't want our initialisation sequence to be interrupted
+    -- halfway.
+    = do modifyMVarMasked_ isInitialised $ \ done ->
+             do unless done $ do loadErrorStrings
+                                 addAllAlgorithms
+                                 libraryInit
+                                 setupMutex
+                return True
+         io
+
+
+-- This variable must be atomically fetched/stored not to initialise
+-- the library twice.
+isInitialised :: MVar Bool
+{-# NOINLINE isInitialised #-}
+isInitialised =
+    unsafePerformIO $ newMVar False

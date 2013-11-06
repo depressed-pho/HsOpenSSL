@@ -1,5 +1,11 @@
 -*- coding: utf-8 -*-
 
+Changes from 0.10.3.4 to 0.10.3.5
+---------------------------------
+* OpenSSL.withOpenSSL is now safe to be applied redundantly, suggested
+  by Andrew Cowie (#26).
+
+
 Changes from 0.10.3.3 to 0.10.3.4
 ---------------------------------
 * Fix a compilation issue that occurs when using a different builddir
