@@ -55,6 +55,9 @@ import Control.Monad
 import OpenSSL.SSL
 import System.IO.Unsafe
 
+#if !MIN_VERSION_base(4,6,0)
+import Control.Exception (onException, mask_)
+#endif
 
 foreign import ccall "HsOpenSSL_setupMutex"
         setupMutex :: IO ()
@@ -91,6 +94,19 @@ withOpenSSL io
                 return True
          io
 
+#if !MIN_VERSION_base(4,6,0)
+{-|
+  Like 'modifyMVar_', but the @IO@ action in the second argument is executed with
+  asynchronous exceptions masked.
+-}
+{-# INLINE modifyMVarMasked_ #-}
+modifyMVarMasked_ :: MVar a -> (a -> IO a) -> IO ()
+modifyMVarMasked_ m io =
+  mask_ $ do
+    a  <- takeMVar m
+    a' <- io a `onException` putMVar m a
+    putMVar m a'
+#endif
 
 -- This variable must be atomically fetched/stored not to initialise
 -- the library twice.
