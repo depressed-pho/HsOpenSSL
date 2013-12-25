@@ -34,6 +34,9 @@ Extra-Source-Files:
     examples/GenRSAKey.hs
     examples/HelloWorld.hs
     examples/PKCS7.hs
+    examples/Server.hs
+    examples/server.crt
+    examples/server.pem
     tests/Base64.hs
     tests/Cipher.hs
     tests/DSA.hs
