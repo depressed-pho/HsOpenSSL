@@ -1,3 +1,14 @@
+2013-12-25  PHO  <pho@cielonegro.org>
+
+	* OpenSSL/Session.hsc (contextSetCertificateChainFile): Add
+	function to support for setting a certificate chain file,
+	Patch by Jacob Stanley.
+
+	* HsOpenSSL.cabal (Extra-Source-Files): Add Server-example files,
+	Patch by Jacob Stanley.
+
+	* HsOpenSSL.cabal (Version): Bump version to 0.10.4
+
 2013-12-11  PHO  <pho@cielonegro.org>
 
 	* OpenSSL.hsc [base < 4.6] (modifyMVar_): Fix compilation,
