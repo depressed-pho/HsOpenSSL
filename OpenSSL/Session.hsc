@@ -14,6 +14,7 @@ module OpenSSL.Session
   , contextSetCertificate
   , contextSetPrivateKeyFile
   , contextSetCertificateFile
+  , contextSetCertificateChainFile
   , contextSetCiphers
   , contextSetDefaultCiphers
   , contextCheckPrivateKey
@@ -177,6 +178,19 @@ contextSetPrivateKeyFile = contextLoadFile _ssl_ctx_use_privatekey_file
 --   and, if that fails, as ASN1. If both fail, an exception is raised.
 contextSetCertificateFile :: SSLContext -> FilePath -> IO ()
 contextSetCertificateFile = contextLoadFile _ssl_ctx_use_certificate_file
+
+foreign import ccall unsafe "SSL_CTX_use_certificate_chain_file"
+   _ssl_ctx_use_certificate_chain_file :: Ptr SSLContext_ -> CString -> IO CInt
+
+-- | Install a certificate chain in a context. The certificates must be in PEM
+-- format and must be sorted starting with the subject's certificate (actual
+-- client or server certificate), followed by intermediate CA certificates if
+-- applicable, and ending at the highest level (root) CA.
+contextSetCertificateChainFile :: SSLContext -> FilePath -> IO ()
+contextSetCertificateChainFile context path =
+  withContext context $ \ctx ->
+    withCString path $ \cpath ->
+      _ssl_ctx_use_certificate_chain_file ctx cpath >>= failIf_ (/= 1)
 
 foreign import ccall unsafe "SSL_CTX_set_cipher_list"
    _ssl_ctx_set_cipher_list :: Ptr SSLContext_ -> CString -> IO CInt
