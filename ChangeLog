@@ -1,3 +1,12 @@
+2014-07-13  PHO  <pho@cielonegro.org>
+
+	* OpenSSL/EVP/Cipher.hsc: Expose cipherInit,  Patch by rons.
+
+	* HsOpenSSL.cabal (Exposed-Modules): Expose OpenSSL.EVP.Internal,
+	Patch by rnos.
+
+	* HsOpenSSL.cabal (Version): Bump version to 0.10.5
+
 2013-12-25  PHO  <pho@cielonegro.org>
 
 	* OpenSSL/Session.hsc (contextSetCertificateChainFile): Add
