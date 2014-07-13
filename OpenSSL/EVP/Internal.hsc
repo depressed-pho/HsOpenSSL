@@ -11,6 +11,8 @@ module OpenSSL.EVP.Internal (
     withCipherCtxPtr,
     withNewCipherCtxPtr,
 
+    CryptoMode(..),
+    cipherInitBS,
     cipherUpdateBS,
     cipherFinalBS,
     cipherStrictly,
@@ -57,7 +59,7 @@ import Foreign.C.Types (CInt(..), CUInt(..), CSize(..))
 import Foreign.C.Types (CInt, CUInt, CSize)
 #endif
 import Foreign.Ptr (Ptr, castPtr, FunPtr)
-import Foreign.C.String (peekCStringLen)
+import Foreign.C.String (CString, peekCStringLen)
 import Foreign.ForeignPtr
 #if MIN_VERSION_base(4,4,0)
 import Foreign.ForeignPtr.Unsafe as Unsafe
@@ -120,6 +122,35 @@ withNewCipherCtxPtr f =
     bracket_ (_cipher_ctx_init ptr) (_cipher_ctx_cleanup' ptr) (f ptr)
 
 {- encrypt/decrypt ----------------------------------------------------------- -}
+
+-- |@CryptoMode@ represents instruction to 'cipher' and such like.
+data CryptoMode = Encrypt | Decrypt
+
+fromCryptoMode :: Num a => CryptoMode -> a
+fromCryptoMode Encrypt = 1
+fromCryptoMode Decrypt = 0
+
+foreign import ccall unsafe "EVP_CipherInit"
+        _CipherInit :: Ptr EVP_CIPHER_CTX
+                    -> Ptr EVP_CIPHER
+                    -> CString
+                    -> CString
+                    -> CInt
+                    -> IO CInt
+
+cipherInitBS :: Cipher
+             -> B8.ByteString -- ^ key
+             -> B8.ByteString -- ^ IV
+             -> CryptoMode
+             -> IO CipherCtx
+cipherInitBS (Cipher c) key iv mode
+    = do ctx <- newCipherCtx
+         withCipherCtxPtr ctx $ \ ctxPtr ->
+             B8.unsafeUseAsCString key $ \ keyPtr ->
+                 B8.unsafeUseAsCString iv $ \ ivPtr ->
+                     _CipherInit ctxPtr c keyPtr ivPtr (fromCryptoMode mode)
+                          >>= failIf_ (/= 1)
+         return ctx
 
 foreign import ccall unsafe "EVP_CipherUpdate"
   _CipherUpdate :: Ptr EVP_CIPHER_CTX -> Ptr CChar -> Ptr CInt

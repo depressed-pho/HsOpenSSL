@@ -1,6 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 import Control.Monad
+import qualified Data.ByteString.Char8 as B8
 import Data.List
 import Data.Maybe
+import Data.Monoid
 import OpenSSL
 import OpenSSL.EVP.Cipher
 import OpenSSL.EVP.Open
@@ -19,24 +22,24 @@ main = withOpenSSL $
           rsa <- generateRSAKey 512 65537 Nothing
 
           let plainText = "Hello, world!"
-          putStrLn ("plain text to encrypt: " ++ plainText)
+          B8.putStrLn ("plain text to encrypt: " `mappend` plainText)
 
           putStrLn ""
 
           putStrLn "encrypting..."
-          (encrypted, [encKey], iv) <- seal des [fromPublicKey rsa] plainText
+          (encrypted, [encKey], iv) <- sealBS des [fromPublicKey rsa] plainText
           
-          putStrLn ("encrypted symmetric key: " ++ binToHex encKey)
-          putStrLn ("IV: " ++ binToHex iv)
-          putStrLn ("encrypted message: " ++ binToHex encrypted)
+          B8.putStrLn ("encrypted symmetric key: " `mappend` binToHex encKey)
+          B8.putStrLn ("IV: " `mappend` binToHex iv)
+          B8.putStrLn ("encrypted message: " `mappend` binToHex encrypted)
 
           putStrLn ""
 
           putStrLn "decrypting..."
-          let decrypted = open des encKey iv rsa encrypted
+          let decrypted = openBS des encKey iv rsa encrypted
 
-          putStrLn ("decrypted message: " ++ decrypted)
+          B8.putStrLn ("decrypted message: " `mappend` decrypted)
 
 
-binToHex :: String -> String
-binToHex bin = concat $ intersperse ":" $ map (printf "%02x" . fromEnum) bin
+binToHex :: B8.ByteString -> B8.ByteString
+binToHex = B8.pack . intercalate ":" . map (printf "%02x" . fromEnum) . B8.unpack

@@ -11,7 +11,6 @@ module OpenSSL.EVP.Digest
 
     , digest
     , digestBS
-    , digestBS'
     , digestLBS
 
     , hmacBS
@@ -56,23 +55,19 @@ getDigestNames = getObjNames MDMethodType True
 -- not contain any letters which aren't in the range of U+0000 -
 -- U+00FF.
 digest :: Digest -> String -> String
+{-# DEPRECATED digest "Use digestBS or digestLBS instead." #-}
 digest md input
-    = digestLBS md $ L8.pack input
+    = B8.unpack $ digestLBS md $ L8.pack input
 
 -- |@'digestBS'@ digests a chunk of data.
-digestBS :: Digest -> B8.ByteString -> String
+digestBS :: Digest -> B8.ByteString -> B8.ByteString
 digestBS md input
-    = unsafePerformIO $ digestStrictly md input >>= digestFinal
-
--- |Same as 'digestBS' but returns 'B8.ByteString' instead.
-digestBS' :: Digest -> B8.ByteString -> B8.ByteString
-digestBS' md input
     = unsafePerformIO $ digestStrictly md input >>= digestFinalBS
 
 -- |@'digestLBS'@ digests a stream of data.
-digestLBS :: Digest -> L8.ByteString -> String
+digestLBS :: Digest -> L8.ByteString -> B8.ByteString
 digestLBS md input
-    = unsafePerformIO $ digestLazily md input >>= digestFinal
+    = unsafePerformIO $ digestLazily md input >>= digestFinalBS
 
 {- HMAC ---------------------------------------------------------------------- -}
 

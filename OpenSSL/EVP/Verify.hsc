@@ -13,6 +13,7 @@ module OpenSSL.EVP.Verify
 
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.ByteString.Unsafe as B8
 import           Data.Typeable
 import           Foreign
 import           Foreign.C
@@ -31,10 +32,14 @@ foreign import ccall unsafe "EVP_VerifyFinal"
         _VerifyFinal :: Ptr EVP_MD_CTX -> Ptr CChar -> CUInt -> Ptr EVP_PKEY -> IO CInt
 
 
-verifyFinalBS :: PublicKey k => DigestCtx -> String -> k -> IO VerifyStatus
+verifyFinalBS :: PublicKey k =>
+                 DigestCtx
+              -> B8.ByteString
+              -> k
+              -> IO VerifyStatus
 verifyFinalBS ctx sig k
     = withDigestCtxPtr ctx $ \ ctxPtr ->
-      withCStringLen sig $ \ (buf, len) ->
+      B8.unsafeUseAsCStringLen sig $ \ (buf, len) ->
       withPKeyPtr' k $ \ pkeyPtr ->
       _VerifyFinal ctxPtr buf (fromIntegral len) pkeyPtr >>= interpret
     where
@@ -52,13 +57,14 @@ verify :: PublicKey key =>
        -> key             -- ^ public key to verify the signature
        -> String          -- ^ input string to verify
        -> IO VerifyStatus -- ^ the result of verification
+{-# DEPRECATED verify "Use verifyBS or verifyLBS instead." #-}
 verify md sig pkey input
-    = verifyLBS md sig pkey (L8.pack input)
+    = verifyLBS md (B8.pack sig) pkey (L8.pack input)
 
 -- |@'verifyBS'@ verifies a signature and a chunk of data.
 verifyBS :: PublicKey key =>
             Digest          -- ^ message digest algorithm to use
-         -> String          -- ^ message signature
+         -> B8.ByteString   -- ^ message signature
          -> key             -- ^ public key to verify the signature
          -> B8.ByteString   -- ^ input string to verify
          -> IO VerifyStatus -- ^ the result of verification
@@ -69,7 +75,7 @@ verifyBS md sig pkey input
 -- |@'verifyLBS'@ verifies a signature of a stream of data.
 verifyLBS :: PublicKey key =>
              Digest          -- ^ message digest algorithm to use
-          -> String          -- ^ message signature
+          -> B8.ByteString   -- ^ message signature
           -> key             -- ^ public key to verify the signature
           -> L8.ByteString   -- ^ input string to verify
           -> IO VerifyStatus -- ^ the result of verification

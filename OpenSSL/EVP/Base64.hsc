@@ -66,6 +66,7 @@ encodeBlock inBS
 -- Base64. The string doesn't have to be finite. Note that the string
 -- must not contain any letters which aren't in the range of U+0000 -
 -- U+00FF.
+{-# DEPRECATED encodeBase64 "Use encodeBase64BS or encodeBase64LBS instead." #-}
 encodeBase64 :: String -> String
 encodeBase64 = L8.unpack . encodeBase64LBS . L8.pack
 
@@ -117,6 +118,7 @@ decodeBlock inBS
 
 -- |@'decodeBase64' str@ lazilly decodes a stream of data from
 -- Base64. The string doesn't have to be finite.
+{-# DEPRECATED decodeBase64 "Use decodeBase64BS or decodeBase64LBS instead." #-}
 decodeBase64 :: String -> String
 decodeBase64 = L8.unpack . decodeBase64LBS . L8.pack
 

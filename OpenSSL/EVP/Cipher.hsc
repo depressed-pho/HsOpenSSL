@@ -11,20 +11,18 @@ module OpenSSL.EVP.Cipher
 
     , CryptoMode(..)
 
-    , cipherInit
     , cipher
     , cipherBS
     , cipherLBS
     , cipherStrictLBS
     )
     where
-import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
+import Data.Monoid
 import Foreign
 import Foreign.C
 import OpenSSL.Objects
-import OpenSSL.Utils
 import OpenSSL.EVP.Internal
 
 foreign import ccall unsafe "EVP_get_cipherbyname"
@@ -49,26 +47,6 @@ getCipherNames = getObjNames CipherMethodType True
 
 {- encrypt/decrypt ----------------------------------------------------------- -}
 
--- |@CryptoMode@ represents instruction to 'cipher' and such like.
-data CryptoMode = Encrypt | Decrypt
-
-cryptoModeToInt :: CryptoMode -> CInt
-cryptoModeToInt Encrypt = 1
-cryptoModeToInt Decrypt = 0
-
-foreign import ccall unsafe "EVP_CipherInit"
-        _CipherInit :: Ptr EVP_CIPHER_CTX -> Ptr EVP_CIPHER -> CString -> CString -> CInt -> IO CInt
-
-cipherInit :: Cipher -> String -> String -> CryptoMode -> IO CipherCtx
-cipherInit (Cipher c) key iv mode
-    = do ctx <- newCipherCtx
-         withCipherCtxPtr ctx $ \ ctxPtr ->
-             withCString key $ \ keyPtr ->
-                 withCString iv $ \ ivPtr ->
-                     _CipherInit ctxPtr c keyPtr ivPtr (cryptoModeToInt mode)
-                          >>= failIf_ (/= 1)
-         return ctx
-
 -- | Encrypt a lazy bytestring in a strict manner. Does not leak the keys.
 cipherStrictLBS :: Cipher         -- ^ Cipher
                 -> B8.ByteString  -- ^ Key
@@ -76,15 +54,11 @@ cipherStrictLBS :: Cipher         -- ^ Cipher
                 -> CryptoMode     -- ^ Encrypt\/Decrypt
                 -> L8.ByteString  -- ^ Input
                 -> IO L8.ByteString
-cipherStrictLBS (Cipher c) key iv mode input =
-  withNewCipherCtxPtr $ \cptr ->
-  unsafeUseAsCStringLen key $ \(keyp,_) ->
-  unsafeUseAsCStringLen iv  $ \(ivp, _) -> do
-  failIf_ (/= 1) =<< _CipherInit cptr c keyp ivp (cryptoModeToInt mode)
-  cc <- fmap CipherCtx (newForeignPtr_ cptr)
-  rr <- cipherUpdateBS cc `mapM` L8.toChunks input
-  rf <- cipherFinalBS cc
-  return $ L8.fromChunks (rr++[rf])
+cipherStrictLBS c key iv mode input =
+    do ctx <- cipherInitBS c key iv mode
+       xs  <- cipherUpdateBS ctx `mapM` L8.toChunks input
+       x   <- cipherFinalBS  ctx
+       return $ L8.fromChunks (xs `mappend` [x])
 
 -- |@'cipher'@ lazilly encrypts or decrypts a stream of data. The
 -- input string doesn't necessarily have to be finite.
@@ -97,29 +71,30 @@ cipher :: Cipher     -- ^ algorithm to use
                      --   which aren't in the range of U+0000 -
                      --   U+00FF.
        -> IO String  -- ^ the result string
+{-# DEPRECATED cipher "Use cipherBS, cipherLBS or cipherStrictLBS." #-}
 cipher c key iv mode input
-    = fmap L8.unpack $ cipherLBS c key iv mode $ L8.pack input
+    = fmap L8.unpack $ cipherLBS c (B8.pack key) (B8.pack iv) mode (L8.pack input)
 
 -- |@'cipherBS'@ strictly encrypts or decrypts a chunk of data.
-cipherBS :: Cipher        -- ^ algorithm to use
-         -> String        -- ^ symmetric key
-         -> String        -- ^ IV
-         -> CryptoMode    -- ^ operation
+cipherBS :: Cipher           -- ^ algorithm to use
+         -> B8.ByteString    -- ^ symmetric key
+         -> B8.ByteString    -- ^ IV
+         -> CryptoMode       -- ^ operation
          -> B8.ByteString    -- ^ input string to encrypt\/decrypt
          -> IO B8.ByteString -- ^ the result string
 cipherBS c key iv mode input
-    = do ctx <- cipherInit c key iv mode
+    = do ctx <- cipherInitBS c key iv mode
          cipherStrictly ctx input
 
 -- |@'cipherLBS'@ lazilly encrypts or decrypts a stream of data. The
 -- input string doesn't necessarily have to be finite.
-cipherLBS :: Cipher            -- ^ algorithm to use
-          -> String            -- ^ symmetric key
-          -> String            -- ^ IV
-          -> CryptoMode        -- ^ operation
+cipherLBS :: Cipher           -- ^ algorithm to use
+          -> B8.ByteString    -- ^ symmetric key
+          -> B8.ByteString    -- ^ IV
+          -> CryptoMode       -- ^ operation
           -> L8.ByteString    -- ^ input string to encrypt\/decrypt
           -> IO L8.ByteString -- ^ the result string
 cipherLBS c key iv mode input
-    = do ctx <- cipherInit c key iv mode
+    = do ctx <- cipherInitBS c key iv mode
          cipherLazily ctx input
 

@@ -1,4 +1,4 @@
-GHCFLAGS = -O2 -fglasgow-exts
+GHCFLAGS = -O2
 
 build:
 	ghc $(GHCFLAGS) --make GenRSAKey

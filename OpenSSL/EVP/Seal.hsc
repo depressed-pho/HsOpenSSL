@@ -31,7 +31,9 @@ foreign import ccall unsafe "EVP_SealInit"
                   -> IO CInt
 
 
-sealInit :: Cipher -> [SomePublicKey] -> IO (CipherCtx, [String], String)
+sealInit :: Cipher
+         -> [SomePublicKey]
+         -> IO (CipherCtx, [B8.ByteString], B8.ByteString)
 
 sealInit _ []
     = fail "sealInit: at least one public key is required"
@@ -74,8 +76,8 @@ sealInit cipher pubKeys
              cleanup >> raiseOpenSSLError
            else
              do encKeysLen <- peekArray nKeys encKeyBufsLenPtr
-                encKeys    <- mapM peekCStringCLen $ zip encKeyBufs encKeysLen
-                iv         <- peekCString ivPtr
+                encKeys    <- mapM B8.packCStringLen $ zip encKeyBufs (fromIntegral `fmap` encKeysLen)
+                iv         <- B8.packCStringLen (ivPtr, cipherIvLength cipher)
                 cleanup
                 return (ctx, encKeys, iv)
     where
@@ -96,21 +98,29 @@ seal :: Cipher          -- ^ symmetric cipher algorithm to use
                         --   corresponding private keys can decrypt
                         --   the message.
      -> String          -- ^ input string to encrypt
-     -> IO (String, [String], String) -- ^ (encrypted string, list of
-                                      --   encrypted asymmetric keys,
-                                      --   IV)
+     -> IO ( String
+           , [String]
+           , String
+           ) -- ^ (encrypted string, list of encrypted asymmetric
+             -- keys, IV)
+{-# DEPRECATED seal "Use sealBS or sealLBS instead." #-}
 seal cipher pubKeys input
     = do (output, encKeys, iv) <- sealLBS cipher pubKeys $ L8.pack input
-         return (L8.unpack output, encKeys, iv)
+         return ( L8.unpack output
+                , B8.unpack `fmap` encKeys
+                , B8.unpack iv
+                )
 
 -- |@'sealBS'@ strictly encrypts a chunk of data.
 sealBS :: Cipher          -- ^ symmetric cipher algorithm to use
        -> [SomePublicKey] -- ^ list of public keys to encrypt a
                           --   symmetric key
        -> B8.ByteString   -- ^ input string to encrypt
-       -> IO (B8.ByteString, [String], String) -- ^ (encrypted string,
-                                            --   list of encrypted
-                                            --   asymmetric keys, IV)
+       -> IO ( B8.ByteString
+             , [B8.ByteString]
+             , B8.ByteString
+             ) -- ^ (encrypted string, list of encrypted asymmetric
+               -- keys, IV)
 sealBS cipher pubKeys input
     = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
          output             <- cipherStrictly ctx input
@@ -122,11 +132,11 @@ sealLBS :: Cipher          -- ^ symmetric cipher algorithm to use
         -> [SomePublicKey] -- ^ list of public keys to encrypt a
                            --   symmetric key
         -> L8.ByteString   -- ^ input string to encrypt
-        -> IO (L8.ByteString, [String], String) -- ^ (encrypted
-                                                 --   string, list of
-                                                 --   encrypted
-                                                 --   asymmetric keys,
-                                                 --   IV)
+        -> IO ( L8.ByteString
+              , [B8.ByteString]
+              , B8.ByteString
+              ) -- ^ (encrypted string, list of encrypted asymmetric
+                -- keys, IV)
 sealLBS cipher pubKeys input
     = do (ctx, encKeys, iv) <- sealInit cipher pubKeys
          output             <- cipherLazily ctx input

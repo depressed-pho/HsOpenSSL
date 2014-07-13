@@ -43,13 +43,14 @@ sign :: KeyPair key =>
      -> key       -- ^ private key to sign the message digest
      -> String    -- ^ input string
      -> IO String -- ^ the result signature
+{-# DEPRECATED sign "Use signBS or signLBS instead." #-}
 sign md pkey input
     = fmap L8.unpack $ signLBS md pkey $ L8.pack input
 
 -- |@'signBS'@ generates a signature from a chunk of data.
 signBS :: KeyPair key =>
-          Digest     -- ^ message digest algorithm to use
-       -> key        -- ^ private key to sign the message digest
+          Digest        -- ^ message digest algorithm to use
+       -> key           -- ^ private key to sign the message digest
        -> B8.ByteString -- ^ input string
        -> IO B8.ByteString -- ^ the result signature
 signBS md pkey input

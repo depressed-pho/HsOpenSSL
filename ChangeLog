@@ -1,11 +1,57 @@
 2014-07-13  PHO  <pho@cielonegro.org>
 
-	* OpenSSL/EVP/Cipher.hsc: Expose cipherInit,  Patch by rons.
+	* OpenSSL/EVP/Base64.hsc (encodeBase64, decodeBase64): Mark as
+	deprecated.
 
-	* HsOpenSSL.cabal (Exposed-Modules): Expose OpenSSL.EVP.Internal,
-	Patch by rnos.
+	* OpenSSL/EVP/Cipher.hsc (cipherInit): Removed. Use
+	OpenSSL.EVP.Internal.cipherInitBS instead. This is a
+	backward-incompatible change.
 
-	* HsOpenSSL.cabal (Version): Bump version to 0.10.5
+	* OpenSSL/EVP/Cipher.hsc (cipher): Mark as deprecated.
+
+	* OpenSSL/EVP/Digest.hsc (digest): Mark as deprecated.
+
+	* OpenSSL/EVP/Digest.hsc (digestBS): Changed the return type from
+	String to strict ByteString. This is a backward-incompatible
+	change.
+
+	* OpenSSL/EVP/Digest.hsc (digestBS'): Removed. Use digestBS
+	instead. This is a backward-incompatible change.
+
+	* OpenSSL/EVP/Digest.hsc (digestLBS): Change the return type from
+	String to strict ByteString. This is a backward-incompatible
+	change.
+
+	* OpenSSL/EVP/Open.hsc (open): Mark as deprecated.
+
+	* OpenSSL/EVP/Open.hsc (openBS, openLBS): Take key and IV as a
+	strict ByteString intead of String. This is a
+	backward-incompatible change.
+
+	* OpenSSL/EVP/Seal.hsc (seal): Mark as deprecated.
+
+	* OpenSSL/EVP/Seal.hsc (sealBS, sealLBS): Return key and IV as a
+	strict ByteString intead of String. This is a
+	backward-incompatible change.
+
+	* OpenSSL/EVP/Sign.hsc (sign): Mark as deprecated.
+
+	* OpenSSL/EVP/Verify.hsc (verify): Mark as deprecated.
+
+	* OpenSSL/EVP/Verify.hsc (verifyBS, verifyLBS): Take signature as
+	a strict ByteString instead of String. This is a
+	backward-incompatible change.
+
+        * HsOpenSSL.cabal (Version): Bump version to 0.11
+
+2014-07-13  PHO  <pho@cielonegro.org>
+
+        * OpenSSL/EVP/Cipher.hsc: Expose cipherInit,  Patch by rons.
+
+        * HsOpenSSL.cabal (Exposed-Modules): Expose OpenSSL.EVP.Internal,
+        Patch by rnos.
+
+        * HsOpenSSL.cabal (Version): Bump version to 0.10.5
 
 2013-12-25  PHO  <pho@cielonegro.org>
 
