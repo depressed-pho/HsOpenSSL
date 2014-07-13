@@ -85,6 +85,7 @@ Library
           OpenSSL.EVP.Base64
           OpenSSL.EVP.Cipher
           OpenSSL.EVP.Digest
+          OpenSSL.EVP.Internal
           OpenSSL.EVP.Open
           OpenSSL.EVP.PKey
           OpenSSL.EVP.Seal
@@ -111,7 +112,6 @@ Library
           OpenSSL.Stack
           OpenSSL.Utils
           OpenSSL.X509.Name
-          OpenSSL.EVP.Internal
           OpenSSL.DH.Internal
   Extensions:
           ForeignFunctionInterface, EmptyDataDecls, MagicHash,

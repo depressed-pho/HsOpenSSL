@@ -11,6 +11,7 @@ module OpenSSL.EVP.Cipher
 
     , CryptoMode(..)
 
+    , cipherInit
     , cipher
     , cipherBS
     , cipherLBS
