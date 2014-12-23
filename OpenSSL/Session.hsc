@@ -546,33 +546,48 @@ shutdown ssl ty = sslBlock (`tryShutdown` ty) ssl
 
 -- | Try to cleanly shutdown an SSL connection without blocking.
 tryShutdown :: SSL -> ShutdownType -> IO (SSLResult ())
-tryShutdown ssl ty
-    = runInBoundThread $
-      withSSL ssl $ \sslPtr ->
-      do n <- _ssl_shutdown sslPtr
-         case n of
-           1 -> return $ SSLDone ()
-           0 -> if ty == Bidirectional then
-                    tryShutdown ssl ty
-                else
-                    return $ SSLDone ()
-           _ -> do err <- _ssl_get_error sslPtr n
-                   case err of
-                     (#const SSL_ERROR_WANT_READ ) -> return WantRead
-                     (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
-                     -- SSL_ERROR_SYSCALL/-1 happens when we are
-                     -- trying to send the remote peer a "close
-                     -- notify" alert but the underlying socket was
-                     -- closed at the time. We don't treat this an
-                     -- error /if and only if/ we have already
-                     -- received a "close notify" from the peer.
-                     (#const SSL_ERROR_SYSCALL)
-                         -> do sd <- _ssl_get_shutdown sslPtr
-                               if sd .&. (#const SSL_RECEIVED_SHUTDOWN) == 0 then
-                                   throwSSLException "SSL_shutdown" n
-                                 else
-                                   return $ SSLDone ()
-                     _   -> throwSSLException "SSL_shutdown" n
+tryShutdown ssl ty = runInBoundThread $ withSSL ssl loop
+    where
+      loop :: Ptr SSL_ -> IO (SSLResult ())
+      loop sslPtr
+          = do n <- _ssl_shutdown sslPtr
+               case n of
+                 0 | ty == Bidirectional ->
+                       -- We successfully sent a close notify alert to
+                       -- the peer but haven't got a reply
+                       -- yet. Complete the bidirectional shutdown by
+                       -- calling SSL_shutdown(3) again.
+                       loop sslPtr
+                   | otherwise ->
+                       -- Unidirection shutdown is enough for us.
+                       return $ SSLDone ()
+                 1 ->
+                     -- Shutdown has succeeded, either bidirectionally
+                     -- or unidirectionally.
+                     return $ SSLDone ()
+                 2 ->
+                     -- SSL_shutdown(2) can return 2 according to its
+                     -- documentation. It says we have to retry
+                     -- calling SSL_shutdown(3) in this case.
+                     loop sslPtr
+                 _ -> do err <- _ssl_get_error sslPtr n
+                         case err of
+                           (#const SSL_ERROR_WANT_READ ) -> return WantRead
+                           (#const SSL_ERROR_WANT_WRITE) -> return WantWrite
+                           -- SSL_ERROR_SYSCALL/-1 happens when we are
+                           -- trying to send the remote peer a "close
+                           -- notify" alert but the underlying socket
+                           -- was closed at the time. We don't treat
+                           -- this an error /if and only if/ we have
+                           -- already received a "close notify" from
+                           -- the peer.
+                           (#const SSL_ERROR_SYSCALL)
+                               -> do sd <- _ssl_get_shutdown sslPtr
+                                     if sd .&. (#const SSL_RECEIVED_SHUTDOWN) == 0 then
+                                         throwSSLException "SSL_shutdown" n
+                                       else
+                                         return $ SSLDone ()
+                           _   -> throwSSLException "SSL_shutdown" n
 
 foreign import ccall "SSL_get_peer_certificate" _ssl_get_peer_cert :: Ptr SSL_ -> IO (Ptr X509_)
 

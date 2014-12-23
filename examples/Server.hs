@@ -41,4 +41,3 @@ main' = do
   b <- SSL.read conn 1024
   SSL.write conn b
   SSL.shutdown conn SSL.Bidirectional
-
