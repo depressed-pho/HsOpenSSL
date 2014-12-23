@@ -59,7 +59,9 @@ Library
       ghc-prim,
       network    >= 2.1.0.0,
       old-locale,
-      time       >= 1.1.1
+      time       >= 1.1.1 && < 1.6
+      -- old-locale is only needed if time >= 1.5, but Cabal does not
+      -- allow us to express conditional dependencies like this.
 
   if flag(fast-bignum)
       CPP-Options: -DFAST_BIGNUM

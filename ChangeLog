@@ -1,5 +1,8 @@
 2014-12-23  PHO  <pho@cielonegro.org>
 
+	* OpenSSL/ASN1.hsc (peekASN1Time): Support time-1.5,
+	Patch by Herbert Valerio Riedel (#35).
+
 	* OpenSSL/Session.hsc (context, connection'): Replace
 	addMVarFinalizer with mkWeakMVar to suppress deprecation warnings,
 	Patch by Ryan Desfosses (#33).
