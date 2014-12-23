@@ -10,3 +10,6 @@ examples/Server
 tests/Base64
 tests/Cipher
 tests/DSA
+
+.cabal-sandbox
+cabal.sandbox.config
