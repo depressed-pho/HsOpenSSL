@@ -4,7 +4,7 @@ build:
 	ghc $(GHCFLAGS) --make GenRSAKey
 	ghc $(GHCFLAGS) --make HelloWorld
 	ghc $(GHCFLAGS) --make PKCS7
-	ghc $(GHCFLAGS) --make Server
+	ghc $(GHCFLAGS) --make -threaded Server
 
 run: build
 	./PKCS7
