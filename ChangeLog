@@ -4,9 +4,6 @@
 	addMVarFinalizer with mkWeakMVar to suppress deprecation warnings,
 	Patch by Ryan Desfosses (#33).
 
-	* HsOpenSSL.cabal (Build-Depends): Require base >= 4.6 to use
-	mkWeakMVar.
-
 2014-07-13  PHO  <pho@cielonegro.org>
 
 	* OpenSSL/EVP/Base64.hsc (encodeBase64, decodeBase64): Mark as

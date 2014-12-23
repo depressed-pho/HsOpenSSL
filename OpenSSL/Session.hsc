@@ -119,7 +119,11 @@ context = mask_ $ do
   ctx   <- _ssl_method >>= _ssl_ctx_new
   cbRef <- newIORef Nothing
   mvar  <- newMVar ctx
+#if MIN_VERSION_base(4,6,0)
   _     <- mkWeakMVar mvar
+#else
+  _     <- addMVarFinalizer mvar
+#endif
            $ do _ssl_ctx_free ctx
                 readIORef cbRef >>= mapM_ freeHaskellFunPtr
   return $ SSLContext { ctxMVar = mvar, ctxVfCb = cbRef }
@@ -312,7 +316,11 @@ connection' context fd@(Fd fdInt) sock = do
       _ssl_set_fd ssl fdInt
       return ssl
     mvar <- newMVar ssl
+#if MIN_VERSION_base(4,6,0)
     _    <- mkWeakMVar mvar $ _ssl_free ssl
+#else
+    _    <- addMVarFinalizer mvar $ _ssl_free ssl
+#endif
     return mvar
   return $ SSL { sslCtx    = context
                , sslMVar   = mvar
