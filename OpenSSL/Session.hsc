@@ -10,6 +10,8 @@ module OpenSSL.Session
   ( -- * Contexts
     SSLContext
   , context
+  , contextAddOption
+  , contextRemoveOption
   , contextSetPrivateKey
   , contextSetCertificate
   , contextSetPrivateKeyFile
@@ -29,6 +31,8 @@ module OpenSSL.Session
   , SSLResult(..)
   , connection
   , fdConnection
+  , addOption
+  , removeOption
   , accept
   , tryAccept
   , connect
@@ -50,6 +54,9 @@ module OpenSSL.Session
   , getVerifyResult
   , sslSocket
   , sslFd
+
+    -- * Protocol Options
+  , SSLOption(..)
 
     -- * SSL Exceptions
   , SomeSSLException
@@ -88,6 +95,7 @@ import Network.Socket (Socket(..))
 import OpenSSL.ERR
 import OpenSSL.EVP.PKey
 import OpenSSL.EVP.Internal
+import OpenSSL.SSL.Option
 import OpenSSL.Utils
 import OpenSSL.X509 (X509, X509_, wrapX509, withX509Ptr)
 import OpenSSL.X509.Store
@@ -135,6 +143,24 @@ withContext = withMVar . ctxMVar
 
 touchContext :: SSLContext -> IO ()
 touchContext = (>> return ()) . isEmptyMVar . ctxMVar
+
+foreign import ccall unsafe "HsOpenSSL_SSL_CTX_set_options"
+    _SSL_CTX_set_options :: Ptr SSLContext_ -> CLong -> IO CLong
+
+foreign import ccall unsafe "HsOpenSSL_SSL_CTX_clear_options"
+    _SSL_CTX_clear_options :: Ptr SSLContext_ -> CLong -> IO CLong
+
+-- | Add a protocol option to the context.
+contextAddOption :: SSLContext -> SSLOption -> IO ()
+contextAddOption ctx opt =
+    withContext ctx $ \ctxPtr ->
+        _SSL_CTX_set_options ctxPtr (optionToIntegral opt) >> return ()
+
+-- | Remove a protocol option from the context.
+contextRemoveOption :: SSLContext -> SSLOption -> IO ()
+contextRemoveOption ctx opt =
+    withContext ctx $ \ctxPtr ->
+        _SSL_CTX_clear_options ctxPtr (optionToIntegral opt) >> return ()
 
 contextLoadFile :: (Ptr SSLContext_ -> CString -> CInt -> IO CInt)
                 -> SSLContext -> String -> IO ()
@@ -342,6 +368,24 @@ fdConnection context fd = connection' context fd Nothing
 
 withSSL :: SSL -> (Ptr SSL_ -> IO a) -> IO a
 withSSL = withMVar . sslMVar
+
+foreign import ccall unsafe "HsOpenSSL_SSL_set_options"
+    _SSL_set_options :: Ptr SSL_ -> CLong -> IO CLong
+
+foreign import ccall unsafe "HsOpenSSL_SSL_clear_options"
+    _SSL_clear_options :: Ptr SSL_ -> CLong -> IO CLong
+
+-- | Add a protocol option to the SSL connection.
+addOption :: SSL -> SSLOption -> IO ()
+addOption ssl opt =
+    withSSL ssl $ \sslPtr ->
+        _SSL_set_options sslPtr (optionToIntegral opt) >> return ()
+
+-- | Remove a protocol option from the SSL connection.
+removeOption :: SSL -> SSLOption -> IO ()
+removeOption ssl opt =
+    withSSL ssl $ \sslPtr ->
+        _SSL_clear_options sslPtr (optionToIntegral opt) >> return ()
 
 foreign import ccall "SSL_accept" _ssl_accept :: Ptr SSL_ -> IO CInt
 foreign import ccall "SSL_connect" _ssl_connect :: Ptr SSL_ -> IO CInt

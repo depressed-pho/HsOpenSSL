@@ -32,6 +32,8 @@ main' = do
   print $ "Accepted connection from " ++ show sockaddr
 
   ctx <- SSL.context
+  SSL.contextAddOption ctx SSL.SSL_OP_NO_SSLv2
+  SSL.contextAddOption ctx SSL.SSL_OP_NO_SSLv3
   SSL.contextSetPrivateKeyFile ctx "server.pem"
   SSL.contextSetCertificateFile ctx "server.crt"
   SSL.contextSetCiphers ctx "DEFAULT"

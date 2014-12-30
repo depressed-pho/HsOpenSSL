@@ -9,8 +9,15 @@
 
 	* OpenSSL/Session.hsc (tryShutdown): "shutdown Bidirectional"
 	always resulted in an exception "thread blocked indefinitely in an
-	MVar operation" because of a way we were using withMVar in
-	OpenSSL.Session.tryShutdown.  Reported by Andreas Voellmy (#32)
+	MVar operation" because of the way we were using withMVar in
+	OpenSSL.Session.tryShutdown.  Reported by Andreas Voellmy (#32).
+
+	* OpenSSL/Session.hsc (contextAddOption, contextRemoveOption)
+	(addOption, removeOption, SSLOption): New functions and a data
+	type to disable SSLv3 vulnerable to the POODLE attack.
+	Suggested by Maxim Dikun (#34).
+
+	* HsOpenSSL.cabal (Version): Bump version to 0.11.1
 
 2014-07-13  PHO  <pho@cielonegro.org>
 
@@ -56,16 +63,16 @@
 	a strict ByteString instead of String. This is a
 	backward-incompatible change.
 
-        * HsOpenSSL.cabal (Version): Bump version to 0.11
+	* HsOpenSSL.cabal (Version): Bump version to 0.11
 
 2014-07-13  PHO  <pho@cielonegro.org>
 
-        * OpenSSL/EVP/Cipher.hsc: Expose cipherInit,  Patch by rons.
+	* OpenSSL/EVP/Cipher.hsc: Expose cipherInit,  Patch by rnons (#31).
 
-        * HsOpenSSL.cabal (Exposed-Modules): Expose OpenSSL.EVP.Internal,
-        Patch by rnos.
+	* HsOpenSSL.cabal (Exposed-Modules): Expose OpenSSL.EVP.Internal,
+	Patch by rnons (#31).
 
-        * HsOpenSSL.cabal (Version): Bump version to 0.10.5
+	* HsOpenSSL.cabal (Version): Bump version to 0.10.5
 
 2013-12-25  PHO  <pho@cielonegro.org>
 

@@ -88,4 +88,10 @@ int HsOpenSSL_dsa_verify(DSA *dsa, const unsigned char *ddata, int len,
 DSA* HsOpenSSL_DSAPublicKey_dup(const DSA* dsa);
 DSA* HsOpenSSL_DSAPrivateKey_dup(const DSA* dsa);
 
+/* SSL ************************************************************************/
+long HsOpenSSL_SSL_CTX_set_options(SSL_CTX* ctx, long options);
+long HsOpenSSL_SSL_CTX_clear_options(SSL_CTX* ctx, long options);
+long HsOpenSSL_SSL_set_options(SSL* ssl, long options);
+long HsOpenSSL_SSL_clear_options(SSL* ssl, long options);
+
 #endif

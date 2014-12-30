@@ -262,3 +262,32 @@ DSA* HsOpenSSL_DSAPublicKey_dup(const DSA* dsa) {
 DSA* HsOpenSSL_DSAPrivateKey_dup(const DSA* dsa) {
     return DSAPrivateKey_dup(dsa);
 }
+
+/* SSL ************************************************************************/
+long HsOpenSSL_SSL_CTX_set_options(SSL_CTX* ctx, long options) {
+    return SSL_CTX_set_options(ctx, options);
+}
+
+/* OpenSSL < 0.9.8m does not have SSL_CTX_clear_options() */
+long HsOpenSSL_SSL_CTX_clear_options(SSL_CTX* ctx, long options) {
+#if defined(SSL_CTX_clear_options)
+    return SSL_CTX_clear_options(ctx, options);
+#else
+    long tmp = SSL_CTX_get_options(ctx);
+    return SSL_CTX_set_options(ctx, tmp & ~options);
+#endif
+}
+
+long HsOpenSSL_SSL_set_options(SSL* ssl, long options) {
+    return SSL_set_options(ssl, options);
+}
+
+/* OpenSSL < 0.9.8m does not have SSL_clear_options() */
+long HsOpenSSL_SSL_clear_options(SSL* ssl, long options) {
+#if defined(SSL_clear_options)
+    return SSL_clear_options(ssl, options);
+#else
+    long tmp = SSL_get_options(ssl);
+    return SSL_set_options(ssl, tmp & ~options);
+#endif
+}
