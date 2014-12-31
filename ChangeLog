@@ -1,5 +1,11 @@
 2014-12-31  PHO  <pho@cielonegro.org>
 
+	* OpenSSL/EVP/Internal.hsc (VaguePKey, PKey): Turn documentation
+	comments into Haddock ones.
+
+	* OpenSSL/EVP/PKey.hsc (module): Do not re-export PKey. It was
+	only accidentally re-exported.
+
 	* HsOpenSSL.cabal (Build-Depends): Narrow version ranges that were
 	unnecessarily wide.
 

@@ -7,8 +7,7 @@
 #include "HsOpenSSL.h"
 
 module OpenSSL.EVP.PKey
-    ( PKey
-    , PublicKey(..)
+    ( PublicKey(..)
     , KeyPair(..)
     , SomePublicKey
     , SomeKeyPair

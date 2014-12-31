@@ -285,25 +285,25 @@ digestLazily md lbs = do
 
 {- EVP_PKEY ------------------------------------------------------------------ -}
 
--- VaguePKey is a ForeignPtr to EVP_PKEY, that is either public key or
--- a ker pair. We can't tell which at compile time.
+-- | VaguePKey is a 'ForeignPtr' to 'EVP_PKEY', that is either public
+-- key or a ker pair. We can't tell which at compile time.
 newtype VaguePKey = VaguePKey (ForeignPtr EVP_PKEY)
 data    EVP_PKEY
 
--- Instances of class PKey can be converted back and forth to
--- VaguePKey.
+-- | Instances of class 'PKey' can be converted back and forth to
+-- 'VaguePKey'.
 class PKey k where
-    -- Wrap the key (i.g. RSA) into EVP_PKEY.
+    -- | Wrap the key (i.g. RSA) into 'EVP_PKEY'.
     toPKey        :: k -> IO VaguePKey
 
-    -- Extract the concrete key from the EVP_PKEY. Returns Nothing if
-    -- the type mismatches.
+    -- | Extract the concrete key from the 'EVP_PKEY'. Returns
+    -- 'Nothing' if the type mismatches.
     fromPKey      :: VaguePKey -> IO (Maybe k)
 
-    -- Do the same as EVP_PKEY_size().
+    -- | Do the same as EVP_PKEY_size().
     pkeySize      :: k -> Int
 
-    -- Return the default digesting algorithm for the key.
+    -- | Return the default digesting algorithm for the key.
     pkeyDefaultMD :: k -> IO Digest
 
 foreign import ccall unsafe "EVP_PKEY_new"
