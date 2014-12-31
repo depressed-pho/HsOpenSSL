@@ -1,5 +1,8 @@
 2014-12-31  PHO  <pho@cielonegro.org>
 
+	* HsOpenSSL.cabal (Install-Includes): Removed. HsOpenSSL.h needs
+	not be installed.
+
 	* HsOpenSSL.cabal (Extensions): Removed. Use {-# LANGUAGE #-}
 	pragma instead.
 

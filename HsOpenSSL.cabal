@@ -123,5 +123,3 @@ Library
         cbits/HsOpenSSL.c
     Include-Dirs:
         cbits
-    Install-Includes:
-        HsOpenSSL.h
