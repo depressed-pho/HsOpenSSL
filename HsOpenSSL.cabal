@@ -53,75 +53,75 @@ Flag fast-bignum
         True
 
 Library
-  Build-Depends:
-      base       == 4.*,
-      bytestring >= 0.9   && < 0.11,
-      network    >= 2.1   && < 2.7,
-      old-locale >= 1.0   && < 1.1,
-      time       >= 1.1.1 && < 1.6
-      -- old-locale is only needed if time < 1.5, but Cabal does not
-      -- allow us to express conditional dependencies like this.
+    Build-Depends:
+        base       == 4.*,
+        bytestring >= 0.9   && < 0.11,
+        network    >= 2.1   && < 2.7,
+        old-locale >= 1.0   && < 1.1,
+        time       >= 1.1.1 && < 1.6
+        -- old-locale is only needed if time < 1.5, but Cabal does not
+        -- allow us to express conditional dependencies like this.
 
-  if flag(fast-bignum)
-      CPP-Options: -DFAST_BIGNUM
-      if impl(ghc >= 6.11)
-          -- TODO: integer-gmp >= 1 is not supported yet.
-          -- https://github.com/phonohawk/HsOpenSSL/issues/36
-          Build-Depends: integer-gmp >= 0.2 && < 1
-      else
-          Build-Depends: ghc-prim, integer
+    if flag(fast-bignum)
+        CPP-Options: -DFAST_BIGNUM
+        if impl(ghc >= 6.11)
+            -- TODO: integer-gmp >= 1 is not supported yet.
+            -- https://github.com/phonohawk/HsOpenSSL/issues/36
+            Build-Depends: integer-gmp >= 0.2 && < 1
+        else
+            Build-Depends: ghc-prim, integer
 
-  if os(mingw32)
-      Extra-Libraries: eay32 ssl32
-      C-Sources:          cbits/mutex-win.c
-      CC-Options:         -D MINGW32
-      CPP-Options:        -DCALLCONV=stdcall
-  else
-      Extra-Libraries: crypto ssl
-      C-Sources:          cbits/mutex-pthread.c
-      CC-Options:         -D PTHREAD
-      CPP-Options:        -DCALLCONV=ccall
+    if os(mingw32)
+        Extra-Libraries: eay32 ssl32
+        C-Sources:       cbits/mutex-win.c
+        CC-Options:      -D MINGW32
+        CPP-Options:     -DCALLCONV=stdcall
+    else
+        Extra-Libraries: crypto ssl
+        C-Sources:       cbits/mutex-pthread.c
+        CC-Options:      -D PTHREAD
+        CPP-Options:     -DCALLCONV=ccall
 
-  Exposed-Modules:
-          OpenSSL
-          OpenSSL.BN
-          OpenSSL.EVP.Base64
-          OpenSSL.EVP.Cipher
-          OpenSSL.EVP.Digest
-          OpenSSL.EVP.Internal
-          OpenSSL.EVP.Open
-          OpenSSL.EVP.PKey
-          OpenSSL.EVP.Seal
-          OpenSSL.EVP.Sign
-          OpenSSL.EVP.Verify
-          OpenSSL.Cipher
-          OpenSSL.PEM
-          OpenSSL.PKCS7
-          OpenSSL.Random
-          OpenSSL.DSA
-          OpenSSL.RSA
-          OpenSSL.X509
-          OpenSSL.X509.Revocation
-          OpenSSL.X509.Request
-          OpenSSL.X509.Store
-          OpenSSL.Session
-          OpenSSL.DH
-  Other-Modules:
-          OpenSSL.ASN1
-          OpenSSL.BIO
-          OpenSSL.ERR
-          OpenSSL.Objects
-          OpenSSL.SSL
-          OpenSSL.SSL.Option
-          OpenSSL.Stack
-          OpenSSL.Utils
-          OpenSSL.X509.Name
-          OpenSSL.DH.Internal
-  ghc-options:
-          -Wall
-  C-Sources:
-          cbits/HsOpenSSL.c
-  Include-Dirs:
-          cbits
-  Install-Includes:
-          HsOpenSSL.h
+    Exposed-Modules:
+        OpenSSL
+        OpenSSL.BN
+        OpenSSL.EVP.Base64
+        OpenSSL.EVP.Cipher
+        OpenSSL.EVP.Digest
+        OpenSSL.EVP.Internal
+        OpenSSL.EVP.Open
+        OpenSSL.EVP.PKey
+        OpenSSL.EVP.Seal
+        OpenSSL.EVP.Sign
+        OpenSSL.EVP.Verify
+        OpenSSL.Cipher
+        OpenSSL.PEM
+        OpenSSL.PKCS7
+        OpenSSL.Random
+        OpenSSL.DSA
+        OpenSSL.RSA
+        OpenSSL.X509
+        OpenSSL.X509.Revocation
+        OpenSSL.X509.Request
+        OpenSSL.X509.Store
+        OpenSSL.Session
+        OpenSSL.DH
+    Other-Modules:
+        OpenSSL.ASN1
+        OpenSSL.BIO
+        OpenSSL.ERR
+        OpenSSL.Objects
+        OpenSSL.SSL
+        OpenSSL.SSL.Option
+        OpenSSL.Stack
+        OpenSSL.Utils
+        OpenSSL.X509.Name
+        OpenSSL.DH.Internal
+    GHC-Options:
+        -Wall
+    C-Sources:
+        cbits/HsOpenSSL.c
+    Include-Dirs:
+        cbits
+    Install-Includes:
+        HsOpenSSL.h
