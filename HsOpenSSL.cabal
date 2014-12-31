@@ -54,10 +54,10 @@ Flag fast-bignum
 
 Library
   Build-Depends:
-      base       >= 4 && < 5,
-      bytestring,
-      network    >= 2.1.0.0,
-      old-locale,
+      base       == 4.*,
+      bytestring >= 0.9   && < 0.11,
+      network    >= 2.1   && < 2.7,
+      old-locale >= 1.0   && < 1.1,
       time       >= 1.1.1 && < 1.6
       -- old-locale is only needed if time < 1.5, but Cabal does not
       -- allow us to express conditional dependencies like this.

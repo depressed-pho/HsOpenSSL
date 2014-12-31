@@ -1,5 +1,8 @@
 2014-12-31  PHO  <pho@cielonegro.org>
 
+	* HsOpenSSL.cabal (Build-Depends): Narrow version ranges that were
+	unnecessarily wide.
+
 	* HsOpenSSL.cabal (Build-Depends): ghc-prim is only required when
 	fast-bignum is enabled and the compiler is ghc < 6.11.
 
