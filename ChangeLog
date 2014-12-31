@@ -1,3 +1,9 @@
+2014-12-31  PHO  <pho@cielonegro.org>
+
+	* HsOpenSSL.cabal (Build-Depends) [fast-bignum]: Declare that
+	integer-gmp >= 1 is not supported yet.  Reported by Herbert
+	Valerio Riedel (#36).
+
 2014-12-23  PHO  <pho@cielonegro.org>
 
 	* OpenSSL/ASN1.hsc (peekASN1Time): Support time-1.5,
