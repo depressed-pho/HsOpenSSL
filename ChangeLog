@@ -1,5 +1,8 @@
 2014-12-31  PHO  <pho@cielonegro.org>
 
+	* tests/DSA.hs: Rename to Test/OpenSSL/DSA.hs and make it a cabal
+	test-case.
+
 	* tests/Cipher.hs: Rename to Test/OpenSSL/Cipher.hs and make it a
 	cabal test-case.
 
