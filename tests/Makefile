@@ -1,5 +1,4 @@
 TESTS = \
-	Base64 \
 	Cipher \
 	DSA \
 	$(NULL)
