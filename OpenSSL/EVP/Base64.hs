@@ -1,7 +1,6 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |An interface to Base64 codec.
-
 module OpenSSL.EVP.Base64
     ( -- * Encoding
       encodeBase64
@@ -14,16 +13,19 @@ module OpenSSL.EVP.Base64
     , decodeBase64LBS
     )
     where
-
-import           Control.Exception hiding (block)
+import           Control.Exception (assert)
 import           Data.ByteString.Internal (createAndTrim)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Lazy.Internal as L8Internal
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Data.List
-import           Foreign hiding (unsafePerformIO)
-import           Foreign.C
+#if MIN_VERSION_base(4,5,0)
+import           Foreign.C.Types (CChar(..), CInt(..))
+#else
+import           Foreign.C.Types (CChar, CInt)
+#endif
+import           Foreign.Ptr (Ptr, castPtr)
 import           System.IO.Unsafe (unsafePerformIO)
 
 

@@ -1,8 +1,12 @@
+{-# LANGUAGE DeriveDataTypeable          #-}
+{-# LANGUAGE DeriveFunctor               #-}
+{-# LANGUAGE DeriveFoldable              #-}
+{-# LANGUAGE DeriveTraversable           #-}
+{-# LANGUAGE EmptyDataDecls              #-}
+{-# LANGUAGE ExistentialQuantification   #-}
+{-# LANGUAGE ForeignFunctionInterface    #-}
+{-# LANGUAGE NamedFieldPuns              #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE NamedFieldPuns #-}
 -- | Functions for handling SSL connections. These functions use GHC specific
 --   calls to cooperative the with the scheduler so that 'blocking' functions
 --   only actually block the Haskell thread, not a whole OS thread.

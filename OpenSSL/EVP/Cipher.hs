@@ -1,9 +1,5 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |An interface to symmetric cipher algorithms.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.EVP.Cipher
     ( Cipher
     , getCipherByName

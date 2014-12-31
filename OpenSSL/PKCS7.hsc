@@ -1,11 +1,8 @@
-{- -*- haskell -*- -}
-
--- #prune
-
+{-# LANGUAGE DeriveDataTypeable       #-}
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to PKCS#7 structure and S\/MIME message.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.PKCS7
     ( -- * Types
       Pkcs7
@@ -26,7 +23,7 @@ module OpenSSL.PKCS7
     , readSmime
     )
     where
-
+#include "HsOpenSSL.h"
 import           Data.List
 import           Data.Traversable
 import           Data.Typeable

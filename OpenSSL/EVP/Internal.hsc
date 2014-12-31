@@ -1,3 +1,5 @@
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.EVP.Internal (
     Cipher(..),
     EVP_CIPHER,

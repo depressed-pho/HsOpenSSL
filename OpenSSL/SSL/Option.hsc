@@ -1,4 +1,5 @@
--- See https://www.openssl.org/docs/ssl/SSL_CTX_set_options.html
+{-# LANGUAGE DeriveDataTypeable #-}
+-- | See https://www.openssl.org/docs/ssl/SSL_CTX_set_options.html
 module OpenSSL.SSL.Option
     ( SSLOption(..)
     , optionToIntegral

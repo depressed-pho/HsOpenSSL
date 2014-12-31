@@ -1,9 +1,5 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |An interface to message digest algorithms.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.EVP.Digest
     ( Digest
     , getDigestByName
@@ -17,17 +13,25 @@ module OpenSSL.EVP.Digest
     , pkcs5_pbkdf2_hmac_sha1
     )
     where
-
-import           Data.ByteString.Internal (create)
-import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
+#include "HsOpenSSL.h"
+import Data.ByteString.Internal (create)
+import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Control.Applicative ((<$>))
-import           Foreign hiding (unsafePerformIO)
-import           System.IO.Unsafe (unsafePerformIO)
-import           Foreign.C
-import           OpenSSL.EVP.Internal
-import           OpenSSL.Objects
+import Control.Applicative ((<$>))
+import Foreign.C.String (CString, withCString)
+#if MIN_VERSION_base(4,5,0)
+import Foreign.C.Types (CChar(..), CInt(..), CSize(..), CUInt(..))
+#else
+import Foreign.C.Types (CChar, CInt, CSize, CUInt)
+#endif
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.Marshal.Array (allocaArray)
+import Foreign.Ptr (Ptr, castPtr, nullPtr)
+import Foreign.Storable (peek)
+import OpenSSL.EVP.Internal
+import OpenSSL.Objects
+import System.IO.Unsafe (unsafePerformIO)
 
 foreign import ccall unsafe "EVP_get_digestbyname"
         _get_digestbyname :: CString -> IO (Ptr EVP_MD)

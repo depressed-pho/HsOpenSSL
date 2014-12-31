@@ -1,18 +1,13 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- | PRNG services
 --   See <http://www.openssl.org/docs/crypto/rand.html>
 --   For random Integer generation, see "OpenSSL.BN"
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.Random
     ( -- * Random byte generation
       randBytes
     , prandBytes
     , add
     ) where
-
 import           Foreign
 import           Foreign.C.Types
 import qualified Data.ByteString as BS

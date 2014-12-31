@@ -117,10 +117,6 @@ Library
           OpenSSL.Utils
           OpenSSL.X509.Name
           OpenSSL.DH.Internal
-  Extensions:
-          ForeignFunctionInterface, EmptyDataDecls, MagicHash,
-          UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable,
-          ExistentialQuantification, RankNTypes
   ghc-options:
           -Wall
   C-Sources:

@@ -1,3 +1,4 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.SSL
     ( loadErrorStrings
     , addAllAlgorithms

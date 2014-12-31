@@ -1,11 +1,11 @@
-#include "HsOpenSSL.h"
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.Objects
     ( ObjNameType(..)
     , getObjNames
     )
     where
-
+#include "HsOpenSSL.h"
 import           Data.IORef
 import           Foreign
 import           Foreign.C

@@ -1,3 +1,5 @@
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 {- --------------------------------------------------------------------------- -}
 {-                                                                             -}
 {-                           FOR INTERNAL USE ONLY                             -}

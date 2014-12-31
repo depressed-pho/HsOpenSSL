@@ -1,5 +1,5 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |HsOpenSSL is an OpenSSL binding for Haskell. It can generate RSA
 -- and DSA keys, read and write PEM files, generate message digests,
 -- sign and verify messages, encrypt and decrypt messages.
@@ -27,9 +27,6 @@
 --   (EVP) is available. But I believe no one will complain about the
 --   absence of functions like @RSA_public_encrypt@.
 --
---   [/Key generation of Diffie-Hellman algorithm/] Only RSA and DSA
---   keys can currently be generated.
---
 --   [/X.509 v3 extension handling/] It should be supported in the
 --   future.
 --
@@ -43,9 +40,6 @@
 --
 --   [/ENGINE cryptographic module/] The default implementations work
 --   very well, don't they?
-
-#include "HsOpenSSL.h"
-
 module OpenSSL
     ( withOpenSSL
     )

@@ -1,5 +1,5 @@
-#include "HsOpenSSL.h"
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.X509.Name
     ( X509_NAME
 
@@ -8,13 +8,12 @@ module OpenSSL.X509.Name
     , peekX509Name
     )
     where
-
+#include "HsOpenSSL.h"
 import           Control.Exception
 import           Foreign
 import           Foreign.C
 import           OpenSSL.ASN1
 import           OpenSSL.Utils
-
 
 data X509_NAME
 data X509_NAME_ENTRY

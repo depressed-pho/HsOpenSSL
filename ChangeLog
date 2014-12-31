@@ -1,5 +1,8 @@
 2014-12-31  PHO  <pho@cielonegro.org>
 
+	* HsOpenSSL.cabal (Extensions): Removed. Use {-# LANGUAGE #-}
+	pragma instead.
+
 	* OpenSSL/EVP/Internal.hsc (VaguePKey, PKey): Turn documentation
 	comments into Haddock ones.
 

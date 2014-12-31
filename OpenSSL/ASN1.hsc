@@ -1,5 +1,5 @@
-#include "HsOpenSSL.h"
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.ASN1
     ( ASN1_OBJECT
     , obj2nid
@@ -18,8 +18,7 @@ module OpenSSL.ASN1
     , withASN1Time
     )
     where
-
-
+#include "HsOpenSSL.h"
 import           Control.Exception
 import           Data.Time.Clock
 import           Data.Time.Clock.POSIX

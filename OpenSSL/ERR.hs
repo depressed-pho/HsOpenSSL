@@ -1,3 +1,4 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.ERR
     ( getError
     , peekError

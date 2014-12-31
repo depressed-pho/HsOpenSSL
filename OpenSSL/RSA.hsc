@@ -1,11 +1,8 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE DeriveDataTypeable       #-}
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to RSA public key generator.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.RSA
     ( -- * Type
       RSAKey(..)
@@ -29,14 +26,20 @@ module OpenSSL.RSA
     , rsaKeyPairFinalize -- private
     )
     where
-
-import           Control.Monad
-import           Data.Typeable
-import           Foreign hiding (unsafePerformIO)
-import           System.IO.Unsafe (unsafePerformIO)
-import           Foreign.C
-import           OpenSSL.BN
-import           OpenSSL.Utils
+#include "HsOpenSSL.h"
+import Control.Monad
+import Data.Typeable
+#if MIN_VERSION_base(4,5,0)
+import Foreign.C.Types (CInt(..))
+#else
+import Foreign.C.Types (CInt)
+#endif
+import Foreign.ForeignPtr (ForeignPtr, finalizeForeignPtr, newForeignPtr, withForeignPtr)
+import Foreign.Ptr (FunPtr, Ptr, freeHaskellFunPtr, nullFunPtr, nullPtr)
+import Foreign.Storable (Storable(..))
+import OpenSSL.BN
+import OpenSSL.Utils
+import System.IO.Unsafe (unsafePerformIO)
 
 -- |@'RSAPubKey'@ is an opaque object that represents RSA public key.
 newtype RSAPubKey  = RSAPubKey (ForeignPtr RSA)

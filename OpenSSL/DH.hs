@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- | Diffie-Hellman key exchange
 module OpenSSL.DH
     ( DHP

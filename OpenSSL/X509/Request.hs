@@ -1,9 +1,7 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to PKCS#10 certificate request.
-
 module OpenSSL.X509.Request
     ( -- * Type
       X509Req

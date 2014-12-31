@@ -1,3 +1,5 @@
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.Stack
     ( STACK
     , mapStack
@@ -5,7 +7,6 @@ module OpenSSL.Stack
     , withForeignStack
     )
     where
-
 import           Control.Exception
 import           Foreign
 import           Foreign.C

@@ -1,15 +1,12 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |Asymmetric cipher decryption using encrypted symmetric key. This
 -- is an opposite of "OpenSSL.EVP.Open".
-
 module OpenSSL.EVP.Seal
     ( seal
     , sealBS
     , sealLBS
     )
     where
-
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import           Foreign

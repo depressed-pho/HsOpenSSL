@@ -1,12 +1,9 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE DeriveDataTypeable       #-}
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- | The Digital Signature Algorithm (FIPS 186-2).
 --   See <http://www.openssl.org/docs/crypto/dsa.html>
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.DSA
     ( -- * Type
       DSAKey(..)
@@ -30,16 +27,23 @@ module OpenSSL.DSA
     , tupleToDSAPubKey
     , tupleToDSAKeyPair
     ) where
-
-import           Control.Monad
+#include "HsOpenSSL.h"
+import Control.Monad
 import qualified Data.ByteString as BS
-import           Data.Typeable
-import           Foreign hiding (unsafePerformIO)
-import           System.IO.Unsafe (unsafePerformIO)
-import           Foreign.C (CString)
-import           Foreign.C.Types
-import           OpenSSL.BN
-import           OpenSSL.Utils
+import Data.Typeable
+import Foreign.C.String (CString)
+#if MIN_VERSION_base(4,5,0)
+import Foreign.C.Types (CChar(..), CInt(..))
+#else
+import Foreign.C.Types (CChar, CInt)
+#endif
+import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.Ptr (FunPtr, Ptr, nullPtr)
+import Foreign.Storable (Storable(..))
+import OpenSSL.BN
+import OpenSSL.Utils
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | The type of a DSA public key, includes parameters p, q, g and public.
 newtype DSAPubKey = DSAPubKey (ForeignPtr DSA)

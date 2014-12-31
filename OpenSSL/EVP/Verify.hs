@@ -1,8 +1,7 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE DeriveDataTypeable       #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |Message verification using asymmetric cipher and message digest
 -- algorithm. This is an opposite of "OpenSSL.EVP.Sign".
-
 module OpenSSL.EVP.Verify
     ( VerifyStatus(..)
     , verify
@@ -10,7 +9,6 @@ module OpenSSL.EVP.Verify
     , verifyLBS
     )
     where
-
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.ByteString.Unsafe as B8

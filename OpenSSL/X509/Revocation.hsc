@@ -1,11 +1,8 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE DeriveDataTypeable       #-}
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to Certificate Revocation List.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.X509.Revocation
     ( -- * Types
       CRL
@@ -42,6 +39,7 @@ module OpenSSL.X509.Revocation
     , getRevoked
     )
     where
+#include "HsOpenSSL.h"
 import Control.Monad
 #if OPENSSL_VERSION_NUMBER < 0x10000000
 import Data.List

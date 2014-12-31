@@ -1,26 +1,28 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |Asymmetric cipher decryption using encrypted symmetric key. This
 -- is an opposite of "OpenSSL.EVP.Seal".
-
 module OpenSSL.EVP.Open
     ( open
     , openBS
     , openLBS
     )
     where
-
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.ByteString.Unsafe as B8
-import           Foreign hiding (unsafePerformIO)
-import           System.IO.Unsafe (unsafePerformIO)
-import           Foreign.C
-import           OpenSSL.EVP.Cipher hiding (cipher)
-import           OpenSSL.EVP.PKey
-import           OpenSSL.EVP.Internal
-import           OpenSSL.Utils
-
+import Foreign.C.String (CString)
+#if MIN_VERSION_base(4,5,0)
+import Foreign.C.Types (CChar(..), CInt(..))
+#else
+import Foreign.C.Types (CChar, CInt)
+#endif
+import Foreign.Ptr (Ptr)
+import OpenSSL.EVP.Cipher hiding (cipher)
+import OpenSSL.EVP.PKey
+import OpenSSL.EVP.Internal
+import OpenSSL.Utils
+import System.IO.Unsafe (unsafePerformIO)
 
 foreign import ccall unsafe "EVP_OpenInit"
         _OpenInit :: Ptr EVP_CIPHER_CTX

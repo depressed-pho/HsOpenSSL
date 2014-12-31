@@ -1,9 +1,7 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to X.509 certificate store.
-
 module OpenSSL.X509.Store
     ( X509Store
     , X509_STORE -- private
@@ -28,7 +26,6 @@ module OpenSSL.X509.Store
     , getStoreCtxChain
     )
     where
-
 import Control.Applicative ((<$>))
 import Control.Exception (throwIO, mask_)
 import Foreign

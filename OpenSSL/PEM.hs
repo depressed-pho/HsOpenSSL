@@ -1,7 +1,6 @@
-{- -*- haskell -*- -}
-
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- |An interface to PEM routines.
-
 module OpenSSL.PEM
     ( -- * Password supply
       PemPasswordCallback
@@ -38,7 +37,6 @@ module OpenSSL.PEM
     , readDHParams
     )
     where
-
 import           Control.Exception hiding (try)
 import           Control.Monad
 import qualified Data.ByteString.Char8 as B8

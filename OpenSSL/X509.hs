@@ -1,8 +1,8 @@
-{-# LANGUAGE CPP #-}
-{-# OPTIONS_HADDOCK prune #-}
-
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_HADDOCK prune             #-}
 -- |An interface to X.509 certificate.
-
 module OpenSSL.X509
     ( -- * Type
       X509

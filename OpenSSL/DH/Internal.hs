@@ -1,3 +1,5 @@
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module OpenSSL.DH.Internal (
     DH_,
     DHP,

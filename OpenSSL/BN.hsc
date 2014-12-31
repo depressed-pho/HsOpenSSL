@@ -1,12 +1,15 @@
+#if defined(FAST_BIGNUM)
+{-# LANGUAGE BangPatterns             #-}
+#endif
+{-# LANGUAGE EmptyDataDecls           #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE BangPatterns #-}
-
-#include "HsOpenSSL.h"
-
-{-# OPTIONS_HADDOCK prune #-}
-
+#if defined(FAST_BIGNUM)
+{-# LANGUAGE MagicHash                #-}
+{-# LANGUAGE UnboxedTuples            #-}
+{-# LANGUAGE UnliftedFFITypes         #-}
+#endif
+{-# OPTIONS_HADDOCK prune             #-}
 -- |BN - multiprecision integer arithmetics
-
 module OpenSSL.BN
     ( -- * Type
       BigNum
@@ -39,7 +42,7 @@ module OpenSSL.BN
     , prandIntegerOneToNMinusOne
     )
     where
-
+#include "HsOpenSSL.h"
 import           Control.Exception hiding (try)
 import qualified Data.ByteString as BS
 import           Foreign.Marshal
@@ -48,7 +51,7 @@ import           Foreign.Storable
 import           OpenSSL.Utils
 import           System.IO.Unsafe
 
-#ifdef FAST_BIGNUM
+#if defined(FAST_BIGNUM)
 import           Foreign.C.Types
 import           GHC.Base
 #  if MIN_VERSION_integer_gmp(0,2,0)
@@ -90,7 +93,7 @@ wrapBN :: Ptr BIGNUM -> BigNum
 wrapBN = BigNum
 
 
-#ifndef FAST_BIGNUM
+#if !defined(FAST_BIGNUM)
 
 {- slow, safe functions ----------------------------------------------------- -}
 

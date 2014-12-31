@@ -1,6 +1,5 @@
-#include "HsOpenSSL.h"
-#include "openssl/aes.h"
-
+{-# LANGUAGE EmptyDataDecls           #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 -- | This module interfaces to some of the OpenSSL ciphers without using
 --   EVP (see OpenSSL.EVP.Cipher). The EVP ciphers are easier to use,
 --   however, in some cases you cannot do without using the OpenSSL
@@ -19,7 +18,8 @@ module OpenSSL.Cipher
     , aesCBC
     , aesCTR)
     where
-
+#include "HsOpenSSL.h"
+#include "openssl/aes.h"
 import           Control.Monad (when, unless)
 import           Data.IORef
 import           Foreign

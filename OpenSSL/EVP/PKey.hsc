@@ -1,11 +1,9 @@
-{- -*- haskell -*- -}
-
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ForeignFunctionInterface  #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# OPTIONS_GHC -fno-warn-orphans      #-}
 -- |An interface to asymmetric cipher keypair.
-
-#include "HsOpenSSL.h"
-
 module OpenSSL.EVP.PKey
     ( PublicKey(..)
     , KeyPair(..)
@@ -13,6 +11,7 @@ module OpenSSL.EVP.PKey
     , SomeKeyPair
     )
     where
+#include "HsOpenSSL.h"
 import Data.Typeable
 import Data.Maybe
 import Foreign
@@ -56,13 +55,13 @@ withConcretePubKey pk f
     = withPKeyPtr pk $ \ pkeyPtr ->
           do pkeyType <- (#peek EVP_PKEY, type) pkeyPtr :: IO CInt
              case pkeyType of
-#ifndef OPENSSL_NO_RSA
+#if !defined(OPENSSL_NO_RSA)
                (#const EVP_PKEY_RSA)
                    -> do rsaPtr   <- _get1_RSA pkeyPtr
                          Just rsa <- absorbRSAPtr rsaPtr
                          f (rsa :: RSAPubKey)
 #endif
-#ifndef OPENSSL_NO_DSA
+#if !defined(OPENSSL_NO_DSA)
                (#const EVP_PKEY_DSA)
                    -> do dsaPtr   <- _get1_DSA pkeyPtr
                          Just dsa <- absorbDSAPtr dsaPtr
@@ -76,13 +75,13 @@ withConcreteKeyPair pk f
     = withPKeyPtr pk $ \ pkeyPtr ->
           do pkeyType <- (#peek EVP_PKEY, type) pkeyPtr :: IO CInt
              case pkeyType of
-#ifndef OPENSSL_NO_RSA
+#if !defined(OPENSSL_NO_RSA)
                (#const EVP_PKEY_RSA)
                    -> do rsaPtr   <- _get1_RSA pkeyPtr
                          Just rsa <- absorbRSAPtr rsaPtr
                          f (rsa :: RSAKeyPair)
 #endif
-#ifndef OPENSSL_NO_DSA
+#if !defined(OPENSSL_NO_DSA)
                (#const EVP_PKEY_DSA)
                    -> do dsaPtr   <- _get1_DSA pkeyPtr
                          Just dsa <- absorbDSAPtr dsaPtr
@@ -145,7 +144,7 @@ instance PKey SomeKeyPair where
         = withConcreteKeyPair pk (return . Just . SomeKeyPair)
 
 
-#ifndef OPENSSL_NO_RSA
+#if !defined(OPENSSL_NO_RSA)
 -- The resulting Ptr RSA must be freed by caller.
 foreign import ccall unsafe "EVP_PKEY_get1_RSA"
         _get1_RSA :: Ptr EVP_PKEY -> IO (Ptr RSA)
@@ -186,7 +185,7 @@ instance PKey RSAKeyPair where
 #endif
 
 
-#ifndef OPENSSL_NO_DSA
+#if !defined(OPENSSL_NO_DSA)
 foreign import ccall unsafe "EVP_PKEY_get1_DSA"
         _get1_DSA :: Ptr EVP_PKEY -> IO (Ptr DSA)
 
