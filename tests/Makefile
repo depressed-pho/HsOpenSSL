@@ -1,5 +1,4 @@
 TESTS = \
-	Cipher \
 	DSA \
 	$(NULL)
 

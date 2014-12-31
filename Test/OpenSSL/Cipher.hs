@@ -1,16 +1,19 @@
 -- | Tests for the non-EVP ciphers
-module Main where
-
-import           Control.Monad (unless)
+module Main (main) where
 import qualified Data.ByteString as BS
-
-import           OpenSSL.Cipher
+import OpenSSL.Cipher
+import qualified Test.Framework as TF
+import qualified Test.Framework.Providers.HUnit as TF
+import Test.HUnit
 
 -- | Convert a hex string to a ByteString (e.g. "0011" == BS.pack [0, 0x11])
+hexToBS :: String -> BS.ByteString
 hexToBS [] = BS.empty
 hexToBS (a : b : rest) = BS.append (BS.singleton ((valueOfHexChar a * 16) + valueOfHexChar b))
                                          (hexToBS rest)
+hexToBS xs = error ("hexToBS: invalid hex string: " ++ xs)
 
+valueOfHexChar :: Integral a => Char -> a
 valueOfHexChar '0' = 0
 valueOfHexChar '1' = 1
 valueOfHexChar '2' = 2
@@ -33,23 +36,7 @@ valueOfHexChar 'C' = 12
 valueOfHexChar 'D' = 13
 valueOfHexChar 'E' = 14
 valueOfHexChar 'F' = 15
-
-hexOf 0 = '0'
-hexOf 1 = '1'
-hexOf 2 = '2'
-hexOf 3 = '3'
-hexOf 4 = '4'
-hexOf 5 = '5'
-hexOf 6 = '6'
-hexOf 7 = '7'
-hexOf 8 = '8'
-hexOf 9 = '9'
-hexOf 10 = 'a'
-hexOf 11 = 'b'
-hexOf 12 = 'c'
-hexOf 13 = 'd'
-hexOf 14 = 'e'
-hexOf 15 = 'f'
+valueOfHexChar x   = error ("valueOfHexChar: invalid char: " ++ show x)
 
 -- | A test containing counter mode test vectors
 data CTRTest = CTRTest BS.ByteString  -- ^ key
@@ -58,6 +45,7 @@ data CTRTest = CTRTest BS.ByteString  -- ^ key
                        BS.ByteString  -- ^ cipher text
 
 -- Test vectors from draft-ietf-ipsec-ciph-aes-ctr-05 section 6
+ctrTests :: [CTRTest]
 ctrTests = [
   CTRTest (hexToBS "AE6852F8121067CC4BF7A5765577F39E")
           (hexToBS "00000030000000000000000000000001")
@@ -76,16 +64,15 @@ ctrTests = [
           (hexToBS "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20212223")
           (hexToBS "EB6C52821D0BBBF7CE7594462ACA4FAAB407DF866569FD07F48CC0B583D6071F1EC0E6B8") ]
 
-runCtrTest :: CTRTest -> IO Bool
-runCtrTest (CTRTest key iv plaintext ciphertext) = do
-  ctx <- newAESCtx Encrypt key iv
-  ct <- aesCTR ctx plaintext
-  return (ct == ciphertext)
+runCtrTest :: CTRTest -> Test
+runCtrTest (CTRTest key iv plaintext ciphertext) =
+    TestCase $ do
+      ctx <- newAESCtx Encrypt key iv
+      ct  <- aesCTR ctx plaintext
+      assertEqual "" ciphertext ct
 
-runCtrTests :: IO Bool
-runCtrTests = fmap (all (== True)) (mapM runCtrTest ctrTests)
+tests :: Test
+tests = TestList $ map runCtrTest ctrTests
 
-main = do
-  r <- runCtrTests
-  unless r $ fail "CTR tests failed"
-  putStrLn "PASS"
+main :: IO ()
+main = TF.defaultMain $ TF.hUnitTestToTests tests
