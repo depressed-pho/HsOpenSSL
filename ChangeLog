@@ -1,3 +1,10 @@
+2015-01-06  PHO  <pho@cielonegro.org>
+
+	* HsOpenSSL.cabal (Version): Bump version to 0.11.1.1
+
+	* OpenSSL/SSL/Option.hsc: Guard SSL_OP_SAFARI_ECDHE_ECDSA_BUG with
+	#if defined(),  Reported by Leon Mergen (#37).
+
 2014-12-31  PHO  <pho@cielonegro.org>
 
 	* tests/DSA.hs: Rename to Test/OpenSSL/DSA.hs and make it a cabal

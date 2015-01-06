@@ -25,10 +25,12 @@ data SSLOption
     | SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG
     | SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
     | SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER
+#if defined(SSL_OP_SAFARI_ECDHE_ECDSA_BUG)
       -- | Don't prefer ECDHE-ECDSA ciphers when the client appears to
       -- be Safari on OS X. OS X 10.8..10.8.3 has broken support for
       -- ECDHE-ECDSA ciphers.
     | SSL_OP_SAFARI_ECDHE_ECDSA_BUG
+#endif
     | SSL_OP_SSLEAY_080_CLIENT_DH_BUG
     | SSL_OP_TLS_D5_BUG
     | SSL_OP_TLS_BLOCK_PADDING_BUG
@@ -142,7 +144,9 @@ optionToIntegral SSL_OP_NETSCAPE_CHALLENGE_BUG                 = #const SSL_OP_N
 optionToIntegral SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG       = #const SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG
 optionToIntegral SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG            = #const SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
 optionToIntegral SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER             = #const SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER
+#if defined(SSL_OP_SAFARI_ECDHE_ECDSA_BUG)
 optionToIntegral SSL_OP_SAFARI_ECDHE_ECDSA_BUG                 = #const SSL_OP_SAFARI_ECDHE_ECDSA_BUG
+#endif
 optionToIntegral SSL_OP_SSLEAY_080_CLIENT_DH_BUG               = #const SSL_OP_SSLEAY_080_CLIENT_DH_BUG
 optionToIntegral SSL_OP_TLS_D5_BUG                             = #const SSL_OP_TLS_D5_BUG
 optionToIntegral SSL_OP_TLS_BLOCK_PADDING_BUG                  = #const SSL_OP_TLS_BLOCK_PADDING_BUG
